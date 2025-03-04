@@ -1,7 +1,6 @@
 import { getValidToken } from "./authService.js";
 
-const API_BASE_URL = "https://api.example.com"; // Replace with actual API URL
-
+const API_BASE_URL = "POST: https://id.twitch.tv/oauth2/token?client_id=4zg09ijwmpkhl2z3g5gx9ed3ehwjux&client_secret=3h5na9gwagbhrawpd69wf4k2n4uwb9&grant_type=client_credentials"; 
 const fetchData = async (endpoint) => {
   const token = await getValidToken();
   if (!token) {
