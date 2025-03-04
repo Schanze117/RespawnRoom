@@ -5,18 +5,18 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "npx tsc",
-    "start": "npm run build && node dist/server.js --ignore client",
-    "dev": "npx nodemon",
+    "build": "echo \"No build step required\"",
+    "start": "node server.js --ignore client",
+    "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "seed": "node dist/seeds/index.js"
+    "seed": "node seeds/index.js"
   },
   "nodemonConfig": {
     "watch": [
       "src"
     ],
-    "ext": "ts,json,js",
-    "exec": "npx tsc && node dist/server.js"
+    "ext": "js,json",
+    "exec": "node server.js"
   },
   "keywords": [],
   "author": "",
