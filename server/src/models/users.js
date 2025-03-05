@@ -19,6 +19,7 @@ export function UserFactory(sequelize) {
     {
       tableName: 'users',
       sequelize,
+      timestamps: false,
     }
   );
 

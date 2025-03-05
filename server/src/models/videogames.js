@@ -21,12 +21,13 @@ export function VideoGameFactory(sequelize) {
       },
       userId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
       },
     },
     {
       tableName: 'videogames',
       sequelize,
+      timestamps: false,
     }
   );
 
