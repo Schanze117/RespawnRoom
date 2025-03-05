@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/', async (_req, res) => {
     try {
         const videogames = await VideoGame.findAll({
-            include : [{ model: User, as: 'assignedUser', attributes: ['userName'] }],
+            include : [{ model: User, as: 'user', attributes: ['userName'] }],
         });
         res.json(videogames);
     } catch (err) {
@@ -20,7 +20,7 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
     try {
         const videogame = await VideoGame.findByPk(id, {
-            include : [{ model: User, as: 'assignedUser', attributes: ['userName'] }],
+            include : [{ model: User, as: 'user', attributes: ['userName'] }],
         });
         if (!videogame) {
             res.status(404).json({ message: 'Video game not found' });
