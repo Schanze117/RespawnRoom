@@ -4,7 +4,7 @@ import { User } from '../../models/index.js';
 const router = express.Router();
 
 // Get all users
-router.get('/', async (req, res) => {
+router.get('/', async (_req, res) => {
     try {
         const users = await User.findAll();
         res.json(users);
@@ -15,8 +15,9 @@ router.get('/', async (req, res) => {
 
 // Get a single user by ID
 router.get('/:id', async (req, res) => {
+    const { id } = req.params;
     try {
-        const user = await User.findByPk(req.params.id);
+        const user = await User.findByPk(id);
         if (!user) {
             res.status(404).json({ message: 'User not found' });
             return;
@@ -31,7 +32,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
     const { userName } = req.body;
     try {
-        const newUser = await User.create({userName});
+        const newUser = await User.create({ userName });
         res.status(201).json(newUser);
     } catch (err) {
         res.status(400).json(err);
@@ -40,13 +41,15 @@ router.post('/', async (req, res) => {
 
 // Update a user by ID
 router.put('/:id', async (req, res) => {
+    const { id } = req.params;
+    const { userName } = req.body;
     try {
-        const user = await User.findByPk(req.params.id);
+        const user = await User.findByPk(id);
         if (!user) {
             res.status(404).json({ message: 'User not found' });
             return;
         }
-        await user.update(req.body);
+        await user.update({ userName });
         res.json(user);
     } catch (err) {
         res.status(400).json(err);
@@ -55,8 +58,9 @@ router.put('/:id', async (req, res) => {
 
 // Delete a user by ID
 router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
     try {
-        const user = await User.findByPk(req.params.id);
+        const user = await User.findByPk(id);
         if (!user) {
             res.status(404).json({ message: 'User not found' });
             return;
@@ -67,3 +71,5 @@ router.delete('/:id', async (req, res) => {
         res.status(500).json(err);
     }
 });
+
+export { router as userRoutes };

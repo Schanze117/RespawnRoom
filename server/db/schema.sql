@@ -1,3 +1,3 @@
-DROP DATABASE IF EXISTS `videoGames_db`;
+DROP DATABASE IF EXISTS videogames_db;
 
-CREATE DATABASE `videoGames_db`;
+CREATE DATABASE videogames_db;
