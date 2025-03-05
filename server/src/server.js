@@ -1,4 +1,4 @@
-const forceDatabaseRefresh = true;
+const forceDatabaseRefresh = false;
 
 import express from 'express';
 import sequelize from './config/connection.js';

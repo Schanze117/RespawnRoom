@@ -1,12 +1,14 @@
 import express from 'express';
-import { User } from '../../models/index.js';
+import { User, VideoGame } from '../../models/index.js';
 
 const router = express.Router();
 
 // Get all users
 router.get('/', async (_req, res) => {
     try {
-        const users = await User.findAll();
+        const users = await User.findAll({
+                include : [{ model: VideoGame, as: 'videoGames', }],
+            });
         res.json(users);
     } catch (err) {
         res.status(500).json(err);
@@ -17,7 +19,9 @@ router.get('/', async (_req, res) => {
 router.get('/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const user = await User.findByPk(id);
+        const user = await User.findByPk(id, {
+            include : [{ model: VideoGame, as: 'videoGames', }],
+        });
         if (!user) {
             res.status(404).json({ message: 'User not found' });
             return;
