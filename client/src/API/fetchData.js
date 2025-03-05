@@ -1,9 +1,9 @@
 import {API_BASE_URL} from './API/api.js';
 
-const fetchData = async (endpoint) => {
+const fetchData = async (games) => {
     try{
-        const response = await fetch (`${API_BASE_URL}/${endpoint}`, {
-            method: "Get",
+        const response = await fetch (`${API_BASE_URL}/${games}`, {
+            method: "POST",
             headers:{
                 "Content-type": "application/json",
             },
