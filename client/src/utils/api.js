@@ -30,7 +30,7 @@ const searchGames = async (game) => {
     return data;
   } catch (error) {
     console.error("Error fetching game data:", error);
-    throw error;
+    throw error; // Re-throw the error after logging it
   }
 };
 
