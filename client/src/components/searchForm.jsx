@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { LuSearch } from "react-icons/lu";
 import { searchGames } from '../utils/api'; // Import the searchGames function
-import { LuSearch } from "react-icons/lu";
 
 export default function SearchForm() {
     const [searchForm, setSearchForm] = useState({
@@ -30,11 +29,9 @@ export default function SearchForm() {
     }
 
     return (
-        <form className="flex  mx-auto space-y-4 px-4 pt-4" onSubmit={handleSubmit}>
-            <label className="mb-2 text-sm font-medium sr-only">Search</label>
         <div>
             <form className="flex mx-auto space-y-4 p-4" onSubmit={handleSubmit}>
-                <label className="mb-2 text-sm font-medium sr-only"></label>
+                <label className="mb-2 text-sm font-medium sr-only">Search</label>
                 <div className='relative text-light w-full'>
                     <div className='absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none'>
                         <LuSearch />
