@@ -1,7 +1,4 @@
 import { useState } from 'react';
-
-import Perspectives from './discoverComponents/perspectives';
-
 import DiscoverWrapper from './discoverComponents/discoverWrapper';
 
 
@@ -9,6 +6,8 @@ export default function DiscoverForm() {
     const [discoverForm, setDiscoverForm] = useState({
         genre: [],
         playerPerspective: [],
+        themes: [],
+        modes: []
     });
 
 
