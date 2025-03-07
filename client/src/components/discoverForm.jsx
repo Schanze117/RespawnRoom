@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { filterGames } from '../utils/api';
 
+import Perspectives from './discoverComponents/perspectives';
+
+import DiscoverWrapper from './discoverComponents/discoverWrapper';
+
 
 export default function DiscoverForm() {
     const [discoverForm, setDiscoverForm] = useState({
@@ -13,6 +17,7 @@ export default function DiscoverForm() {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
+        
         if (type === 'checkbox') {
             setDiscoverForm((prev) => {
                 if (checked) {
@@ -40,6 +45,9 @@ export default function DiscoverForm() {
     };
 
     return (
+        <form className="flex flex-col space-y-4 px-2 pt-2 mb-3" onSubmit={handleSubmit}>
+            <DiscoverWrapper discoverForm={discoverForm} handleChange={handleChange} />
+            <button type="submit" className="py-2 mx-2.5 bg-primary-500 text-light rounded-lg">Search</button>
     <div>
         <form className="flex flex-col space-y-4 p-4" onSubmit={handleSubmit}>
             <div className='grid grid-cols-4 gap-4'>
