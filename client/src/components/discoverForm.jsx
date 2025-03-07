@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { filterGames } from '../utils/api';
 
 
 export default function DiscoverForm() {
@@ -6,6 +7,8 @@ export default function DiscoverForm() {
         genre: [],
         playerPerspective: [],
     });
+    const [searchResults, setSearchResults] = useState([]);
+
 
 
     const handleChange = (e) => {
@@ -23,13 +26,21 @@ export default function DiscoverForm() {
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         console.log("Form submitted:", discoverForm);
+        try {
+            const results = await filterGames(discoverForm.genre, discoverForm.playerPerspective);
+            setSearchResults(results);
+            console.log("Search results:", results);
+        } catch (error) {
+            console.error("Error filtering games:", error);
+        }
         setDiscoverForm({ genre: [], playerPerspective: [] });
     };
 
     return (
+    <div>
         <form className="flex flex-col space-y-4 p-4" onSubmit={handleSubmit}>
             <div className='grid grid-cols-4 gap-4'>
                 {/* Genre */}
@@ -40,8 +51,8 @@ export default function DiscoverForm() {
                             <input
                                 type="checkbox"
                                 name="genre"
-                                value="Adventure"
-                                checked={discoverForm.genre.includes("Adventure")}
+                                value="31"
+                                checked={discoverForm.genre.includes("31")}
                                 onChange={handleChange}
                             />
                             <label className="text-light">Adventure</label>
@@ -388,8 +399,25 @@ export default function DiscoverForm() {
             
             <button type="submit" className="p-2 bg-primary-500 text-light rounded-lg">Search</button>
         </form>
-    )
-
+        <div>
+            {searchResults.length > 0 ? (
+                searchResults.map((game) => (
+                    <div key={game.id} className="flex flex-col p-4 space-y-2 bg-surface-500 rounded-lg">
+                        <h2 className="text-light text-lg font-medium">{game.name}</h2>
+                        {game.cover && game.cover.url && (
+                            <img src={game.cover.url} alt={game.name} className="w-32 h-32 object-cover rounded-lg" />
+                        )}
+                        <p className="text-light">{game.summary || 'No summary available'}</p>
+                        <p className="text-light">Genres: {game.genres ? game.genres.map((genre) => genre.name).join(", ") : 'N/A'}</p>
+                        <p className="text-light">Perspectives: {game.player_perspectives ? game.player_perspectives.map((perspective) => perspective.name).join(", ") : 'N/A'}</p>
+                    </div>
+                ))
+            ) : (
+                <p className="text-light">No results found</p>
+            )}
+        </div>
+    </div>
+    );
 }
 
 
