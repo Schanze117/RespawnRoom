@@ -30,7 +30,7 @@ export default function DiscoverForm() {
     const handleSubmit = (e) => {
         e.preventDefault();
         console.log("Form submitted:", discoverForm);
-        setDiscoverForm({ genre: [], playerPerspective: [] });
+        setDiscoverForm({ genre: [], playerPerspective: [], themes: [], modes: [] });
     };
 
     return (
