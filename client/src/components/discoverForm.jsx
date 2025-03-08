@@ -10,6 +10,8 @@ export default function DiscoverForm() {
     const [discoverForm, setDiscoverForm] = useState({
         genre: [],
         playerPerspective: [],
+        themes: [],
+        modes: []
     });
     const [searchResults, setSearchResults] = useState([]);
 
@@ -42,6 +44,7 @@ export default function DiscoverForm() {
             console.error("Error filtering games:", error);
         }
         setDiscoverForm({ genre: [], playerPerspective: [] });
+        setDiscoverForm({ genre: [], playerPerspective: [], themes: [], modes: [] });
     };
 
     return (
