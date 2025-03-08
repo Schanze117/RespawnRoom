@@ -35,7 +35,7 @@ export default function DiscoverForm() {
         e.preventDefault();
         console.log("Form submitted:", discoverForm);
         try {
-            const results = await filterGames(discoverForm.genre, discoverForm.playerPerspective);
+            const results = await filterGames(discoverForm.genre, discoverForm.playerPerspective, discoverForm.themes, discoverForm.modes);
             setSearchResults(results);
             console.log("Search results:", results);
         } catch (error) {

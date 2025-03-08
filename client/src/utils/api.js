@@ -31,7 +31,7 @@ export const searchGames = async (game) => {
   }
 };
 
-export const filterGames = async (genres = [], playerPerspectives = []) => {
+export const filterGames = async (genres = [], playerPerspectives = [], themes = [], modes = []) => {
   try {
     const token = import.meta.env.VITE_ACCESS_TOKEN;
     const clientId = import.meta.env.VITE_CLIENT_ID;
@@ -42,7 +42,9 @@ export const filterGames = async (genres = [], playerPerspectives = []) => {
 
     const genreQuery = genres.length > 0 ? `genres = (${genres.join(',')})` : '';
     const perspectiveQuery = playerPerspectives.length > 0 ? `player_perspectives = (${playerPerspectives.join(',')})` : '';
-    const whereClause = [genreQuery, perspectiveQuery].filter(Boolean).join(' & ');
+    const themeQuery = themes.length > 0 ? `themes = (${themes.join(',')})` : '';
+    const modesQuery = modes.length > 0 ? `game_modes = (${modes.join(',')})` : '';
+    const whereClause = [genreQuery, perspectiveQuery, themeQuery, modesQuery].filter(Boolean).join(' & ');
 
     const response = await fetch(`${API_BASE_URL}/games`, {
       method: 'POST',
