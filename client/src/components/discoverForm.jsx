@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { filterGames } from '../utils/api';
 
-import Perspectives from './discoverComponents/perspectives';
-
 import DiscoverWrapper from './discoverComponents/discoverWrapper';
 
 
@@ -43,7 +41,6 @@ export default function DiscoverForm() {
         } catch (error) {
             console.error("Error filtering games:", error);
         }
-        setDiscoverForm({ genre: [], playerPerspective: [] });
         setDiscoverForm({ genre: [], playerPerspective: [], themes: [], modes: [] });
     };
 
