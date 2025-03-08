@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { LuSearch } from "react-icons/lu";
-import { searchGames } from '../utils/api'; // Import the searchGames function
+import { searchGames } from '../utils/api'; 
 
 export default function SearchForm() {
     const [searchForm, setSearchForm] = useState({
         search: ''
     });
     const [searchResults, setSearchResults] = useState([]);
+    const [hasSearched, setHasSearched] = useState(false); 
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -21,6 +22,7 @@ export default function SearchForm() {
             const results = await searchGames(searchForm.search);
             console.log("Search results:", results);
             setSearchResults(results);
+            setHasSearched(true); 
         } catch (error) {
             console.error("Error searching games:", error);
         }
@@ -61,7 +63,7 @@ export default function SearchForm() {
                         </div>
                     ))
                 ) : (
-                    <p className="text-light">No results found</p>
+                    hasSearched && <p className="text-light">No results found</p> // Conditionally render "No results found" based on hasSearched
                 )}
             </div>
         </div>
