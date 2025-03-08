@@ -41,7 +41,6 @@ export const filterGames = async (genres = [], playerPerspectives = []) => {
     }
 
     const genreQuery = genres.length > 0 ? `genres = (${genres.join(',')})` : '';
-    console.log("genreQuery", genreQuery);
     const perspectiveQuery = playerPerspectives.length > 0 ? `player_perspectives = (${playerPerspectives.join(',')})` : '';
     const whereClause = [genreQuery, perspectiveQuery].filter(Boolean).join(' & ');
 
