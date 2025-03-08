@@ -64,7 +64,7 @@ export default function DiscoverForm() {
                     </div>
                 ))
             ) : (
-                <p className="text-light">No results found</p>
+                <p className="text-light"></p>
             )}
         </div>
     </div>
