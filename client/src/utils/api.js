@@ -1,5 +1,6 @@
 const API_BASE_URL = "/api"; 
 
+// Fetches the list of genres from the API and returns them as an array of objects.
 export const searchGames = async (game) => {
   try {
     const token = import.meta.env.VITE_ACCESS_TOKEN;
@@ -31,6 +32,7 @@ export const searchGames = async (game) => {
   }
 };
 
+// Fetches the list of genres from the API and returns them as an array of objects.
 export const filterGames = async (genres = [], playerPerspectives = [], themes = [], modes = []) => {
   try {
     const token = import.meta.env.VITE_ACCESS_TOKEN;
@@ -39,7 +41,6 @@ export const filterGames = async (genres = [], playerPerspectives = [], themes =
     if (!token) {
       throw new Error("No valid authentication token available.");
     }
-
     const genreQuery = genres.length > 0 ? `genres = (${genres.join(',')})` : '';
     const perspectiveQuery = playerPerspectives.length > 0 ? `player_perspectives = (${playerPerspectives.join(',')})` : '';
     const themeQuery = themes.length > 0 ? `themes = (${themes.join(',')})` : '';
@@ -54,7 +55,7 @@ export const filterGames = async (genres = [], playerPerspectives = [], themes =
       },
       body: `fields name, cover.url, summary, genres.name, player_perspectives.name; where ${whereClause};`,
     });
-
+// fields name, cover.url, summary, genres.name, player_perspectives.name; where genres = (5,31) & player_perspectives = (1,2);
     const data = await response.json();
 
     if (!response.ok) {

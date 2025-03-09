@@ -1,5 +1,6 @@
 import {API_BASE_URL} from './API/api.js';
 
+// Fetches the list of genres from the API and returns them as an array of objects.
 const fetchData = async (games) => {
     try{
         const response = await fetch (`${API_BASE_URL}/${games}`, {
@@ -19,8 +20,9 @@ const fetchData = async (games) => {
     }
 };
 
+// Fetches the list of genres from the API and returns them as an array of objects.
 const fetchItem = async () =>{
-    const item = await fetchData(API_BASE_URL); // is this line correct?
+    const item = await fetchData(API_BASE_URL); 
     if(item) {
         console.log('Name:', item.name);
         console.log("Genre:", item.genre);
