@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { filterGames } from '../utils/api';
+
 import DiscoverWrapper from './discoverComponents/discoverWrapper';
 
 
@@ -9,6 +11,8 @@ export default function DiscoverForm() {
         themes: [],
         modes: []
     });
+    const [searchResults, setSearchResults] = useState([]);
+
 
 
     const handleChange = (e) => {
@@ -27,19 +31,44 @@ export default function DiscoverForm() {
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         console.log("Form submitted:", discoverForm);
+        try {
+            const results = await filterGames(discoverForm.genre, discoverForm.playerPerspective, discoverForm.themes, discoverForm.modes);
+            setSearchResults(results);
+            console.log("Search results:", results);
+        } catch (error) {
+            console.error("Error filtering games:", error);
+        }
         setDiscoverForm({ genre: [], playerPerspective: [], themes: [], modes: [] });
     };
 
     return (
+    <div>
         <form className="flex flex-col space-y-4 px-2 pt-2 mb-3" onSubmit={handleSubmit}>
             <DiscoverWrapper discoverForm={discoverForm} handleChange={handleChange} />
             <button type="submit" className="py-2 mx-2.5 bg-primary-500 text-light rounded-lg">Search</button>
         </form>
-    )
-
+        <div>
+            {searchResults.length > 0 ? (
+                searchResults.map((game) => (
+                    <div key={game.id} className="flex flex-col p-4 space-y-2 bg-surface-500 rounded-lg">
+                        <h2 className="text-light text-lg font-medium">{game.name}</h2>
+                        {game.cover && game.cover.url && (
+                            <img src={game.cover.url} alt={game.name} className="w-32 h-32 object-cover rounded-lg" />
+                        )}
+                        <p className="text-light">{game.summary || 'No summary available'}</p>
+                        <p className="text-light">Genres: {game.genres ? game.genres.map((genre) => genre.name).join(", ") : 'N/A'}</p>
+                        <p className="text-light">Perspectives: {game.player_perspectives ? game.player_perspectives.map((perspective) => perspective.name).join(", ") : 'N/A'}</p>
+                    </div>
+                ))
+            ) : (
+                <p className="text-light"></p>
+            )}
+        </div>
+    </div>
+    );
 }
 
 
