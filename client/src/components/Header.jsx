@@ -10,8 +10,7 @@ export default function Header() {
                             <Link to="/" className="text-xl font-bold text-primary-600">RespawnRoom</Link>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <a href="/login" className="text-sm font-medium text-primary-500 rounded-lg hover:bg-tonal-700">Login</a>
-                            <a href="/register" className="text-sm font-medium text-primary-500">Register</a>
+                            <Link to="/login" className="text-sm font-medium text-primary-500 rounded-lg hover:bg-tonal-700">Login</Link>
                         </div>
                     </div>
                 </div>
