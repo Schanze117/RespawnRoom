@@ -6,6 +6,7 @@ import App from './App.jsx';
 import Home from './pages/home.jsx';
 import Search from './pages/search.jsx';
 import Login from './pages/login.jsx';
+import Saved from './pages/saved.jsx';
 
 const router = createBrowserRouter([
 
@@ -20,6 +21,10 @@ const router = createBrowserRouter([
       {
         path: '/search',
         element: <Search />
+      },
+      {
+        path: '/saved',
+        element: <Saved />
       },
       {
         path: '/login',
