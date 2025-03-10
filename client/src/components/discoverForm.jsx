@@ -42,7 +42,7 @@ export default function DiscoverForm() {
 				setDisplay(displayError("Please select at least one filter"));
 				return
 			}	
-            const results = await filterGames(discoverForm.genre, discoverForm.playerPerspective);
+            const results = await filterGames(discoverForm.genre, discoverForm.playerPerspective, discoverForm.themes, discoverForm.modes);
 			if (results.length === 0){
 				setDisplay(displayError("No results found"));
 				return
