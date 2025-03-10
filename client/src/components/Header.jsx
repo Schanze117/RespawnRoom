@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { usestate, useEffect } from "react";
+import { useAuth } from "../utils/auth";
 
 export default function Header() {
     return (
