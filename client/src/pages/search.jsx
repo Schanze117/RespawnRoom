@@ -11,6 +11,7 @@ export default function Search() {
             <SearchForm />
             <h1 className="text-3xl font-bold text-light px-5 py-3">Discover</h1>
             <DiscoverForm />
+            
         </div>
     )
 }

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { filterGames } from '../utils/api';
+import GameCard from './card/gameCard';
 
 import DiscoverWrapper from './discoverComponents/discoverWrapper';
 
@@ -11,9 +12,12 @@ export default function DiscoverForm() {
         themes: [],
         modes: []
     });
-    const [searchResults, setSearchResults] = useState([]);
 
+	const [display, setDisplay] = useState(false);
 
+	function displayError(error){
+		return <div className="text-red-500 py-1 px-5">{error}</div>
+	}
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -33,10 +37,18 @@ export default function DiscoverForm() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log("Form submitted:", discoverForm);
         try {
-            const results = await filterGames(discoverForm.genre, discoverForm.playerPerspective, discoverForm.themes, discoverForm.modes);
-            setSearchResults(results);
+			if (discoverForm.genre.length === 0 && discoverForm.playerPerspective.length === 0 && discoverForm.themes.length === 0 && discoverForm.modes.length === 0){
+				setDisplay(displayError("Please select at least one filter"));
+				return
+			}	
+            const results = await filterGames(discoverForm.genre, discoverForm.playerPerspective);
+			if (results.length === 0){
+				setDisplay(displayError("No results found"));
+				return
+				}
+			setDisplay(<GameCard games={results} />);
+			console.log("Form submitted:", discoverForm);
             console.log("Search results:", results);
         } catch (error) {
             console.error("Error filtering games:", error);
@@ -51,176 +63,8 @@ export default function DiscoverForm() {
             <button type="submit" className="py-2 mx-2.5 bg-primary-500 text-light rounded-lg">Search</button>
         </form>
         <div>
-            {searchResults.length > 0 ? (
-                searchResults.map((game) => (
-                    <div key={game.id} className="flex flex-col p-4 space-y-2 bg-surface-500 rounded-lg">
-                        <h2 className="text-light text-lg font-medium">{game.name}</h2>
-                        {game.cover && game.cover.url && (
-                            <img src={game.cover.url} alt={game.name} className="w-32 h-32 object-cover rounded-lg" />
-                        )}
-                        <p className="text-light">{game.summary || 'No summary available'}</p>
-                        <p className="text-light">Genres: {game.genres ? game.genres.map((genre) => genre.name).join(", ") : 'N/A'}</p>
-                        <p className="text-light">Perspectives: {game.player_perspectives ? game.player_perspectives.map((perspective) => perspective.name).join(", ") : 'N/A'}</p>
-                    </div>
-                ))
-            ) : (
-                <p className="text-light"></p>
-            )}
+           {display}
         </div>
     </div>
     );
 }
-
-
-// Use Virtual Reality as an example to show how to add a hidden checkbox and a label to the form
-
-// Add a clear button to reset the form
-
-// Add themes
-/* 
-{
-		"id": 31,
-		"name": "Drama",
-		"slug": "drama"
-	},
-	{
-		"id": 32,
-		"name": "Non-fiction",
-		"slug": "non-fiction"
-	},
-	{
-		"id": 33,
-		"name": "Sandbox",
-		"slug": "sandbox"
-	},
-	{
-		"id": 34,
-		"name": "Educational",
-		"slug": "educational"
-	},
-	{
-		"id": 35,
-		"name": "Kids",
-		"slug": "kids"
-	},
-	{
-		"id": 38,
-		"name": "Open world",
-		"slug": "open-world"
-	},
-	{
-		"id": 39,
-		"name": "Warfare",
-		"slug": "warfare"
-	},
-	{
-		"id": 40,
-		"name": "Party",
-		"slug": "party"
-	},
-	{
-		"id": 41,
-		"name": "4X (explore, expand, exploit, and exterminate)",
-		"slug": "4x-explore-expand-exploit-and-exterminate"
-	},
-	{
-		"id": 42,
-		"name": "Erotic",
-		"slug": "erotic"
-	},
-	{
-		"id": 43,
-		"name": "Mystery",
-		"slug": "mystery"
-	},
-	{
-		"id": 1,
-		"name": "Action",
-		"slug": "action"
-	},
-	{
-		"id": 17,
-		"name": "Fantasy",
-		"slug": "fantasy"
-	},
-	{
-		"id": 18,
-		"name": "Science fiction",
-		"slug": "science-fiction"
-	},
-	{
-		"id": 19,
-		"name": "Horror",
-		"slug": "horror"
-	},
-	{
-		"id": 20,
-		"name": "Thriller",
-		"slug": "thriller"
-	},
-	{
-		"id": 21,
-		"name": "Survival",
-		"slug": "survival"
-	},
-	{
-		"id": 22,
-		"name": "Historical",
-		"slug": "historical"
-	},
-	{
-		"id": 23,
-		"name": "Stealth",
-		"slug": "stealth"
-	},
-	{
-		"id": 27,
-		"name": "Comedy",
-		"slug": "comedy"
-	},
-	{
-		"id": 28,
-		"name": "Business",
-		"slug": "business"
-	},
-	{
-		"id": 44,
-		"name": "Romance",
-		"slug": "romance"
-	}
-*/
-
-// Add modes
-
-/*
-{
-		"id": 1,
-		"name": "Single player",
-		"slug": "single-player"
-	},
-	{
-		"id": 2,
-		"name": "Multiplayer",
-		"slug": "multiplayer"
-	},
-	{
-		"id": 3,
-		"name": "Co-operative",
-		"slug": "co-operative"
-	},
-	{
-		"id": 4,
-		"name": "Split screen",
-		"slug": "split-screen"
-	},
-	{
-		"id": 5,
-		"name": "Massively Multiplayer Online (MMO)",
-		"slug": "massively-multiplayer-online-mmo"
-	},
-	{
-		"id": 6,
-		"name": "Battle Royale",
-		"slug": "battle-royale"
-	} 
-*/
