@@ -8,6 +8,12 @@ export default function Login() {
         password: ""
     });
 
+    const [display, setDisplay] = useState(false);
+
+    function displayError(error){
+        return <div className="text-red-500 py-1 ">{error}</div>
+    }
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setLoginForm((prev) => ({ ...prev, [name]: value }));
@@ -16,6 +22,10 @@ export default function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            if(loginForm.username === "" || loginForm.password === "") {
+                setDisplay(displayError("Please fill out all fields"));
+                return;
+            }
             console.log("Form submitted:", loginForm);
         } catch (error) {
             console.error("Error logging in:", error);
@@ -55,6 +65,9 @@ export default function Login() {
                         Not registered? <Link to="/register" className="text-primary-800 hover:underline">Create account</Link>
                     </div>
                 </form>
+                <div>
+                    {display}
+                </div>
             </div>  
         </div>
         
