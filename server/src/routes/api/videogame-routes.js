@@ -3,13 +3,11 @@ import { User, VideoGame } from '../../models/index.js';
 
 const router = express.Router();
 
-//Get all videogames
+// Get all videogames
 router.get('/', async (_req, res) => {
-console.log("hello")
-
     try {
         const videogames = await VideoGame.findAll({
-            include : [{ model: User, as: 'user', attributes: ['userName'] }],
+            include: [{ model: User, as: 'user', attributes: ['userName'] }],
         });
         res.json(videogames);
     } catch (err) {
@@ -17,12 +15,12 @@ console.log("hello")
     }
 });
 
-//Get a single videogame by ID
+// Get a single videogame by ID
 router.get('/:id', async (req, res) => {
     const { id } = req.params;
     try {
         const videogame = await VideoGame.findByPk(id, {
-            include : [{ model: User, as: 'user', attributes: ['userName'] }],
+            include: [{ model: User, as: 'user', attributes: ['userName'] }],
         });
         if (!videogame) {
             res.status(404).json({ message: 'Video game not found' });
@@ -36,18 +34,26 @@ router.get('/:id', async (req, res) => {
 
 // Create a new videogame
 router.post('/', async (req, res) => {
-    const { cover, name, genre, playerPerspective, summary, userId  } = req.body;
+    const { cover, name, genres, player_perspectives, summary, userId } = req.body;
     try {
+        // Validate and transform genres and player_perspectives to arrays if necessary
+        const genresArray = Array.isArray(genres) ? genres : genres.split(',').map(genre => genre.trim());
+        const playerPerspectivesArray = Array.isArray(player_perspectives) ? player_perspectives : player_perspectives.split(',').map(perspective => perspective.trim());
+
         const newVideogame = await VideoGame.create({
-            cover, name, genre, playerPerspective, summary, userId,
+            cover,
+            name,
+            genres: genresArray,
+            player_perspectives: playerPerspectivesArray,
+            summary,
+            userId,
         });
         res.status(201).json(newVideogame);
     } catch (err) {
-        console.log(err)
+        console.log(err);
         res.status(400).json(err);
     }
 });
-
 
 // Delete a videogame by ID
 router.delete('/:id', async (req, res) => {
