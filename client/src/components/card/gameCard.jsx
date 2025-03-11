@@ -35,8 +35,9 @@ export default function GameCard({ games }) {
 
     return (
         <div className='flex flex-wrap gap-4 justify-center py-5'>
-            {games.map((game) => (
-                <div key={game.id} className="pb-4 px-4 space-y-2 bg-surface-800 rounded-lg hover:outline-3 hover:outline-primary-600 w-100 h-105 flex flex-col items-center justify-center shadow-md hover:shadow-2xl transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-102">
+            {
+            games.map((game) => (
+                <div key={game.id} className="md:pb-4 md:px-4 md:mx-1 space-y-2 bg-surface-800 rounded-lg hover:outline-3 hover:outline-primary-600 w-100 h-105 flex flex-col items-center justify-center shadow-md hover:shadow-2xl transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-102">
                     <div className="flex flex-row w-full justify-end">
                         <button type="button" onClick={() => saveGame(game)} className='block rounded-sm p-0.5 text-tonal-600 hover:text-tonal-800 focus:text-tonal-800 text-lg bg-primary-500 hover:bg-primary-600 focus:outline-2 focus:outline-offset-1 focus:outline-light rounded-lg'><LuSave /></button>
                     </div>
