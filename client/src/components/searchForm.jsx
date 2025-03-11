@@ -4,33 +4,39 @@ import { searchGames } from '../utils/api';
 import GameCard from './card/gameCard';
 
 export default function SearchForm() {
+    // State to hold the search form data
     const [searchForm, setSearchForm] = useState({
         search: ''
     });
-    
+    // State to hold the search results
     const [display, setDisplay] = useState(false);
-
+    
 	function displayError(error){
 		return <div className="text-red-500 py-1 px-5">{error}</div>
 	}
 
+    // Handle form input changes and update the searchForm state
     const handleChange = (e) => {
         const { name, value } = e.target;
         setSearchForm((prev) => ({ ...prev, [name]: value }));
     }
 
+    // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Check if the search field is empty
             if(searchForm.search === '') {
                 setDisplay(displayError("Please enter a valid name"));
                 return;
             }
+            // Search for games by name
             const results = await searchGames(searchForm.search);
             if(results.length === 0) {
                 setDisplay(displayError("No results found"));
                 return;
             }
+            // Display the search results
             setDisplay(<GameCard games={results} />);
             console.log("Form submitted:", searchForm);
             console.log("Search results:", results);

@@ -11,11 +11,23 @@ export function VideoGameFactory(sequelize) {
         autoIncrement: true,
         primaryKey: true,
       },
+      cover: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
       name: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      genre: {
+      genres: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      player_perspectives: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      summary: {
         type: DataTypes.STRING,
         allowNull: false,
       },
