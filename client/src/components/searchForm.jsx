@@ -1,13 +1,18 @@
 import { useState } from 'react';
 import { LuSearch } from "react-icons/lu";
 import { searchGames } from '../utils/api'; 
+import GameCard from './card/gameCard';
 
 export default function SearchForm() {
     const [searchForm, setSearchForm] = useState({
         search: ''
     });
-    const [searchResults, setSearchResults] = useState([]);
-    const [hasSearched, setHasSearched] = useState(false); 
+    
+    const [display, setDisplay] = useState(false);
+
+	function displayError(error){
+		return <div className="text-red-500 py-1 px-5">{error}</div>
+	}
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -16,13 +21,19 @@ export default function SearchForm() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log("Form submitted:", searchForm);
-
         try {
+            if(searchForm.search === '') {
+                setDisplay(displayError("Please enter a valid name"));
+                return;
+            }
             const results = await searchGames(searchForm.search);
+            if(results.length === 0) {
+                setDisplay(displayError("No results found"));
+                return;
+            }
+            setDisplay(<GameCard games={results} />);
+            console.log("Form submitted:", searchForm);
             console.log("Search results:", results);
-            setSearchResults(results);
-            setHasSearched(true); 
         } catch (error) {
             console.error("Error searching games:", error);
         }
@@ -50,21 +61,7 @@ export default function SearchForm() {
                 </div>
             </form>
             <div>
-                {searchResults.length > 0 ? (
-                    searchResults.map((game) => (
-                        <div key={game.id} className="flex flex-col p-4 space-y-2 bg-surface-500 rounded-lg">
-                            <h2 className="text-light text-lg font-medium">{game.name}</h2>
-                            {game.cover && game.cover.url && (
-                                <img src={game.cover.url} alt={game.name} className="w-32 h-32 object-cover rounded-lg" />
-                            )}
-                            <p className="text-light">{game.summary || 'No summary available'}</p>
-                            <p className="text-light">Genres: {game.genres ? game.genres.map((genre) => genre.name).join(", ") : 'N/A'}</p>
-                            <p className="text-light">Perspectives: {game.player_perspectives ? game.player_perspectives.map((perspective) => perspective.name).join(", ") : 'N/A'}</p>
-                        </div>
-                    ))
-                ) : (
-                    hasSearched && <p className="text-light">No results found</p> // Conditionally render "No results found" based on hasSearched
-                )}
+                {display}
             </div>
         </div>
     )
