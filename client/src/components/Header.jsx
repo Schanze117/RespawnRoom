@@ -1,32 +1,32 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
 import Aside from './headerComponents/Aside';
 import { LuMenu, LuX } from "react-icons/lu";
+import React, { useEffect, useState } from "react";
 
 export default function Header() {
+    const [data, setData] = useState(null);
+    const [error, setError] = useState(null);
+    
+    useEffect(() => {
+        const token = localStorage.getItem('jwtToken'); // Retrieve the token from local storage
 
-    const [asideOpen, setasideOpen] = useState(false);
-
-    function toggleAside() {
-        setasideOpen(!asideOpen);
-    }
-    // State to hold the user
-    const [user, setUser] = useState(null);
-
-    // Function to check if user is logged in
-    const isLoggedIn = () => {
-        if (localStorage.getItem("token") !== null){
-            return true;
-        }else {
-            return false;
+        if (!token) {
+            setError(new Error('No token found'));
+            return;
         }
-    }
 
-    // Function to handle logout
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        window.location.href = "/";
-    }
+        fetch('.\api\videogame-routes.js', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => setData(data))
+        .catch(error => setError(error));
+    }, []);
+
     return (
         <div>
             <header>
@@ -63,6 +63,7 @@ export default function Header() {
         
     )
 }
+
 
 // Add hover effect to the links in the header
 // add top margin to pages
