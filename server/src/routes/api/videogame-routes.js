@@ -5,6 +5,8 @@ const router = express.Router();
 
 //Get all videogames
 router.get('/', async (_req, res) => {
+console.log("hello")
+
     try {
         const videogames = await VideoGame.findAll({
             include : [{ model: User, as: 'user', attributes: ['userName'] }],
@@ -41,6 +43,7 @@ router.post('/', async (req, res) => {
         });
         res.status(201).json(newVideogame);
     } catch (err) {
+        console.log(err)
         res.status(400).json(err);
     }
 });

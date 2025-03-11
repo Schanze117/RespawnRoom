@@ -16,19 +16,19 @@ export function VideoGameFactory(sequelize) {
         allowNull: false,
       },
       name: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+      },
+      genre: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      genres: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      player_perspectives: {
+      playerPerspective: {
         type: DataTypes.STRING,
         allowNull: false,
       },
       summary: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: false,
       },
       userId: {
