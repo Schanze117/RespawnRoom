@@ -65,7 +65,7 @@ export default function DiscoverForm() {
     <div>
         <form className="flex flex-col space-y-4 px-2 pt-2 mb-3" onSubmit={handleSubmit}>
             <DiscoverWrapper discoverForm={discoverForm} handleChange={handleChange} />
-            <button type="submit" className="py-2 mx-2.5 bg-primary-500 text-light rounded-lg">Search</button>
+            <button type="submit" className="py-2 mx-2.5 bg-primary-500 hover:bg-primary-600 text-light rounded-lg">Search</button>
         </form>
         <div>
            {display}
