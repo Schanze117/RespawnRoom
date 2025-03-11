@@ -10,8 +10,8 @@ const seedAll = async () => {
     await seedUsers();
     console.log('\n----- USERS SEEDED -----\n');
 
-    await seedVideoGames();
-    console.log('\n----- VIDEOGAMES SEEDED -----\n');
+    // await seedVideoGames();
+    // console.log('\n----- VIDEOGAMES SEEDED -----\n');
 
     process.exit(0);
   } catch (err) {

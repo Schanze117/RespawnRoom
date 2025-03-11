@@ -5,7 +5,7 @@ export default function GameCard({ games }) {
 
     const saveGame = async (game) => {
         try {
-            const token = localStorage.getItem('authToken'); // Retrieve the token from local storage or another source
+            const token = localStorage.getItem('jwtToken'); // Retrieve the token from local storage or another source
 
             const response = await fetch('/api/videogames', {
                 method: 'POST',

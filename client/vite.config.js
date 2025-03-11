@@ -12,6 +12,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      '/auth': {
+        target: 'http://localhost:3001', // Proxy to your server
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/auth/, '/auth'),
+      },
     },
     port: 3000,
     open: true
