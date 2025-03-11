@@ -18,7 +18,7 @@ export default function Header() {
             return;
         }
 
-        fetch('/api/videogame-routes.js', {
+        fetch('/api2/videogames', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,

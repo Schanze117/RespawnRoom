@@ -7,11 +7,13 @@ export default function Saved() {
 
     // Fetch saved games from the server
     const fetchSavedGames = async () => {
+        const token = localStorage.getItem('jwtToken');
         try {
-            const response = await fetch('/api/videogames', {
+            const response = await fetch('/api2/videogames', {
                 method: 'GET',
                 headers: {
                     'content-type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
                 },
             });
 
