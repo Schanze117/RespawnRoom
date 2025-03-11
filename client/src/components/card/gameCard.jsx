@@ -6,7 +6,7 @@ export default function GameCard({ games }) {
     const saveGame = async (game) => {
         try {
             const token = localStorage.getItem('jwtToken'); // Retrieve the token from local storage or another source
-
+            console.log(game);
             const response = await fetch('/api2/videogames', {
                 method: 'POST',
                 headers: {
@@ -14,11 +14,11 @@ export default function GameCard({ games }) {
                     'Authorization': `Bearer ${token}`, // Include the token in the Authorization header
                 },
                 body: JSON.stringify({
-                    cover: game.cover ? game.cover.url : null,
-                    name: game.name,
-                    genre: game.genres.map((genre) => genre.name).join(', '),
-                    playerPerspective: game.player_perspectives.map((perspective) => perspective.name).join(', '),
-                    summary: game.summary,  
+                    cover: game.cover ? game.cover.url : '',
+                    name: game.name ? game.name : '',
+                    genre: game.genres ? game.genres.map((genre) => genre.name).join(", ") : '',
+                    playerPerspective: game.player_perspectives ? game.player_perspectives.map((perspective) => perspective.name).join(", ") : '',
+                    summary: game.summary ? game.summary: '', 
                 }),
             });
 
