@@ -1,19 +1,47 @@
 # RespawnRoom
 
-## Description
+## Badges
 
-RespawnRoom is an all-in-one gaming hub designed to help gamers discover, organize, and manage their video game collections with ease. Whether you're an avid gamer looking to explore new titles, curate your own personalized wishlists, or stay on top of your gaming backlog, RespawnRoom offers a seamless, user-friendly platform for all your gaming needs.
+![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen)
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![Test Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![GitHub Stars](https://img.shields.io/github/stars/username/repository?style=social)
+![Forks](https://img.shields.io/github/forks/username/repository?style=social)
+![Last Commit](https://img.shields.io/github/last-commit/username/repository)
+![GitHub repo size](https://img.shields.io/badge/Insights-Pulse-blue)
+![Contributors](https://img.shields.io/badge/contributors-5-brightgreen)
 
 ## Table of Contents
+- [Badges](#badges)
+- [Overview](#overview)
+- [Description](#description)
+- [Screenshot & Project Link](#screenshot&project-link)
 - [Key Features](#key-features)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Credits](#credits)
 - [License](#license)
-- [Badges](#badges)
 - [What Did We Learn](#what-did-we-learn)
+- [Roadmap](#roadmap)
 - [How to Contribute](#how-to-contribute)
 - [Tests](#tests)
+- [Credits/Contacts](#credits/contacts)
+
+## Overview
+
+RespawnRoom is your all-in-one gaming hub, designed to streamline the way you discover, organize, and manage your gaming collection. Whether you're looking for your next favorite title, curating a personalized wishlist, or tracking your backlog, RespawnRoom makes it easy to stay on top of it all.
+
+## Description
+
+RespawnRoom offers a seamless, user-friendly platform for all your gaming needs. With features like game discovery, wishlist management, it’s the ultimate tool for gamers who want to keep their gaming journey organized and connected. Whether you're an avid gamer exploring new titles or managing your growing backlog, RespawnRoom enhances your entire gaming experience beyond just playing games.
+
+## SCREENSHOT 
+
+![Image](https://github.com/user-attachments/assets/dee434fb-5803-40a4-a5e3-78f50c85b226)
+![RespawnRoom Screenshot](https://postimg.cc/PPJpD0Rd)
+
+## LINK TO PRJECT TBA
+https://github.com/Schanze117/RespawnRoom
 
 ## Key Features
 
@@ -61,21 +89,6 @@ Once the application is running, you can:
 - Add games to your wishlist.
 - Manage and customize your user profile.
 
-## Credits
-
-Project Team
-
-- Jonathan Correa - https://github.com/xPandemonium
-- Saleh Farah - https://github.com/sfar93
-- James Boulden - https://github.com/JamixB97
-- Aaron Schanzenbach - https://github.com/Schanze117
-- Timothy McGrath - https://github.com/treeewzrd
-
-With help from:
-
-- Tailwind - https://tailwindcss.com/
-- TwitchTV - https://www.twitch.tv/
-
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
@@ -101,6 +114,34 @@ During the development of RespawnRoom, I gained valuable insights into:
 3. **UI/UX Enhancements** - Focused on improving user experience with clean design principles.
 4. **Version Control & Collaboration** - Strengthened my skills in using Git for managing project versions and collaborating with others.
 5. **Feature Development** - Worked on adding interactive features that enhance user engagement.
+
+## Roadmap
+
+✅ Phase 1: Core Features (Current Progress)
+ - User authentication & profiles
+ - Game collection management (add, edit, delete games)
+ - Wishlist & backlog tracking
+ - Basic search and filtering for game discovery
+ - Responsive UI with Tailwind
+ - Advanced Filtering & Sorting (by genre, platform, completion status, etc.)
+
+🔄 Phase 2: Enhancements & User Experience Improvements (Near Future)
+ - Dark Mode & UI customization options
+ - Game Progress Tracking (track hours played, completion percentage)
+ - Cloud Sync & Cross-Device Support
+
+🌍 Phase 3: Community & Social Features (Mid-Term Goals)
+ - User Reviews & Ratings for games
+ - Friends & Game Recommendations based on interests
+ - Public & Private Lists (share your collections)
+ - Activity Feed (track what friends are playing)
+
+🔥 Phase 4: Expansion & Advanced Features (Long-Term Goals)
+ - Game Deals & Price Tracking integration
+ - Backlog Challenge Mode (gamify backlog completion)
+ - AI-Powered Game Suggestions
+ - Mod & DLC Tracking for games
+
 
 ## How to Contribute
 
@@ -134,4 +175,26 @@ To check test coverage, run:
 ```bash
 npm run test:coverage
 ```
+## Credits/Contact
 
+Project Team
+
+- Jonathan Correa - https://github.com/xPandemonium
+   UX/UI Designer: Leads the design of visual elements, ensuring a seamless user experience with React and Tailwind. **Testing/QA
+
+- Saleh Farah - https://github.com/sfar93
+   Backend Developer: Manages token authentication and API integrations. **Testing/QA
+
+- James Boulden - https://github.com/JamixB97
+   Backend Developer: Oversees backend architecture and API integrations. **Testing/QA
+
+- Aaron Schanzenbach - https://github.com/Schanze117
+   Backend Engineer: Handles authentication, task allocation, and team coordination. **Testing/QA
+
+- Timothy McGrath - https://github.com/treeewzrd
+   Documentation: Readme and slideshow creation. **Also contributed to UI enhancements and presentation design. testing/QA
+
+With help from:
+- PostgreSQL - https://www.postgresql.org/
+- Tailwind - https://tailwindcss.com/
+- Twitch API - https://dev.twitch.tv/docs/api/
