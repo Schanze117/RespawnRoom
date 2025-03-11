@@ -40,7 +40,7 @@ export default function Register() {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center mt-35">
+        <div className="flex flex-col items-center justify-center md:mt-35 m-25">
             <div className='w-full max-w-sm p-4 border border-surface-600 rounded-lg shadow-sm sm:p-6 md:p-8 bg-tonal-900'>
                 <form className="space-y-6" onSubmit={handleSubmit}>
                     <h5 className="text-xl font-medium text-light">RespawnRoom // Register</h5>

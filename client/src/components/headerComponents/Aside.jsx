@@ -1,10 +1,22 @@
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { LuSearch, LuSave } from "react-icons/lu";
 
-export default function Aside() {
+export default function Aside({ asideOpen }) {
+    const [isOpen, setisOpen] = useState(false);
+
+    useEffect(() => {
+        if (asideOpen === true){
+            setisOpen(true);
+        }else {
+            setisOpen(false);
+        }
+    }
+    , [asideOpen])
 
     return (
-        <aside className="fixed top-0 left-0 z-10 w-50 pt-20 h-full bg-surface-900 border-r border-surface-600" aria-label="Sidebar">
+        <aside className={`${isOpen ? "" : "hidden"}
+        md:flex fixed top-0 left-0 z-10 w-50 pt-20 h-full bg-surface-900 border-r border-surface-600`} aria-label="Sidebar">
             <div className="h-full px-4 bp-5 overflow-y-auto nav-links no-underline">
                 <u className="space-y-4 font-medium text-lg text-light no-underline list-none">
                     <li>
