@@ -2,11 +2,14 @@ import { Link } from "react-router-dom";
 import Aside from './headerComponents/Aside';
 import { LuMenu, LuX } from "react-icons/lu";
 import React, { useEffect, useState } from "react";
+import Auth from '../utils/auth';
 
 export default function Header() {
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
-    
+    const [asideOpen, setAsideOpen] = useState(false); // State to manage the aside menu
+    const [isLoggedIn, setIsLoggedIn] = useState(Auth.loggedIn()); // State to manage login status
+
     useEffect(() => {
         const token = localStorage.getItem('jwtToken'); // Retrieve the token from local storage
 
@@ -15,7 +18,7 @@ export default function Header() {
             return;
         }
 
-        fetch('.\api\videogame-routes.js', {
+        fetch('/api/videogame-routes.js', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -27,6 +30,15 @@ export default function Header() {
         .catch(error => setError(error));
     }, []);
 
+    const toggleAside = () => {
+        setAsideOpen(!asideOpen);
+    };
+
+    const handleLogout = () => {
+        Auth.logout();
+        setIsLoggedIn(false);
+    };
+
     return (
         <div>
             <header>
@@ -35,22 +47,20 @@ export default function Header() {
                         <div className="flex items-center justify-between">
                             <div className="flex md:hidden items-center space-x-4">
                                 <button onClick={toggleAside} className="text-3xl text-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-900">
-                                    {!asideOpen ?
-                                    <LuMenu /> :
-                                    <LuX />}
+                                    {!asideOpen ? <LuMenu /> : <LuX />}
                                 </button>
                             </div>
                             <div className="flex items-center space-x-4">
                                 <Link to="/" className="text-xl font-bold text-primary-600">RespawnRoom</Link>
                             </div>
                             <div className="flex items-center space-x-4"> 
-                                {!isLoggedIn() ? 
+                                {!isLoggedIn ? 
                                 <button>
-                                <Link to="/login" className="text-lg font-medium text-light py-0.5 px-1 rounded-lg bg-primary-600 hover:bg-primary-700">Log in</Link> 
+                                    <Link to="/login" className="text-lg font-medium text-light py-0.5 px-1 rounded-lg bg-primary-600 hover:bg-primary-700">Log in</Link> 
                                 </button> 
                                 :
                                 <button onClick={handleLogout}>
-                                <Link to="/login" className="text-lg font-medium text-light py-0.5 px-1 rounded-lg bg-primary-600 hover:bg-primary-700">Log out</Link> 
+                                    <Link to="/" className="text-lg font-medium text-light py-0.5 px-1 rounded-lg bg-primary-600 hover:bg-primary-700">Log out</Link> 
                                 </button>}
                             </div>
                         </div>
@@ -59,11 +69,5 @@ export default function Header() {
             </header>
             <Aside asideOpen={asideOpen}/> 
         </div>
-        
-        
-    )
+    );
 }
-
-
-// Add hover effect to the links in the header
-// add top margin to pages
