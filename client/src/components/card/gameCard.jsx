@@ -16,8 +16,8 @@ export default function GameCard({ games }) {
                 body: JSON.stringify({
                     cover: game.cover ? game.cover.url : '',
                     name: game.name ? game.name : '',
-                    genre: game.genres ? game.genres.map((genre) => genre.name).join(", ") : '',
-                    playerPerspective: game.player_perspectives ? game.player_perspectives.map((perspective) => perspective.name).join(", ") : '',
+                    genres: game.genres ? game.genres.map((genre) => genre.name).join(", ") : '',
+                    player_perspectives: game.player_perspectives ? game.player_perspectives.map((perspective) => perspective.name).join(", ") : '',
                     summary: game.summary ? game.summary: '', 
                 }),
             });

@@ -24,6 +24,7 @@ export default function Saved() {
 
             const games = await response.json();
             setSavedGames(games);
+            console.log('games', games);
         }
         catch (error) {
             console.error('Error fetching saved games:', error);

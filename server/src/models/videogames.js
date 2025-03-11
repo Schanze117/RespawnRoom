@@ -19,12 +19,12 @@ export function VideoGameFactory(sequelize) {
         type: DataTypes.TEXT,
         allowNull: false,
       },
-      genre: {
-        type: DataTypes.STRING,
+      genres: {
+        type: DataTypes.ARRAY(DataTypes.STRING), // Use ARRAY type for genres
         allowNull: false,
       },
-      playerPerspective: {
-        type: DataTypes.STRING,
+      player_perspectives: {
+        type: DataTypes.ARRAY(DataTypes.STRING), // Use ARRAY type for player_perspectives
         allowNull: false,
       },
       summary: {

@@ -71,8 +71,8 @@ export default function SavedGameCard() {
                             <div className="flex flex-row w-full h-fit items-center justify-between mb-2">
                                 <h2 className={`text-primary-500 ${game.name.length > 15 ? 'text-lg' : 'text-3xl'} font-medium text-pretty text-center pointer-events-none bg-surface-700 rounded-lg px-1`}>{game.name}</h2>
                                 <div className="flex flex-row items-center justify-center text-center text-pretty text-tonal-400 text-sm bg-surface-700 rounded-lg p-1">
-                                    <p className='pointer-events-none mr-4'><span className="text-primary-400 font-medium pointer-events-none">Genres: </span>{game.genres ? game.genres.map((genre) => genre.name).join(", ") : 'N/A'}</p>
-                                    <p className='pointer-events-none'><span className="text-primary-400 font-medium pointer-events-none">POV: </span>{game.player_perspectives ? game.player_perspectives.map((perspective) => perspective.name).join(", ") : 'N/A'}</p>
+                                    <p className='pointer-events-none mr-4'><span className="text-primary-400 font-medium pointer-events-none">Genres: </span>{Array.isArray(game.genres) ? game.genres.join(", ") : 'N/A'}</p>
+                                    <p className='pointer-events-none'><span className="text-primary-400 font-medium pointer-events-none">POV: </span>{Array.isArray(game.player_perspectives) ? game.player_perspectives.join(", ") : 'N/A'}</p>
                                 </div>
                             </div>
                             <p className="text-light bg-surface-700 rounded-lg h-30 w-full text-base p-2 line-clamp-5 truncate text-pretty pointer-events-none">{game.summary || 'No summary available.'}</p>
