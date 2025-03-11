@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { User } from '../models/user.js';
+import { User } from '../models/users.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
@@ -7,9 +7,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const login = async (req, res) => {
-    const { username, password } = req.body;
+    const { userName, password } = req.body;
     const user = await User.findOne({
-        where: { username },
+        where: { userName },
     });
     if (!user) {
         return res.status(401).json({ message: 'Authentication failed' });
@@ -19,7 +19,7 @@ export const login = async (req, res) => {
         return res.status(401).json({ message: 'Authentication failed' });
     }
     const secretKey = process.env.JWT_SECRET_KEY || '';
-    const token = jwt.sign({ username }, secretKey, { expiresIn: '1h' });
+    const token = jwt.sign({ userName }, secretKey, { expiresIn: '1h' });
     return res.json({ token });
 };
 const router = Router();

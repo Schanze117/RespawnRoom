@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import Auth from '../utils/auth';
-import { login } from '../api/authAPI';
+import { login } from '../Api/auth';
 import { UserLogin } from '../Interfaces/UserLogin';
 
 const Login = () => {
