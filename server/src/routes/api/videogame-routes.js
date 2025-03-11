@@ -36,10 +36,10 @@ router.get('/:id', async (req, res) => {
 
 // Create a new videogame
 router.post('/', async (req, res) => {
-    const { cover, name, genre, playerPerspective, summary  } = req.body;
+    const { cover, name, genre, playerPerspective, summary, userId  } = req.body;
     try {
         const newVideogame = await VideoGame.create({
-            cover, name, genre, playerPerspective, summary,
+            cover, name, genre, playerPerspective, summary, userId,
         });
         res.status(201).json(newVideogame);
     } catch (err) {
