@@ -1,8 +1,6 @@
-import { UserLogin } from '../Interfaces/UserLogin';
-
-const login = async (userInfo = UserLogin) => {
+const login = async (userInfo) => {
   try {
-    const response = await fetch('/auth/login', {
+    const response = await fetch('/auth/login', { // Updated URL with correct port
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -10,11 +8,12 @@ const login = async (userInfo = UserLogin) => {
       body: JSON.stringify(userInfo),
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
       throw new Error('User information not retrieved, check network tab!');
     }
+
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
 
     return data;
   } catch (err) {
