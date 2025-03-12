@@ -6,9 +6,9 @@
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![Test Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![GitHub Stars](https://img.shields.io/github/stars/username/repository?style=social)
-![Forks](https://img.shields.io/github/forks/username/repository?style=social)
-![Last Commit](https://img.shields.io/github/last-commit/username/repository)
+![GitHub Repo stars](https://img.shields.io/github/stars/Schanze117/RespawnRoom?style=flat)
+![GitHub forks](https://img.shields.io/github/forks/Schanze117/RespawnRoom?style=flat)
+![GitHub last commit](https://img.shields.io/github/last-commit/Schanze117/RespawnRoom)
 ![GitHub repo size](https://img.shields.io/badge/Insights-Pulse-blue)
 ![Contributors](https://img.shields.io/badge/contributors-5-brightgreen)
 
@@ -145,7 +145,7 @@ During the development of RespawnRoom, I gained valuable insights into:
 
 ## How to Contribute
 
-Contributions are welcome! To contribute:
+We welcome collaborators! Join us in improving the project. 🚀 To contribute:
 
 1. **Fork the repository.**
 2. **Create a new branch:**
@@ -180,21 +180,22 @@ npm run test:coverage
 Project Team
 
 - Jonathan Correa - https://github.com/xPandemonium
-   UX/UI Designer: Leads the design of visual elements, ensuring a seamless user experience with React and Tailwind. **Testing/QA
+   UX/UI Designer: Leads the design of visual elements, ensuring a seamless user experience with React and Tailwind. Testing/QA
 
 - Saleh Farah - https://github.com/sfar93
-   Backend Developer: Manages token authentication and API integrations. **Testing/QA
+   Frontend Developer: Manages token authentication and API integrations. Testing/QA
 
 - James Boulden - https://github.com/JamixB97
-   Backend Developer: Oversees backend architecture and API integrations. **Testing/QA
+   Backend Developer: Oversees backend architecture and API integrations. Testing/QA
 
 - Aaron Schanzenbach - https://github.com/Schanze117
-   Backend Engineer: Handles authentication, task allocation, and team coordination. **Testing/QA
+   Backend Engineer: Handles authentication, task allocation, and team coordination. Testing/QA
 
 - Timothy McGrath - https://github.com/treeewzrd
-   Documentation: Readme and slideshow creation. **Also contributed to UI enhancements and presentation design. testing/QA
+   Documentation: Readme and slideshow creation. Also contributed to presentation design. testing/QA
 
 With help from:
 - PostgreSQL - https://www.postgresql.org/
 - Tailwind - https://tailwindcss.com/
 - Twitch API - https://dev.twitch.tv/docs/api/
+- IGDB - https://www.igdb.com/
