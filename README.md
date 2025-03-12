@@ -40,7 +40,7 @@ RespawnRoom offers a seamless, user-friendly platform for all your gaming needs.
 ![Image](https://github.com/user-attachments/assets/dee434fb-5803-40a4-a5e3-78f50c85b226)
 ![RespawnRoom Screenshot](https://postimg.cc/PPJpD0Rd)
 
-## LINK TO PRJECT TBA
+## LINK TO PROJECT 
 https://github.com/Schanze117/RespawnRoom
 
 ## Key Features
@@ -92,18 +92,6 @@ Once the application is running, you can:
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
-## Badges
-
-![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen)
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Test Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-blue)
-![GitHub Stars](https://img.shields.io/github/stars/username/repository?style=social)
-![Forks](https://img.shields.io/github/forks/username/repository?style=social)
-![Last Commit](https://img.shields.io/github/last-commit/username/repository)
-![GitHub repo size](https://img.shields.io/badge/Insights-Pulse-blue)
-![Contributors](https://img.shields.io/badge/contributors-5-brightgreen)
 
 ## What Did We Learn?
 
