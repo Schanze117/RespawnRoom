@@ -1,4 +1,4 @@
-const API_BASE_URL = "/api"; 
+const API_BASE_URL = "https://api.igdb.com/v4/api"; 
 
 // Search for games by name
 export const searchGames = async (game) => {
