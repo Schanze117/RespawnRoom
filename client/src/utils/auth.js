@@ -29,17 +29,17 @@ class AuthService {
   }
 
   getToken() {
-    const loggedUser = localStorage.getItem('id_token') || '';
+    const loggedUser = localStorage.getItem('jwtToken') || '';
     return loggedUser;
   }
 
   login(idToken) {
-    localStorage.setItem('id_token', idToken);
+    localStorage.setItem('jwtToken', idToken);
     window.location.assign('/');
   }
 
   logout() {
-    localStorage.removeItem('id_token');
+    localStorage.removeItem('jwtToken');
     window.location.assign('/');
   }
 }

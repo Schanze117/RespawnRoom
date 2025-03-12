@@ -5,7 +5,7 @@ import './index.css'
 import App from './App.jsx';
 import Home from './pages/home.jsx';
 import Search from './pages/search.jsx';
-import Login from './pages/login.jsx';
+import Login from './pages/loginPage.jsx';
 import Saved from './pages/saved.jsx';
 import Register from './pages/register.jsx';
 
