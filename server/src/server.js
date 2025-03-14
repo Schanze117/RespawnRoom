@@ -6,6 +6,9 @@ import routes from './routes/index.js';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import dotenv from 'dotenv';
+dotenv.config();
+// import cors from "cors";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -13,10 +16,39 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 
+
 // Serves static files in the entire client's dist folder
 app.use(express.static('../client/dist'));
-
 app.use(express.json());
+
+
+// route for fetching IGDB API data
+app.post("/api/games", async (req, res) => {
+  const { content } = req.body;
+
+  const API_BASE_URL = "https://api.igdb.com/v4"; 
+  const token = process.env.VITE_ACCESS_TOKEN;
+  const clientId = process.env.VITE_CLIENT_ID;
+
+  const response = await fetch(`${API_BASE_URL}/games`, {
+    method: 'POST',
+    headers: {
+      'Client-ID': clientId,
+      'Authorization': `Bearer ${token}`,
+    },
+    body: content,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(`API Error: ${response.statusText}`);
+  }
+
+  res.status(200).json(data);
+});
+
+
 app.use(routes);
 app.get('*', (req
   , res) => {

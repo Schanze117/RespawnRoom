@@ -3,22 +3,15 @@ const API_BASE_URL = "https://api.igdb.com/v4";
 // Search for games by name
 export const searchGames = async (game) => {
   try {
-    // Get the access token and client ID from the environment
-    const token = import.meta.env.VITE_ACCESS_TOKEN;
-    const clientId = import.meta.env.VITE_CLIENT_ID;
-
-    if (!token) {
-      throw new Error("No valid authentication token available.");
-    }
-    
     // Fetch the game data from the API
-    const response = await fetch(`${API_BASE_URL}/games`, {
+    const response = await fetch(`/api/games`, {
       method: 'POST',
       headers: {
-        'Client-ID': clientId,
-        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-      body: `search "${game}"; fields name, cover.url, summary, genres.name, player_perspectives.name; limit 10;`,
+      body: JSON.stringify({
+        content: `search "${game}"; fields name, cover.url, summary, genres.name, player_perspectives.name; limit 10;`
+      })
     });
     
     const data = await response.json();
@@ -26,6 +19,7 @@ export const searchGames = async (game) => {
     if (!response.ok) {
       throw new Error(`API Error: ${response.statusText}`);
     }
+
     return data;
     
   } catch (error) {
@@ -37,13 +31,6 @@ export const searchGames = async (game) => {
 // Filter games by genre, player perspective, theme, and mode
 export const filterGames = async (genres = [], playerPerspectives = [], themes = [], modes = []) => {
   try {
-    // Get the access token and client ID from the environment
-    const token = import.meta.env.VITE_ACCESS_TOKEN;
-    const clientId = import.meta.env.VITE_CLIENT_ID;
-
-    if (!token) {
-      throw new Error("No valid authentication token available.");
-    }
 
     // Build the query string based on the filters
     const genreQuery = genres.length > 0 ? `genres = (${genres.join(',')})` : '';
@@ -52,14 +39,14 @@ export const filterGames = async (genres = [], playerPerspectives = [], themes =
     const modesQuery = modes.length > 0 ? `game_modes = (${modes.join(',')})` : '';
     const whereClause = [genreQuery, perspectiveQuery, themeQuery, modesQuery].filter(Boolean).join(' & ');
 
-    // Fetch the game data from the API
-    const response = await fetch(`${API_BASE_URL}/games`, {
+    const response = await fetch(`/api/games`, {
       method: 'POST',
       headers: {
-        'Client-ID': clientId,
-        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-      body: `fields name, cover.url, summary, genres.name, player_perspectives.name; where ${whereClause}; limit 100;`,
+      body: JSON.stringify({
+        content:  `fields name, cover.url, summary, genres.name, player_perspectives.name; where ${whereClause}; limit 100;`
+      }),
     });
 
     const data = await response.json();
