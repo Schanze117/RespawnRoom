@@ -17,6 +17,7 @@ export const searchGames = async (game) => {
       headers: {
         'Client-ID': clientId,
         'Authorization': `Bearer ${token}`,
+        'Access-Control-Allow-Origin':'*'
       },
       body: `search "${game}"; fields name, cover.url, summary, genres.name, player_perspectives.name; limit 10;`,
     });
@@ -58,6 +59,7 @@ export const filterGames = async (genres = [], playerPerspectives = [], themes =
       headers: {
         'Client-ID': clientId,
         'Authorization': `Bearer ${token}`,
+        'Access-Control-Allow-Origin':'*'
       },
       body: `fields name, cover.url, summary, genres.name, player_perspectives.name; where ${whereClause}; limit 100;`,
     });
