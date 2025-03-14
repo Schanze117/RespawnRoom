@@ -6,12 +6,20 @@ import routes from './routes/index.js';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import cors from "cors";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.use(
+ cors({
+  origin: "*",
+  methods: ["GET", "POST", "DELETE", "UPDATE", "PUT"],
+  credentials: true,
+ })
+);
 
 // Serves static files in the entire client's dist folder
 app.use(express.static('../client/dist'));
