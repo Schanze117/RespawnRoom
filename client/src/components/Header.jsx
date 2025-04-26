@@ -11,7 +11,7 @@ export default function Header() {
     const [isLoggedIn, setIsLoggedIn] = useState(Auth.loggedIn()); // State to manage login status
 
     useEffect(() => {
-        const token = localStorage.getItem('jwtToken'); // Retrieve the token from local storage
+        const token = Auth.getToken(); // Use Auth utility to get the token
 
         if (!token) {
             setError(new Error('No token found'));

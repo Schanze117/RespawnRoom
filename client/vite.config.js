@@ -13,12 +13,12 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api2/, '/api2'),
       },
       '/api': {
-        target: 'https://api.igdb.com/v4',
+        target: 'http://localhost:3001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        rewrite: (path) => path.replace(/^\/api/, '\/api/'),
       },
       '/auth': {
-        target: 'http://localhost:3001', // Proxy to your server
+        target: 'http://localhost:3001', 
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/auth/, '/auth'),
       },

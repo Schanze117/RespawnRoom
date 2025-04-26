@@ -2,9 +2,14 @@ import {jwtDecode} from 'jwt-decode';
 
 class AuthService {
   getProfile() {
-    // Decode the JSON Web Token (JWT) using the jwtDecode function.
+    // decodes the token 
     // This function takes the token obtained from getToken() and decodes it to extract the user profile information.
-    return jwtDecode(this.getToken());
+    try {
+      return jwtDecode(this.getToken());
+    } catch (err) {
+      console.error('Error decoding token:', err);
+      return {};
+    }
   }
 
   loggedIn() {
@@ -22,9 +27,11 @@ class AuthService {
         // If the token is expired, return true indicating that it is expired.
         return true;
       }
+      return false;
     } catch (err) {
       // If there is an error during decoding, log the error and return false.
-      return false;
+      console.error('Error checking token expiration:', err);
+      return true; // Consider invalid tokens as expired
     }
   }
 
@@ -33,14 +40,34 @@ class AuthService {
     return loggedUser;
   }
 
+  getUserId() {
+    try {
+      const profile = this.getProfile();
+      return profile?.id || null;
+    } catch (err) {
+      return null;
+    }
+  }
+
   login(idToken) {
+    if (!idToken) {
+      console.error('No token provided for login');
+      return;
+    }
+    
+    // Store the token in localStorage
     localStorage.setItem('jwtToken', idToken);
+    
+    // Redirect to home page
     window.location.assign('/');
   }
 
   logout() {
+    // Remove the token from localStorage
     localStorage.removeItem('jwtToken');
-    window.location.assign('/');
+    
+    // Redirect to login page
+    window.location.assign('/login');
   }
 }
 

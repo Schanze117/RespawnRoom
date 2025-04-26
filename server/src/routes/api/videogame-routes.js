@@ -3,10 +3,12 @@ import { User, VideoGame } from '../../models/index.js';
 
 const router = express.Router();
 
-// Get all videogames
-router.get('/', async (_req, res) => {
+// Get all videogames for the authenticated user
+router.get('/', async (req, res) => {
     try {
+        const userId = req.user.id; // Get user ID from JWT middleware
         const videogames = await VideoGame.findAll({
+            where: { userId },
             include: [{ model: User, as: 'user', attributes: ['userName'] }],
         });
         res.json(videogames);
@@ -32,10 +34,11 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Create a new videogame
+// Create a new videogame for the authenticated user
 router.post('/', async (req, res) => {
-    const { cover, name, genres, player_perspectives, summary, userId } = req.body;
+    const { cover, name, genres, player_perspectives, summary } = req.body;
     try {
+        const userId = req.user.id; // Always use authenticated user's ID
         // Validate and transform genres and player_perspectives to arrays if necessary
         const genresArray = Array.isArray(genres) ? genres : genres.split(',').map(genre => genre.trim());
         const playerPerspectivesArray = Array.isArray(player_perspectives) ? player_perspectives : player_perspectives.split(',').map(perspective => perspective.trim());
@@ -55,13 +58,14 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Delete a videogame by ID
+// Delete a videogame by ID (only if owned by the user)
 router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const videogame = await VideoGame.findByPk(id);
+        const userId = req.user.id;
+        const videogame = await VideoGame.findOne({ where: { id, userId } });
         if (!videogame) {
-            res.status(404).json({ message: 'Videogame not found' });
+            res.status(404).json({ message: 'Videogame not found or not owned by user' });
             return;
         }
         await videogame.destroy();
