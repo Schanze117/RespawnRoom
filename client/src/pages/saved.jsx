@@ -1,6 +1,7 @@
 import SavedGameCard from "../components/card/savedGameCard";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import Auth from '../utils/auth';
 
 export default function Saved() {
     // State to hold saved games
@@ -8,7 +9,7 @@ export default function Saved() {
 
     // Fetch saved games from the server
     const fetchSavedGames = async () => {
-        const token = localStorage.getItem('jwtToken');
+        const token = Auth.getToken();
         try {
             const response = await fetch('/api2/videogames', {
                 method: 'GET',

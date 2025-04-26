@@ -18,7 +18,17 @@ export function UserFactory(sequelize) {
       },
       password: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true, // Allow null for Google auth users
+      },
+      email: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true,
+      },
+      googleId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true,
       },
     },
     {
@@ -27,9 +37,10 @@ export function UserFactory(sequelize) {
       timestamps: false,
       hooks: {
         beforeCreate: async (user) => {
-          const saltRounds = 10;
-          const hashedPassword = await bcrypt.hash(user.password, saltRounds);
-          user.password = hashedPassword;
+          if (user.password) {
+            const saltRounds = 10;
+            user.password = await bcrypt.hash(user.password, saltRounds);
+          }
         },
       },
     }
