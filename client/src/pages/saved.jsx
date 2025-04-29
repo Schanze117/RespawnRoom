@@ -1,6 +1,7 @@
 import SavedGameCard from "../components/card/savedGameCard";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import Auth from '../utils/auth';
 
 export default function Saved() {
     // State to hold saved games
@@ -8,9 +9,9 @@ export default function Saved() {
 
     // Fetch saved games from the server
     const fetchSavedGames = async () => {
-        const token = localStorage.getItem('jwtToken');
+        const token = Auth.getToken();
         try {
-            const response = await fetch('/api2/videogames', {
+            const response = await fetch('/api/videogames', {
                 method: 'GET',
                 headers: {
                     'content-type': 'application/json',
@@ -38,7 +39,7 @@ export default function Saved() {
     , []);
 
     return(
-        <div className="mt-20 sm:ml-55 mr-4 bg-surface-700 border-2 rounded-lg border-tonal-800 height-full">
+        <div className="mt-20 sm:ml-55 mr-4 bg-surface-900 border-2 rounded-lg border-tonal-800 height-full">
             <h1 className="text-3xl font-bold text-light px-5 pt-3 text-center">Saved Games</h1>
             <div className="flex flex-wrap justify-center">
                 {savedGames.length > 0 ? <SavedGameCard games={savedGames} /> : <div className="text-sm font-medium text-gray-300">
