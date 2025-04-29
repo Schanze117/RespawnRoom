@@ -12,7 +12,7 @@ export default function SavedGameCard() {
         try {
             const token = Auth.getToken(); // Use Auth utility to get the token
 
-            const response = await fetch('/api2/videogames', {
+            const response = await fetch('/api/videogames', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`, // Include the token in the Authorization header
@@ -41,7 +41,7 @@ export default function SavedGameCard() {
         try {
             const token = Auth.getToken(); // Use Auth utility to get the token
 
-            const response = await fetch(`/api2/videogames/${game.id}`, {
+            const response = await fetch(`/api/videogames/${game.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`, // Include the token in the Authorization header

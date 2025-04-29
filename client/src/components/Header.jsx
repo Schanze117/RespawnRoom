@@ -3,6 +3,7 @@ import Aside from './headerComponents/Aside';
 import { LuMenu, LuX } from "react-icons/lu";
 import React, { useEffect, useState } from "react";
 import Auth from '../utils/auth';
+import ProfileDropdown from './ProfileDropdown';
 
 export default function Header() {
     const [data, setData] = useState(null);
@@ -11,23 +12,29 @@ export default function Header() {
     const [isLoggedIn, setIsLoggedIn] = useState(Auth.loggedIn()); // State to manage login status
 
     useEffect(() => {
-        const token = Auth.getToken(); // Use Auth utility to get the token
-
+        const token = Auth.getToken();
         if (!token) {
             setError(new Error('No token found'));
             return;
         }
-
-        fetch('/api2/videogames', {
+        fetch('/api/users/me', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         })
-        .then(response => response.json())
-        .then(data => setData(data))
-        .catch(error => setError(error));
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(userData => setData(userData))
+        .catch(error => {
+            setError(error);
+            console.error('Profile fetch error:', error);
+        });
     }, []);
 
     const toggleAside = () => {
@@ -54,14 +61,13 @@ export default function Header() {
                                 <Link to="/" className="text-xl font-bold text-primary-600">RespawnRoom</Link>
                             </div>
                             <div className="flex items-center space-x-4"> 
-                                {!isLoggedIn ? 
-                                <button>
-                                    <Link to="/login" className="text-lg font-medium text-light py-0.5 px-1 rounded-lg bg-primary-600 hover:bg-primary-700">Log in</Link> 
-                                </button> 
-                                :
-                                <button onClick={handleLogout}>
-                                    <Link to="/" className="text-lg font-medium text-light py-0.5 px-1 rounded-lg bg-primary-600 hover:bg-primary-700">Log out</Link> 
-                                </button>}
+                                {isLoggedIn && data ?
+                                    <ProfileDropdown user={data} onLogout={handleLogout} />
+                                    :
+                                    <button>
+                                        <Link to="/login" className="text-lg font-medium text-light py-0.5 px-1 rounded-lg bg-primary-600 hover:bg-primary-700">Log in</Link>
+                                    </button>
+                                }
                             </div>
                         </div>
                     </div>

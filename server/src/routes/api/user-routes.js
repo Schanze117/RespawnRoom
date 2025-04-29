@@ -1,5 +1,6 @@
 import express from 'express';
 import { User, VideoGame } from '../../models/index.js';
+import { authenticateToken } from '../../middleware/auth.js';
 
 const router = express.Router();
 
@@ -10,6 +11,21 @@ router.get('/', async (_req, res) => {
                 include : [{ model: VideoGame, as: 'videoGames', }],
             });
         res.json(users);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+// Get current user profile
+router.get('/me', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.id, {
+            attributes: ['id', 'userName', 'email', 'googleId']
+        });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json(user);
     } catch (err) {
         res.status(500).json(err);
     }
@@ -73,6 +89,35 @@ router.delete('/:id', async (req, res) => {
         res.json({ message: 'User deleted' });
     } catch (err) {
         res.status(500).json(err);
+    }
+});
+
+// Change password for current user
+router.patch('/me/password', authenticateToken, async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+        return res.status(400).json({ message: 'Old and new password are required.' });
+    }
+    try {
+        const user = await User.findByPk(req.user.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        if (!user.password) {
+            return res.status(400).json({ message: 'Password change not available for Google accounts.' });
+        }
+        const bcrypt = (await import('bcrypt')).default;
+        const valid = await bcrypt.compare(oldPassword, user.password);
+        if (!valid) {
+            return res.status(401).json({ message: 'Old password is incorrect.' });
+        }
+        const saltRounds = 10;
+        const hashed = await bcrypt.hash(newPassword, saltRounds);
+        user.password = hashed;
+        await user.save();
+        res.json({ message: 'Password updated successfully.' });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error updating password.' });
     }
 });
 

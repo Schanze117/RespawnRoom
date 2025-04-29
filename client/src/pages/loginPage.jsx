@@ -21,7 +21,9 @@ export default function Login() {
     console.log('User logged in', loginData);
     try {
       const data = await login(loginData);
+      console.log('Login response:', data);
       Auth.login(data.token);
+      console.log('Token after login:', Auth.getToken());
     } catch (err) {
       console.error('Failed to login', err);
       setError('Failed to login. Please check your credentials.');
