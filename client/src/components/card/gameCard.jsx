@@ -8,7 +8,7 @@ export default function GameCard({ games }) {
         try {
             const token = Auth.getToken(); // Use Auth utility to get the token
             console.log(game);
-            const response = await fetch('/api2/videogames', {
+            const response = await fetch('/api/videogames', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

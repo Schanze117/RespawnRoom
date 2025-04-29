@@ -82,6 +82,12 @@ app.post("/api/games", async (req, res) => {
 
 app.use(routes);
 
+// Simple fix to redirect api2 requests to api
+app.use('/api2', (req, res, next) => {
+  req.url = req.url; // Keep the original path after /api2
+  routes(req, res, next); // Use the same routes handler
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
 });
