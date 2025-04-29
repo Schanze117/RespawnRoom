@@ -1,13 +1,14 @@
 import NoImage from '../../assets/noImage.jpg';
 import { LuSave } from 'react-icons/lu';
+import Auth from '../../utils/auth';
 
 export default function GameCard({ games }) {
 
     const saveGame = async (game) => {
         try {
-            const token = localStorage.getItem('jwtToken'); // Retrieve the token from local storage or another source
+            const token = Auth.getToken(); // Use Auth utility to get the token
             console.log(game);
-            const response = await fetch('/api2/videogames', {
+            const response = await fetch('/api/videogames', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -39,7 +40,7 @@ export default function GameCard({ games }) {
             games.map((game) => (
                 <div key={game.id} className="pb-4 px-4 mx-1 space-y-2 bg-surface-800 rounded-lg hover:outline-3 hover:outline-primary-600 w-100 h-105 flex flex-col items-center justify-center shadow-md hover:shadow-2xl transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-102">
                     <div className="flex flex-row w-full justify-end">
-                        <button type="button" onClick={() => saveGame(game)} className='block rounded-sm p-0.5 text-tonal-600 hover:text-tonal-800 focus:text-tonal-800 text-lg bg-primary-500 hover:bg-primary-600 focus:outline-2 focus:outline-offset-1 focus:outline-light rounded-lg cursor-pointer'><LuSave /></button>
+                        <button type="button" onClick={() => saveGame(game)} className="block p-0.5 text-tonal-600 hover:text-tonal-800 focus:text-tonal-800 text-lg bg-primary-500 hover:bg-primary-600 focus:outline-2 focus:outline-offset-1 focus:outline-light rounded-lg cursor-pointer"><LuSave /></button>
                     </div>
                     <div className="flex flex-row w-full justify-between space-x-4">
                         <img src={game.cover ? game.cover.url : NoImage} alt={game.name} className="w-32 h-32 object-cover rounded-lg" />

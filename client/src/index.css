@@ -14,7 +14,7 @@
     --color-primary-500: #86ae75;
     --color-primary-400: #9ebe90;
 
-    --color-surface-900: #121212;
+    --color-surface-900: #020817; /* Changed header & side panel background from #121212 to #020817 */
     --color-surface-800: #282828;
     --color-surface-700: #3f3f3f;
     --color-surface-600: #575757;
@@ -30,7 +30,7 @@
 }
 
 :root {
-    --color-dark: #000000;
+    --color-dark: #020817;
     --color-light: #ffffff;
     --color-dark-error: #800000;
 
@@ -41,7 +41,7 @@
     --color-primary-500: #86ae75;
     --color-primary-400: #9ebe90;
 
-    --color-surface-900: #121212;
+    --color-surface-900: #020817; /* Changed header & side panel background from #121212 to #020817 */
     --color-surface-800: #282828;
     --color-surface-700: #3f3f3f;
     --color-surface-600: #575757;
@@ -54,4 +54,9 @@
     --color-tonal-600: #5a5e58;
     --color-tonal-500: #737771;
     --color-tonal-400: #8d908c;
+}
+
+/* Changed actual page background to surface-900 (#020817) */
+body {
+    background-color: var(--color-surface-900);
 }
