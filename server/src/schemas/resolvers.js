@@ -83,11 +83,11 @@ export const resolvers = {
         throw new Error('You need to be logged in!');
       }
 
-      const updatedUser = await User.findOneAndUpdate(
-        { _id: context.user._id },
-        { $pull: { savedGames: { gameId } } },
-        { new: true }
-      );
+      const updatedUser = await User.findByIdAndUpdate(
+        context.user._id,
+        { $pull: { savedGames: { _id: gameId } } },
+        { new: true } // Return the updated user object
+    );
 
       if (!updatedUser) {
         throw new Error("Couldn't find user with this id!");

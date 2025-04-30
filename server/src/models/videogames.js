@@ -6,23 +6,23 @@ const videoGameSchema = new Schema(
   {
     cover: {
       type: String,
-      required: true,
+      required: false,
     },
     name: {
       type: String,
-      required: true,
+      required: false,
     },
     genres: {
       type: [String], // Array of strings for genres
-      required: true,
+      required: false,
     },
     playerPerspectives: {
       type: [String], // Array of strings for player perspectives
-      required: true,
+      required: false,
     },
     summary: {
       type: String,
-      required: true,
+      required: false,
     },
     userId: {
       type: Schema.Types.ObjectId, // Reference to a User document
