@@ -67,49 +67,50 @@ export default function TrendingGames() {
     }
   ];
 
-  useEffect(() => {
-    const fetchTrendingGames = async () => {
-      try {
-        setIsLoading(true);
-        
-        const { primary, secondary } = await getFeaturedGames();
-        
-        // If the API returned no results, use mock data
-        if ((!primary && !secondary) || (primary.length === 0 && secondary.length === 0)) {
-          console.warn('No games returned from API. Using mock data instead.');
-          setTrendingGames(mockTrendingGames);
-          return;
-        }
-        
-        // Combine primary and secondary arrays
-        const allGames = [...(primary || []), ...(secondary || [])];
-        
-        // Transform data to match the expected format for ScrollableGameCards
-        const formattedGames = allGames.map(game => ({
-          id: game.id,
-          name: game.name,
-          cover: game.cover ? {
-            url: game.cover.url.includes('t_thumb') 
-              ? game.cover.url.replace('t_thumb', 't_cover_big')
-              : game.cover.url
-          } : null,
-          genres: game.genres || [{ name: "Popular" }],
-          player_perspectives: game.player_perspectives || [{ name: "Unknown" }],
-          summary: game.summary || `Trending game: ${game.name}`,
-          rating: game.rating || null
-        }));
-        
-        setTrendingGames(formattedGames);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching trending games:', err);
-        console.warn('Using mock data due to API error');
+  const fetchTrendingGames = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { primary, secondary } = await getFeaturedGames();
+      
+      // If the API returned no results, use mock data
+      if ((!primary && !secondary) || (primary.length === 0 && secondary.length === 0)) {
+        console.warn('No games returned from API. Using mock data instead.');
         setTrendingGames(mockTrendingGames);
-      } finally {
-        setIsLoading(false);
+        return;
       }
-    };
+      
+      // Combine primary and secondary arrays
+      const allGames = [...(primary || []), ...(secondary || [])];
+      
+      // Transform data to match the expected format for ScrollableGameCards
+      const formattedGames = allGames.map(game => ({
+        id: game.id,
+        name: game.name,
+        cover: game.cover ? {
+          url: game.cover.url.includes('t_thumb') 
+            ? game.cover.url.replace('t_thumb', 't_cover_big')
+            : game.cover.url
+        } : null,
+        genres: game.genres || [{ name: "Popular" }],
+        player_perspectives: game.player_perspectives || [{ name: "Unknown" }],
+        summary: game.summary || `Trending game: ${game.name}`,
+        rating: game.rating || null
+      }));
+      
+      setTrendingGames(formattedGames);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching trending games:', err);
+      console.warn('Using mock data due to API error');
+      setTrendingGames(mockTrendingGames);
+      setError("Failed to load trending games. Using sample data instead.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchTrendingGames();
   }, []);
 
@@ -124,17 +125,6 @@ export default function TrendingGames() {
     );
   }
 
-  if (error) {
-    return (
-      <section className="w-full mb-12">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-primary-500">Trending Now</h2>
-        </div>
-        <div className="text-center py-8 text-red-500">{error}</div>
-      </section>
-    );
-  }
-
   return (
     <section className="w-full mb-12">
       <div className="flex justify-between items-center mb-4">
@@ -143,6 +133,12 @@ export default function TrendingGames() {
           See All Trending
         </button>
       </div>
+      
+      {error && (
+        <div className="text-amber-500 text-sm mb-4 p-2 bg-amber-900/30 rounded-md">
+          {error}
+        </div>
+      )}
       
       <ScrollableGameCards games={trendingGames} type="trending" />
     </section>

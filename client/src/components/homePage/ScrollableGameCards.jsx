@@ -227,9 +227,25 @@ export default function ScrollableGameCards({ games, type }) {
                   </div>
                 )}
                 
+                {/* Add type-specific badges and info */}
                 {type === 'trending' && (
                   <div className="absolute top-2 right-2 bg-primary-600 text-white text-xs font-bold px-2 py-1 rounded z-10">
                     Trending
+                  </div>
+                )}
+                {type === 'latest' && (
+                  <div className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded z-10">
+                    New
+                  </div>
+                )}
+                {type === 'top-rated' && (
+                  <div className="absolute top-2 right-2 bg-yellow-600 text-white text-xs font-bold px-2 py-1 rounded z-10">
+                    90+
+                  </div>
+                )}
+                {type === 'upcoming' && (
+                  <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded z-10">
+                    Coming Soon
                   </div>
                 )}
               </div>
@@ -249,45 +265,71 @@ export default function ScrollableGameCards({ games, type }) {
                   {game.name && game.name.length > 40 && (
                     <button 
                       onClick={() => toggleTitleExpansion(game.id, index)}
-                      className="absolute -right-2 top-1 text-primary-500 hover:text-primary-400 transition-colors duration-200"
-                      aria-label={isExpanded ? "Collapse title" : "Expand title"}
+                      className="absolute right-0 top-0 text-xs text-primary-400 hover:text-primary-300"
                     >
-                      {isExpanded ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-                        </svg>
-                      )}
+                      {isExpanded ? 'Less' : 'More'}
                     </button>
                   )}
                 </div>
                 
-                <p className="text-sm text-tonal-400 mb-3 truncate" title={game.genres ? game.genres.map(g => g.name).join(', ') : 'N/A'}>
-                  {game.genres ? game.genres.map(g => g.name).join(', ') : 'N/A'}
-                </p>
-                
-                <p className={`text-sm text-tonal-300 mb-4 line-clamp-3 ${isExpanded ? 'line-clamp-2' : 'line-clamp-3'}`}>
-                  {game.summary || "A trending game that's capturing players' attention with its innovative gameplay and immersive world."}
-                </p>
-                
-                {type === 'trending' && (
-                  <div className="flex justify-between items-center mt-auto">
-                    <div className="flex items-center space-x-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                        <polyline points="17 6 23 6 23 12"></polyline>
-                      </svg>
-                      <span className="text-xs text-primary-500">Trending</span>
-                    </div>
-                    
-                    <button className="text-sm bg-primary-600 hover:bg-primary-700 text-white py-1.5 px-3 rounded transition duration-300">
-                      Details
-                    </button>
+                {/* Release date for latest games */}
+                {type === 'latest' && game.releaseDate && (
+                  <div className="text-xs text-primary-500 font-medium mb-2">
+                    Released: {game.releaseDate}
                   </div>
                 )}
+                
+                {/* Release date for upcoming games */}
+                {type === 'upcoming' && game.releaseDate && (
+                  <div className="text-xs text-blue-500 font-medium mb-2">
+                    Expected: {game.releaseDate}
+                  </div>
+                )}
+                
+                {/* Game genres */}
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {game.genres?.map((genre, gIndex) => (
+                    <span key={`${game.id}-genre-${gIndex}`} className="text-xs bg-surface-700 text-light-200 px-2 py-0.5 rounded-md">
+                      {genre.name}
+                    </span>
+                  ))}
+                </div>
+                
+                {/* Rating count for top-rated games */}
+                {type === 'top-rated' && game.ratingCount && game.rating && (
+                  <div className="text-xs text-yellow-500 font-medium mb-2">
+                    Rating: {Math.round(game.rating)}/100 ({game.ratingCount} reviews)
+                  </div>
+                )}
+                
+                {/* Game summary */}
+                <p className="text-sm text-light-300 line-clamp-3 mb-auto">
+                  {game.summary || 'No description available'}
+                </p>
+                
+                {/* Rating indicator if available */}
+                {game.rating && (
+                  <div className="mt-3 flex items-center">
+                    <div 
+                      className={`text-sm font-bold px-2 py-0.5 rounded ${
+                        game.rating >= 85 ? 'bg-green-900 text-green-200' :
+                        game.rating >= 70 ? 'bg-blue-900 text-blue-200' :
+                        game.rating >= 50 ? 'bg-yellow-900 text-yellow-200' :
+                        'bg-red-900 text-red-200'
+                      }`}
+                    >
+                      {Math.round(game.rating)}
+                    </div>
+                    <span className="ml-2 text-xs text-light-400">
+                      {type === 'latest' && game.ratingCount ? `${game.ratingCount} reviews` : 'User Score'}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Add to List button */}
+                <button className="mt-3 w-full rounded-md bg-primary-600 hover:bg-primary-700 text-white py-1.5 text-sm font-medium transition-colors duration-200">
+                  Add to List
+                </button>
               </div>
             </div>
           );
