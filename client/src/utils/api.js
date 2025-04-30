@@ -1,10 +1,11 @@
 export const API_BASE_URL = "https://api.igdb.com/v4"; 
+export const SERVER_URL = "http://localhost:3001";
 
 // Search for games by name
 export const searchGames = async (game) => {
   try {
     // Fetch the game data from the API
-    const response = await fetch(`/api/games`, {
+    const response = await fetch(`${SERVER_URL}/api/games`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,7 +40,7 @@ export const filterGames = async (genres = [], playerPerspectives = [], themes =
     const modesQuery = modes.length > 0 ? `game_modes = (${modes.join(',')})` : '';
     const whereClause = [genreQuery, perspectiveQuery, themeQuery, modesQuery].filter(Boolean).join(' & ');
 
-    const response = await fetch(`/api/games`, {
+    const response = await fetch(`${SERVER_URL}/api/games`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -63,6 +64,28 @@ export const filterGames = async (genres = [], playerPerspectives = [], themes =
     
   } catch (error) {
     console.error("Error fetching game data:", error);
+    throw error;
+  }
+};
+
+// Get trending games
+export const getTrendingGames = async () => {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/games/trending`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching trending games:', error);
     throw error;
   }
 };

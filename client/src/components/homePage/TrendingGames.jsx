@@ -88,10 +88,15 @@ export default function TrendingGames() {
         const formattedGames = allGames.map(game => ({
           id: game.id,
           name: game.name,
-          cover: game.cover ? { url: game.cover.url.replace('t_thumb', 't_cover_big') } : null,
-          genres: [{ name: "Popular" }], // Default genre if not provided by API
-          player_perspectives: [{ name: "Unknown" }], // Default perspective if not provided
-          summary: "Trending game" // Default summary
+          cover: game.cover ? {
+            url: game.cover.url.includes('t_thumb') 
+              ? game.cover.url.replace('t_thumb', 't_cover_big')
+              : game.cover.url
+          } : null,
+          genres: game.genres || [{ name: "Popular" }],
+          player_perspectives: game.player_perspectives || [{ name: "Unknown" }],
+          summary: game.summary || `Trending game: ${game.name}`,
+          rating: game.rating || null
         }));
         
         setTrendingGames(formattedGames);

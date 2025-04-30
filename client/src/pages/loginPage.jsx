@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useMutation } from '@apollo/client';
 import { LOGIN_USER } from '../utils/mutations';
 import Auth from '../utils/auth';
 
 export default function Login() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [loginData, setLoginData] = useState({
     email: '',
     password: '',
@@ -22,24 +23,22 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('User login data:', loginData);
+    setError('');
+    
     try {
       const { data } = await loginUser({
         variables: { email: loginData.email, password: loginData.password },
       });
-      console.log('Login response:', data);
-      Auth.login(data.login.token);
+      
+      if (data && data.login && data.login.token) {
+        // Store token and redirect (this will reload the page)
+        Auth.login(data.login.token);
+      } else {
+        throw new Error('Login failed');
+      }
     } catch (err) {
       console.error('Failed to login:', err);
-      setError('Failed to login. Please check your credentials.');
-    }
-  };
-
-  const [loginCheck, setLoginCheck] = useState(false);
-
-  const checkLogin = () => {
-    if (Auth.loggedIn()) {
-      setLoginCheck(true);
+      setError('Failed to login. Please check your credentials and try again.');
     }
   };
 
@@ -50,7 +49,6 @@ export default function Login() {
     const authError = query.get('error');
     
     if (token) {
-      // If token exists in URL, log the user in
       Auth.login(token);
     }
     
@@ -58,12 +56,11 @@ export default function Login() {
       setError('Authentication failed. Please try again.');
     }
     
-    checkLogin();
-  }, [location]);
-
-  useEffect(() => {
-    checkLogin();
-  }, [loginCheck]);
+    // Check if already logged in
+    if (Auth.loggedIn()) {
+      navigate('/');
+    }
+  }, [location, navigate]);
 
   return (
     <div className="flex flex-col items-center justify-center mt-35">
@@ -79,6 +76,7 @@ export default function Login() {
                     value={loginData.email} 
                     placeholder="Enter Your Email"
                     className="bg-surface-600 border border-tonal-400 text-light text-sm rounded-lg focus:outline-2 focus:outline-primary-400 focus:outline-offset-2 focus:border-primary-400 block w-full p-2.5" 
+                    required
                     />
                 </div>
                 <div>
@@ -90,6 +88,7 @@ export default function Login() {
                     value={loginData.password} 
                     placeholder="Enter Your Password" 
                     className="bg-surface-600 border border-tonal-400 text-light text-sm rounded-lg focus:outline-2 focus:outline-primary-400 focus:outline-offset-2 focus:border-primary-400 block w-full p-2.5"
+                    required
                     />
                 </div>
                 {error && <div className="text-red-500 text-sm mb-4">{error}</div>}

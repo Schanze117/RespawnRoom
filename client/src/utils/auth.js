@@ -43,7 +43,7 @@ class AuthService {
   getUserId() {
     try {
       const profile = this.getProfile();
-      return profile?.id || null;
+      return profile?._id || null;
     } catch (err) {
       return null;
     }
@@ -55,19 +55,15 @@ class AuthService {
       return;
     }
     
-    // Store the token in localStorage
     localStorage.setItem('jwtToken', idToken);
     
-    // Redirect to home page
-    window.location.assign('/');
+    // Force a page reload to update all components
+    window.location.href = '/';
   }
 
   logout() {
-    // Remove the token from localStorage
     localStorage.removeItem('jwtToken');
-    
-    // Redirect to login page
-    window.location.assign('/login');
+    window.location.href = '/login';
   }
 }
 
