@@ -19,12 +19,13 @@ const userSchema = new Schema(
       type: String,
       required: false,
       unique: true,
+      sparse: true, // Added sparse to handle null values
       match: [/.+@.+\..+/, 'Must use a valid email address'],
     },
     googleId: {
       type: String,
       required: false,
-      unique: true,
+      sparse: true,  // Changed: Added sparse, removed unique: true
     },
     // Use the videoGameSchema for the savedGames array
     savedGames: [videoGameSchema],

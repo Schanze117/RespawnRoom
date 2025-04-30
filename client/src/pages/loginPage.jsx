@@ -7,7 +7,7 @@ import Auth from '../utils/auth';
 export default function Login() {
   const location = useLocation();
   const [loginData, setLoginData] = useState({
-    userName: '',
+    email: '',
     password: '',
   });
   const [error, setError] = useState('');
@@ -25,7 +25,7 @@ export default function Login() {
     console.log('User login data:', loginData);
     try {
       const { data } = await loginUser({
-        variables: { userName: loginData.userName, password: loginData.password },
+        variables: { email: loginData.email, password: loginData.password },
       });
       console.log('Login response:', data);
       Auth.login(data.login.token);
@@ -71,13 +71,13 @@ export default function Login() {
             <form className="space-y-6" onSubmit={handleSubmit}>
                 <h5 className="text-xl font-medium text-light">RespawnRoom // Login</h5>
                 <div>
-                    <label htmlFor="userName" className="block mb-2 text-sm font-medium text-light">Username</label>
+                    <label htmlFor="email" className="block mb-2 text-sm font-medium text-light">Email</label>
                     <input 
-                    type="text" 
-                    name="userName" 
+                    type="email" 
+                    name="email" 
                     onChange={handleChange}
-                    value={loginData.userName} 
-                    placeholder="Enter Your Username"
+                    value={loginData.email} 
+                    placeholder="Enter Your Email"
                     className="bg-surface-600 border border-tonal-400 text-light text-sm rounded-lg focus:outline-2 focus:outline-primary-400 focus:outline-offset-2 focus:border-primary-400 block w-full p-2.5" 
                     />
                 </div>
