@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from "react-router-dom";
-import  Auth  from '../utils/auth';
-import { login } from '../Api/auth';
+import { useMutation } from '@apollo/client';
+import { LOGIN_USER } from '../utils/mutations';
+import Auth from '../utils/auth';
 
 export default function Login() {
   const location = useLocation();
@@ -11,6 +12,9 @@ export default function Login() {
   });
   const [error, setError] = useState('');
 
+  // Use Apollo's useMutation hook for the LOGIN_USER mutation
+  const [loginUser, { loading }] = useMutation(LOGIN_USER);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setLoginData((prev) => ({ ...prev, [name]: value }));
@@ -18,14 +22,15 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('User logged in', loginData);
+    console.log('User login data:', loginData);
     try {
-      const data = await login(loginData);
+      const { data } = await loginUser({
+        variables: { userName: loginData.userName, password: loginData.password },
+      });
       console.log('Login response:', data);
-      Auth.login(data.token);
-      console.log('Token after login:', Auth.getToken());
+      Auth.login(data.login.token);
     } catch (err) {
-      console.error('Failed to login', err);
+      console.error('Failed to login:', err);
       setError('Failed to login. Please check your credentials.');
     }
   };
@@ -38,7 +43,7 @@ export default function Login() {
     }
   };
 
-  // Check for token in URL google auth token
+  // Check for token in URL (Google auth token)
   useEffect(() => {
     const query = new URLSearchParams(location.search);
     const token = query.get('token');
@@ -88,7 +93,9 @@ export default function Login() {
                     />
                 </div>
                 {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
-                <button type="submit" className="w-full text-white focus:ring-4 bg-primary-600 hover:bg-primary-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center focus:ring-primary-900">Login to your account</button>
+                <button type="submit" className="w-full text-white focus:ring-4 bg-primary-600 hover:bg-primary-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center focus:ring-primary-900">
+                  {loading ? 'Logging in...' : 'Login to your account'}
+                </button>
                 
                 <div className="relative my-4">
                     <div className="absolute inset-0 flex items-center">

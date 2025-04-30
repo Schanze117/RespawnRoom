@@ -1,22 +1,20 @@
-import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useMutation } from "@apollo/client";
+import { ADD_USER } from "../utils/mutations";
 import Auth from "../utils/auth";
-import { register } from "../Api/auth";
 
 export default function Register() {
-  const location = useLocation();
   const [registerForm, setRegisterForm] = useState({
     userName: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
-  const [display, setDisplay] = useState(false);
   const [error, setError] = useState("");
 
-  function displayError(error) {
-    return <div className="text-red-500 py-1">{error}</div>;
-  }
+  // Use Apollo's useMutation hook for the ADD_USER mutation
+  const [addUser, { loading }] = useMutation(ADD_USER);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,45 +29,30 @@ export default function Register() {
       !registerForm.password ||
       !registerForm.confirmPassword
     ) {
-      setDisplay(displayError("Please fill out all fields"));
+      setError("Please fill out all fields");
       return;
     }
     if (registerForm.password !== registerForm.confirmPassword) {
-      setDisplay(displayError("Passwords do not match"));
+      setError("Passwords do not match");
       return;
     }
-    
+
     try {
-      // Remove confirmPassword before sending to API
-      const userToRegister = {
-        userName: registerForm.userName,
-        email: registerForm.email,
-        password: registerForm.password
-      };
-      
-      const data = await register(userToRegister);
-      Auth.login(data.token);
+      // Use the ADD_USER mutation
+      const { data } = await addUser({
+        variables: {
+          userName: registerForm.userName,
+          email: registerForm.email,
+          password: registerForm.password,
+        },
+      });
+      console.log("Registration response:", data);
+      Auth.login(data.addUser.token);
     } catch (err) {
       console.error("Registration failed:", err);
-      setError(err.toString());
+      setError("Failed to register. Please try again.");
     }
   };
-  
-  // Check for token in URL (from Google OAuth redirect)
-  useEffect(() => {
-    const query = new URLSearchParams(location.search);
-    const token = query.get('token');
-    const authError = query.get('error');
-    
-    if (token) {
-      // If token exists in URL, log the user in
-      Auth.login(token);
-    }
-    
-    if (authError) {
-      setError('Authentication failed. Please try again.');
-    }
-  }, [location]);
 
   return (
     <div className="flex flex-col items-center justify-center md:mt-35 m-25">
@@ -81,7 +64,6 @@ export default function Register() {
 
           {/* Error Display */}
           {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
-          {display && <div className="text-red-500 text-sm mb-4">{display}</div>}
 
           {/* Google Login Button */}
           <div className="text-center">
@@ -89,8 +71,18 @@ export default function Register() {
               href="http://localhost:3001/auth/google"
               className="w-full text-center mb-4 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg text-sm px-5 py-2.5 flex items-center justify-center"
             >
-              <svg className="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 19">
-                <path fillRule="evenodd" d="M8.842 18.083a8.8 8.8 0 0 1-8.65-8.948 8.841 8.841 0 0 1 8.8-8.652h.153a8.464 8.464 0 0 1 5.7 2.257l-2.193 2.038A5.27 5.27 0 0 0 9.09 3.4a5.882 5.882 0 0 0-.2 11.76h.124a5.091 5.091 0 0 0 5.248-4.057L14.3 11H9V8h8.34c.066.543.095 1.09.088 1.636-.086 5.053-3.463 8.449-8.4 8.449l-.186-.002Z" clipRule="evenodd"/>
+              <svg
+                className="w-4 h-4 mr-2"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+                viewBox="0 0 18 19"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8.842 18.083a8.8 8.8 0 0 1-8.65-8.948 8.841 8.841 0 0 1 8.8-8.652h.153a8.464 8.464 0 0 1 5.7 2.257l-2.193 2.038A5.27 5.27 0 0 0 9.09 3.4a5.882 5.882 0 0 0-.2 11.76h.124a5.091 5.091 0 0 0 5.248-4.057L14.3 11H9V8h8.34c.066.543.095 1.09.088 1.636-.086 5.053-3.463 8.449-8.4 8.449l-.186-.002Z"
+                  clipRule="evenodd"
+                />
               </svg>
               Continue with Google
             </a>
@@ -153,7 +145,7 @@ export default function Register() {
             type="submit"
             className="w-full text-white focus:ring-4 bg-primary-600 hover:bg-primary-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center focus:ring-primary-900"
           >
-            Register
+            {loading ? "Registering..." : "Register"}
           </button>
           <div className="text-sm font-medium text-gray-300">
             Already have an account?{" "}
@@ -162,7 +154,6 @@ export default function Register() {
             </Link>
           </div>
         </form>
-        <div>{display}</div>
       </div>
     </div>
   );

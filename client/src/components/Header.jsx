@@ -2,40 +2,19 @@ import { Link } from "react-router-dom";
 import Aside from './headerComponents/Aside';
 import { LuMenu, LuX } from "react-icons/lu";
 import React, { useEffect, useState } from "react";
+import { useQuery } from "@apollo/client";
+import { GET_ME } from "../utils/queries";
 import Auth from '../utils/auth';
 import ProfileDropdown from './ProfileDropdown';
 
 export default function Header() {
-    const [data, setData] = useState(null);
-    const [error, setError] = useState(null);
     const [asideOpen, setAsideOpen] = useState(false); // State to manage the aside menu
     const [isLoggedIn, setIsLoggedIn] = useState(Auth.loggedIn()); // State to manage login status
 
-    useEffect(() => {
-        const token = Auth.getToken();
-        if (!token) {
-            setError(new Error('No token found'));
-            return;
-        }
-        fetch('/api/users/me', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(userData => setData(userData))
-        .catch(error => {
-            setError(error);
-            console.error('Profile fetch error:', error);
-        });
-    }, []);
+    // Use Apollo's useQuery hook to fetch user data
+    const { loading, error, data } = useQuery(GET_ME, {
+        skip: !isLoggedIn, // Skip query if the user is not logged in
+    });
 
     const toggleAside = () => {
         setAsideOpen(!asideOpen);
@@ -45,6 +24,14 @@ export default function Header() {
         Auth.logout();
         setIsLoggedIn(false);
     };
+
+    if (loading) {
+        return <div className="text-center text-light mt-20">Loading...</div>;
+    }
+
+    if (error) {
+        console.error("Error fetching user data:", error);
+    }
 
     return (
         <div>
@@ -61,8 +48,8 @@ export default function Header() {
                                 <Link to="/" className="text-xl font-bold text-primary-600">RespawnRoom</Link>
                             </div>
                             <div className="flex items-center space-x-4"> 
-                                {isLoggedIn && data ?
-                                    <ProfileDropdown user={data} onLogout={handleLogout} />
+                                {isLoggedIn && data?.me ?
+                                    <ProfileDropdown user={data.me} onLogout={handleLogout} />
                                     :
                                     <button>
                                         <Link to="/login" className="text-lg font-medium text-light py-0.5 px-1 rounded-lg bg-primary-600 hover:bg-primary-700">Log in</Link>

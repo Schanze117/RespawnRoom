@@ -1,52 +1,61 @@
-import { DataTypes, Model } from 'sequelize';
+import { Schema, model } from 'mongoose';
 import bcrypt from 'bcrypt';
 
-export class User extends Model {
-}
+import videoGameSchema from './videogames.js'; // Import the schema, not the model
 
-export function UserFactory(sequelize) {
-  User.init(
-    {
-      id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true,
-      },
-      userName: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      password: {
-        type: DataTypes.STRING,
-        allowNull: true, // Allow null for Google auth users
-      },
-      email: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        unique: true,
-      },
-      googleId: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        unique: true,
-      },
+// Define the User schema
+const userSchema = new Schema(
+  {
+    userName: {
+      type: String,
+      required: true, // Ensure username is required
+      unique: true,   // Enforce uniqueness
     },
-    {
-      tableName: 'users',
-      sequelize,
-      timestamps: false,
-      hooks: {
-        beforeCreate: async (user) => {
-          if (user.password) {
-            const saltRounds = 10;
-            user.password = await bcrypt.hash(user.password, saltRounds);
-          }
-        },
-      },
-    }
-  );
+    password: {
+      type: String,
+      required: false, // Allow null for Google auth users
+    },
+    email: {
+      type: String,
+      required: false,
+      unique: true,
+      match: [/.+@.+\..+/, 'Must use a valid email address'],
+    },
+    googleId: {
+      type: String,
+      required: false,
+      unique: true,
+    },
+    // Use the videoGameSchema for the savedGames array
+    savedGames: [videoGameSchema],
+  },
+  {
+    toJSON: {
+      virtuals: true,
+    },
+  }
+);
 
-  return User;
-}
+// Hash the password before saving the user
+userSchema.pre('save', async function (next) {
+  if (this.isModified('password') && this.password) {
+    const saltRounds = 10;
+    this.password = await bcrypt.hash(this.password, saltRounds);
+  }
+  next();
+});
+
+// Add a method to compare passwords
+userSchema.methods.isCorrectPassword = async function (password) {
+  return bcrypt.compare(password, this.password);
+};
+
+// Add a virtual field to calculate the number of saved games
+userSchema.virtual('gameCount').get(function () {
+  return this.savedGames.length;
+});
+
+// Create the User model
+const User = model('User', userSchema);
 
 export default User;

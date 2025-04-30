@@ -1,21 +1,10 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { Sequelize } from 'sequelize';
+import mongoose from 'mongoose';
 
-const sequelize = process.env.DB_URL
-  ? new Sequelize(process.env.DB_URL)
-  : new Sequelize(
-      process.env.DB_NAME || '',
-      process.env.DB_USER || '',
-      process.env.DB_PASSWORD,
-      {
-        host: 'localhost',
-        dialect: 'postgres',
-        dialectOptions: {
-          decimalNumbers: true,
-        },
-      }
-    );
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/videogamesdb');
 
-export default sequelize;
+const db = mongoose.connection;
+
+export default db;
