@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import DiscoverForm from '../components/discoverForm';
 import SearchForm from '../components/searchForm';
 

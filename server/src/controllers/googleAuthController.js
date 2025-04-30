@@ -1,4 +1,4 @@
-import { User } from '../models/users.js';
+import User from '../models/users.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 
@@ -11,23 +11,32 @@ dotenv.config();
  */
 export const handleGoogleAuth = async (profile) => {
   try {
-    // Always treat googleId as a string to avoid Postgres type errors
-    let user = await User.findOne({ where: { googleId: profile.id.toString() } });
+    // Always treat googleId as a string to avoid type errors
+    let user = await User.findOne({ googleId: profile.id.toString() });
     
     if (!user) {
       // If no user with this Google ID exists, check if there's a user with the same email
       if (profile.emails && profile.emails.length > 0) {
         const email = profile.emails[0].value;
-        user = await User.findOne({ where: { email } });
+        user = await User.findOne({ email });
         
         if (user) {
           // If a user with this email exists but doesn't have a Google ID, update their record
           user.googleId = profile.id.toString();
           await user.save();
         } else {
+          // Check if username already exists
+          const displayName = profile.displayName || `user_${profile.id.substring(0, 8)}`;
+          const existingUserName = await User.findOne({ userName: displayName });
+          
+          // If username exists, add a random suffix
+          const finalUserName = existingUserName 
+            ? `${displayName}_${Math.floor(Math.random() * 10000)}`
+            : displayName;
+            
           // Create a new user with Google profile data
           user = await User.create({
-            userName: profile.displayName || `user_${profile.id.substring(0, 8)}`,
+            userName: finalUserName,
             email: profile.emails[0].value,
             googleId: profile.id.toString(),
             // No password needed for Google auth
@@ -35,14 +44,12 @@ export const handleGoogleAuth = async (profile) => {
         }
       } else {
         // No email in Google profile
-        console.error('Google profile missing email:', profile);
         throw new Error('Google account does not provide an email address.');
       }
     }
     
     // If user is still null, something went wrong
     if (!user) {
-      console.error('Failed to create or find user from Google profile:', profile);
       throw new Error('Failed to create or find user from Google profile.');
     }
     
@@ -50,7 +57,7 @@ export const handleGoogleAuth = async (profile) => {
     const secretKey = process.env.JWT_SECRET_KEY || '';
     const token = jwt.sign(
       { 
-        id: user.id,
+        _id: user._id,
         userName: user.userName,
         email: user.email,
         googleId: user.googleId 
