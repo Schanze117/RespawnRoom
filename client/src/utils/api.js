@@ -89,3 +89,91 @@ export const getTrendingGames = async () => {
     throw error;
   }
 };
+
+// Get latest releases
+export const getLatestReleases = async () => {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/games/latest`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching latest releases:', error);
+    throw error;
+  }
+};
+
+// Get top rated games
+export const getTopRatedGames = async () => {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/games/top-rated`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching top rated games:', error);
+    throw error;
+  }
+};
+
+// Get upcoming games
+export const getUpcomingGames = async () => {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/games/upcoming`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching upcoming games:', error);
+    throw error;
+  }
+};
+
+// Get game by ID
+export const getGameById = async (id) => {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/games/${id}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`Error fetching game with ID ${id}:`, error);
+    throw error;
+  }
+};

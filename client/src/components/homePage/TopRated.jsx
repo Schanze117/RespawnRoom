@@ -1,9 +1,14 @@
-import React from 'react';
-import HomePageCard from './HomePageCard';
+import React, { useState, useEffect } from 'react';
+import ScrollableGameCards from './ScrollableGameCards';
+import { getTopGames } from '../../utils/gameFetcher';
 
 export default function TopRated() {
-  // Mock data for top rated games
-  const topRatedGames = [
+  const [topGames, setTopGames] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Mock data for top rated games as fallback
+  const mockTopGames = [
     { 
       id: 1, 
       name: "The Legend of Zelda: Tears of the Kingdom", 
@@ -34,16 +39,81 @@ export default function TopRated() {
     }
   ];
 
+  const fetchTopGames = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { primary, secondary } = await getTopGames();
+      
+      // If the API returned no results, use mock data
+      if ((!primary && !secondary) || (primary.length === 0 && secondary.length === 0)) {
+        console.warn('No top rated games returned from API. Using mock data instead.');
+        setTopGames(mockTopGames);
+        return;
+      }
+      
+      // Combine primary and secondary arrays
+      const allGames = [...(primary || []), ...(secondary || [])];
+      
+      // Transform data to match the expected format for ScrollableGameCards
+      const formattedGames = allGames.map(game => ({
+        id: game.id,
+        name: game.name,
+        cover: game.cover ? {
+          url: game.cover.url.includes('t_thumb') 
+            ? game.cover.url.replace('t_thumb', 't_cover_big')
+            : game.cover.url
+        } : null,
+        genres: game.genres || [{ name: "Highly Rated" }],
+        player_perspectives: game.player_perspectives || [{ name: "Unknown" }],
+        summary: game.summary || `Top rated game: ${game.name}`,
+        rating: game.rating || null,
+        ratingCount: game.rating_count || 0
+      }));
+      
+      setTopGames(formattedGames);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching top rated games:', err);
+      console.warn('Using mock data due to API error');
+      setTopGames(mockTopGames);
+      setError("Failed to load top rated games. Using sample data instead.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTopGames();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <section className="w-full mb-12">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-primary-500">Top Rated (90+)</h2>
+        </div>
+        <div className="text-center py-8">Loading top rated games...</div>
+      </section>
+    );
+  }
+
   return (
     <section className="w-full mb-12">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-primary-500">Top Rated</h2>
+        <h2 className="text-2xl font-bold text-primary-500">Top Rated (90+)</h2>
         <button className="text-primary-400 hover:text-primary-300 text-sm font-medium">
           See All Top Games
         </button>
       </div>
       
-      <HomePageCard games={topRatedGames} type="top-rated" />
+      {error && (
+        <div className="text-amber-500 text-sm mb-4 p-2 bg-amber-900/30 rounded-md">
+          {error}
+        </div>
+      )}
+      
+      <ScrollableGameCards games={topGames} type="top-rated" />
     </section>
   );
 } 

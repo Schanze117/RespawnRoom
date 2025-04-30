@@ -123,12 +123,293 @@ app.get('/api/games/trending', async (req, res) => {
     const token = process.env.VITE_ACCESS_TOKEN;
     const clientId = process.env.VITE_CLIENT_ID;
     
-    // Query for trending games (adjust fields as needed)
-    const query = `
-      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,first_release_date;
-      where rating > 75 & first_release_date > ${Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 365}; 
+    // Fetch first batch of 500 games
+    const firstQuery = `
+      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,first_release_date,id;
+      where rating > 70 & first_release_date > ${Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 365}; 
       sort rating desc;
-      limit 15;
+      limit 500;
+      offset 0;
+    `;
+    
+    // Fetch second batch of 500 games
+    const secondQuery = `
+      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,first_release_date,id;
+      where rating > 70 & first_release_date > ${Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 365}; 
+      sort rating desc;
+      limit 500;
+      offset 500;
+    `;
+    
+    const firstResponse = await fetch(`${API_BASE_URL}/games`, {
+      method: 'POST',
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'text/plain'
+      },
+      body: firstQuery
+    });
+    
+    const secondResponse = await fetch(`${API_BASE_URL}/games`, {
+      method: 'POST',
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'text/plain'
+      },
+      body: secondQuery
+    });
+    
+    if (!firstResponse.ok || !secondResponse.ok) {
+      console.error('IGDB API error:', 
+        firstResponse.ok ? '' : `First batch: ${firstResponse.status}`,
+        secondResponse.ok ? '' : `Second batch: ${secondResponse.status}`);
+      return res.status(500).json({ error: 'Failed to fetch trending games from IGDB API' });
+    }
+    
+    const firstData = await firstResponse.json();
+    const secondData = await secondResponse.json();
+    
+    // Combine results and remove any duplicates by ID
+    const combinedGames = [...firstData, ...secondData];
+    const uniqueGames = Array.from(new Map(combinedGames.map(game => [game.id, game])).values());
+    
+    res.json(uniqueGames);
+  } catch (error) {
+    console.error('Server error in trending games endpoint:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add latest releases endpoint
+app.get('/api/games/latest', async (req, res) => {
+  try {
+    const API_BASE_URL = 'https://api.igdb.com/v4';
+    const token = process.env.VITE_ACCESS_TOKEN;
+    const clientId = process.env.VITE_CLIENT_ID;
+    
+    // Current timestamp in seconds
+    const now = Math.floor(Date.now() / 1000);
+    // 6 months ago (increased from 3 months to get more games)
+    const sixMonthsAgo = now - (60 * 60 * 24 * 180);
+    
+    // Fetch first batch of 500 games
+    const firstQuery = `
+      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id;
+      where first_release_date > ${sixMonthsAgo} 
+      & first_release_date < ${now} 
+      & rating_count > 5;
+      sort first_release_date desc;
+      limit 500;
+      offset 0;
+    `;
+    
+    // Fetch second batch of 500 games
+    const secondQuery = `
+      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id;
+      where first_release_date > ${sixMonthsAgo} 
+      & first_release_date < ${now} 
+      & rating_count > 5;
+      sort first_release_date desc;
+      limit 500;
+      offset 500;
+    `;
+    
+    const firstResponse = await fetch(`${API_BASE_URL}/games`, {
+      method: 'POST',
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'text/plain'
+      },
+      body: firstQuery
+    });
+    
+    const secondResponse = await fetch(`${API_BASE_URL}/games`, {
+      method: 'POST',
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'text/plain'
+      },
+      body: secondQuery
+    });
+    
+    if (!firstResponse.ok || !secondResponse.ok) {
+      console.error('IGDB API error:', 
+        firstResponse.ok ? '' : `First batch: ${firstResponse.status}`,
+        secondResponse.ok ? '' : `Second batch: ${secondResponse.status}`);
+      return res.status(500).json({ error: 'Failed to fetch latest releases from IGDB API' });
+    }
+    
+    const firstData = await firstResponse.json();
+    const secondData = await secondResponse.json();
+    
+    // Combine results and remove any duplicates by ID
+    const combinedGames = [...firstData, ...secondData];
+    const uniqueGames = Array.from(new Map(combinedGames.map(game => [game.id, game])).values());
+    
+    res.json(uniqueGames);
+  } catch (error) {
+    console.error('Server error in latest releases endpoint:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add top rated games endpoint
+app.get('/api/games/top-rated', async (req, res) => {
+  try {
+    const API_BASE_URL = 'https://api.igdb.com/v4';
+    const token = process.env.VITE_ACCESS_TOKEN;
+    const clientId = process.env.VITE_CLIENT_ID;
+    
+    // Fetch first batch of 500 games
+    const firstQuery = `
+      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id;
+      where rating >= 90 & rating_count > 100;
+      sort rating desc;
+      limit 500;
+      offset 0;
+    `;
+    
+    // Fetch second batch of 500 games
+    const secondQuery = `
+      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id;
+      where rating >= 90 & rating_count > 100;
+      sort rating desc;
+      limit 500;
+      offset 500;
+    `;
+    
+    const firstResponse = await fetch(`${API_BASE_URL}/games`, {
+      method: 'POST',
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'text/plain'
+      },
+      body: firstQuery
+    });
+    
+    const secondResponse = await fetch(`${API_BASE_URL}/games`, {
+      method: 'POST',
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'text/plain'
+      },
+      body: secondQuery
+    });
+    
+    if (!firstResponse.ok || !secondResponse.ok) {
+      console.error('IGDB API error:', 
+        firstResponse.ok ? '' : `First batch: ${firstResponse.status}`,
+        secondResponse.ok ? '' : `Second batch: ${secondResponse.status}`);
+      return res.status(500).json({ error: 'Failed to fetch top rated games from IGDB API' });
+    }
+    
+    const firstData = await firstResponse.json();
+    const secondData = await secondResponse.json();
+    
+    // Combine results and remove any duplicates by ID
+    const combinedGames = [...firstData, ...secondData];
+    const uniqueGames = Array.from(new Map(combinedGames.map(game => [game.id, game])).values());
+    
+    res.json(uniqueGames);
+  } catch (error) {
+    console.error('Server error in top rated games endpoint:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add upcoming games endpoint
+app.get('/api/games/upcoming', async (req, res) => {
+  try {
+    const API_BASE_URL = 'https://api.igdb.com/v4';
+    const token = process.env.VITE_ACCESS_TOKEN;
+    const clientId = process.env.VITE_CLIENT_ID;
+    
+    // Current timestamp in seconds
+    const now = Math.floor(Date.now() / 1000);
+    // 1 year in the future
+    const oneYearLater = now + (60 * 60 * 24 * 365);
+    
+    // Fetch first batch of 500 games
+    const firstQuery = `
+      fields name,cover.url,genres.name,player_perspectives.name,summary,hypes,first_release_date,id;
+      where first_release_date > ${now} 
+      & first_release_date < ${oneYearLater}
+      & hypes > 5;
+      sort first_release_date asc;
+      limit 500;
+      offset 0;
+    `;
+    
+    // Fetch second batch of 500 games
+    const secondQuery = `
+      fields name,cover.url,genres.name,player_perspectives.name,summary,hypes,first_release_date,id;
+      where first_release_date > ${now} 
+      & first_release_date < ${oneYearLater}
+      & hypes > 5;
+      sort first_release_date asc;
+      limit 500;
+      offset 500;
+    `;
+    
+    const firstResponse = await fetch(`${API_BASE_URL}/games`, {
+      method: 'POST',
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'text/plain'
+      },
+      body: firstQuery
+    });
+    
+    const secondResponse = await fetch(`${API_BASE_URL}/games`, {
+      method: 'POST',
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'text/plain'
+      },
+      body: secondQuery
+    });
+    
+    if (!firstResponse.ok || !secondResponse.ok) {
+      console.error('IGDB API error:', 
+        firstResponse.ok ? '' : `First batch: ${firstResponse.status}`,
+        secondResponse.ok ? '' : `Second batch: ${secondResponse.status}`);
+      return res.status(500).json({ error: 'Failed to fetch upcoming games from IGDB API' });
+    }
+    
+    const firstData = await firstResponse.json();
+    const secondData = await secondResponse.json();
+    
+    // Combine results and remove any duplicates by ID
+    const combinedGames = [...firstData, ...secondData];
+    const uniqueGames = Array.from(new Map(combinedGames.map(game => [game.id, game])).values());
+    
+    res.json(uniqueGames);
+  } catch (error) {
+    console.error('Server error in upcoming games endpoint:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add endpoint to fetch game by ID
+app.get('/api/games/:id', async (req, res) => {
+  try {
+    const gameId = req.params.id;
+    const API_BASE_URL = 'https://api.igdb.com/v4';
+    const token = process.env.VITE_ACCESS_TOKEN;
+    const clientId = process.env.VITE_CLIENT_ID;
+    
+    // Query for the specific game by ID
+    const query = `
+      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,first_release_date,id,screenshots.url,artworks.url,videos.*;
+      where id = ${gameId};
     `;
     
     const response = await fetch(`${API_BASE_URL}/games`, {
@@ -143,13 +424,13 @@ app.get('/api/games/trending', async (req, res) => {
     
     if (!response.ok) {
       console.error('IGDB API error:', response.status, response.statusText);
-      return res.status(500).json({ error: 'Failed to fetch trending games from IGDB API' });
+      return res.status(500).json({ error: 'Failed to fetch game details from IGDB API' });
     }
     
     const data = await response.json();
-    res.json(data);
+    res.json(data.length > 0 ? data[0] : null);
   } catch (error) {
-    console.error('Server error in trending games endpoint:', error);
+    console.error('Server error in get game by ID endpoint:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
