@@ -1,24 +1,12 @@
-import { API_BASE_URL } from './api';
+import { API_BASE_URL, getTrendingGames } from './api';
 
 /**
  * Fetches, processes and returns featured games from IGDB API via backend proxy
  */
 export async function getFeaturedGames() {
   try {
-    // Make a request to our backend proxy instead of directly to IGDB
-    const response = await fetch('/api/games/trending', {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    // Parse the JSON response
-    const games = await response.json();
+    // Use the API function to get trending games
+    const games = await getTrendingGames();
     
     // Handle empty response
     if (!games || games.length === 0) {
@@ -27,13 +15,14 @@ export async function getFeaturedGames() {
     }
     
     // Shuffle the games array using Fisher-Yates algorithm
-    for (let i = games.length - 1; i > 0; i--) {
+    const shuffledGames = [...games];
+    for (let i = shuffledGames.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [games[i], games[j]] = [games[j], games[i]];
+      [shuffledGames[i], shuffledGames[j]] = [shuffledGames[j], shuffledGames[i]];
     }
     
     // Extract the first 10 entries
-    const selected = games.slice(0, 10);
+    const selected = shuffledGames.slice(0, 10);
     
     // Return the games split into primary and secondary groups
     return {
