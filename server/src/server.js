@@ -48,6 +48,33 @@ app.post("/api/games", async (req, res) => {
   res.status(200).json(data);
 });
 
+app.post("/api/game_videos", async (req, res) => {
+  const { content } = req.body;
+
+  const API_BASE_URL = "https://api.igdb.com/v4"; 
+  const token = process.env.VITE_ACCESS_TOKEN;
+  const clientId = process.env.VITE_CLIENT_ID;
+
+  console.log("Content:", content);
+
+  const response = await fetch(`${API_BASE_URL}/game_videos`, {
+    method: 'POST',
+    headers: {
+      'Client-ID': clientId,
+      'Authorization': `Bearer ${token}`,
+    },
+    body: content,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(`API Error: ${response.statusText}`);
+  }
+
+  res.status(200).json(data);
+});
+
 
 app.use(routes);
 app.get('*', (req
