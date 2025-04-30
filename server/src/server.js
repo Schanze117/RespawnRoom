@@ -12,6 +12,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fetch from 'node-fetch';
+import cors from 'cors';
 import { handleGoogleAuth } from './controllers/googleAuthController.js';
 
 dotenv.config();
@@ -31,6 +32,13 @@ await server.start();
 // Middleware for parsing request bodies
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+
+// Enable CORS for all routes
+const corsOptions = {
+  origin: ['http://localhost:3000', 'https://studio.apollographql.com'],
+  credentials: true
+};
+app.use(cors(corsOptions));
 
 // Middleware for Apollo Server
 app.use(

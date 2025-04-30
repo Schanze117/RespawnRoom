@@ -9,7 +9,22 @@ export const resolvers = {
         throw new Error('You need to be logged in!');
       }
 
-      const foundUser = await User.findById(context.user._id);
+      // Try to find by ID first, then by username/email if that fails
+      let foundUser = null;
+      
+      if (context.user._id) {
+        foundUser = await User.findById(context.user._id);
+      }
+      
+      // If no user found by ID, try by userName
+      if (!foundUser && context.user.userName) {
+        foundUser = await User.findOne({ userName: context.user.userName });
+      }
+      
+      // If still no user, try by email
+      if (!foundUser && context.user.email) {
+        foundUser = await User.findOne({ email: context.user.email });
+      }
 
       if (!foundUser) {
         throw new Error('Cannot find a user with this id!');
@@ -32,8 +47,8 @@ export const resolvers = {
       return { token, user };
     },
     // This mutation is used to log in a user
-    login: async (_parent, { userName, email, password }) => {
-      const user = await User.findOne({ $or: [{ userName }, { email }] });
+    login: async (_parent, { email, password }) => {
+      const user = await User.findOne({ email });
     
       if (!user) {
         throw new Error("Can't find this user");

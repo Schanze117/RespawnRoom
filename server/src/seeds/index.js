@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { seedUsers } from './user-seeds.js';
-// import { seedVideoGames } from './videogame-seeds.js';
+import { seedVideoGames } from './videogame-seeds.js';
 import db from '../config/connection.js'; // Ensure this connects to your MongoDB instance
 
 const seedAll = async () => {
@@ -13,9 +13,9 @@ const seedAll = async () => {
     await seedUsers();
     console.log('\n----- USERS SEEDED -----\n');
 
-    // Seed video games (uncomment if needed)
-    // await seedVideoGames();
-    // console.log('\n----- VIDEOGAMES SEEDED -----\n');
+    // Seed video games
+    await seedVideoGames();
+    console.log('\n----- VIDEOGAMES SEEDED -----\n');
 
     // Close the database connection
     mongoose.connection.close();
