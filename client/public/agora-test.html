@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agora Complete Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    #status, #tokenStatus { margin: 20px 0; padding: 10px; background: #f0f0f0; border-radius: 4px; }
+    button { padding: 10px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; }
+    button:hover { background: #45a049; }
+    input { padding: 8px; margin-right: 10px; width: 300px; }
+    h2 { margin-top: 30px; color: #444; }
+    .error { color: #d32f2f; }
+    .success { color: #388e3c; }
+  </style>
+</head>
+<body>
+  <h1>Agora Connection Test</h1>
+  <p>This page tests Agora connectivity using both direct App ID and token-based authentication.</p>
+  
+  <h2>1. Direct App ID Test</h2>
+  <div>
+    <input type="text" id="app-id" value="411338675" placeholder="Enter your Agora App ID">
+    <button id="test-direct">Test Direct Connection</button>
+  </div>
+  <div id="status">Status: Ready to test direct connection</div>
+  
+  <h2>2. Token-Based Test</h2>
+  <div>
+    <input type="text" id="token-channel" value="test-channel" placeholder="Channel name">
+    <button id="get-token">Step 1: Get Token</button>
+  </div>
+  <div id="tokenStatus">Status: Ready to get token</div>
+  <div>
+    <button id="test-token" disabled>Step 2: Test Token Connection</button>
+  </div>
+  
+  <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.18.2.js"></script>
+  <script>
+    // Store token data
+    let tokenData = null;
+    
+    // Direct App ID test
+    document.getElementById('test-direct').addEventListener('click', async function() {
+      const statusEl = document.getElementById('status');
+      const appID = document.getElementById('app-id').value.trim();
+      
+      if (!appID) {
+        statusEl.innerHTML = '<span class="error">Please enter an App ID</span>';
+        return;
+      }
+      
+      statusEl.innerHTML = 'Status: Testing direct connection...';
+      
+      try {
+        // Initialize Agora client
+        const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+        const channel = 'test-' + Date.now();
+        const uid = Math.floor(Math.random() * 100000);
+        
+        console.log(`Testing App ID: ${appID} in channel: ${channel}`);
+        
+        try {
+          await client.join(appID, channel, null, uid);
+          statusEl.innerHTML = `<span class="success">SUCCESS ✅ - Connected successfully with App ID ${appID}</span>`;
+          
+          // Leave the channel
+          await client.leave();
+          console.log('Left channel');
+        } catch (error) {
+          console.error(`Error with App ID ${appID}:`, error);
+          statusEl.innerHTML = `<span class="error">FAILED ❌ - ${error.message}</span>`;
+        }
+      } catch (error) {
+        console.error('Test failed:', error);
+        statusEl.innerHTML = `<span class="error">Test failed: ${error.message}</span>`;
+      }
+    });
+    
+    // Step 1: Get Token
+    document.getElementById('get-token').addEventListener('click', async function() {
+      const tokenStatusEl = document.getElementById('tokenStatus');
+      const channelName = document.getElementById('token-channel').value.trim();
+      const testTokenBtn = document.getElementById('test-token');
+      
+      if (!channelName) {
+        tokenStatusEl.innerHTML = '<span class="error">Please enter a channel name</span>';
+        return;
+      }
+      
+      tokenStatusEl.innerHTML = 'Status: Fetching token from server...';
+      testTokenBtn.disabled = true;
+      
+      try {
+        const response = await fetch(`/api/agora/token?channel=${channelName}`);
+        
+        if (!response.ok) {
+          throw new Error(`Server responded with status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.message || 'Token generation failed');
+        }
+        
+        // Store token data
+        tokenData = data;
+        
+        // Show token details
+        tokenStatusEl.innerHTML = 
+          `<span class="success">Token received ✅</span><br>
+           App ID: ${data.appId}<br>
+           UID: ${data.uid}<br>
+           Token: ${data.token.substring(0, 30)}...`;
+        
+        // Enable the test token button
+        testTokenBtn.disabled = false;
+      } catch (error) {
+        console.error('Error fetching token:', error);
+        tokenStatusEl.innerHTML = `<span class="error">Failed to get token: ${error.message}</span>`;
+      }
+    });
+    
+    // Step 2: Test Token Connection
+    document.getElementById('test-token').addEventListener('click', async function() {
+      const tokenStatusEl = document.getElementById('tokenStatus');
+      
+      if (!tokenData) {
+        tokenStatusEl.innerHTML = '<span class="error">No token available. Please get a token first.</span>';
+        return;
+      }
+      
+      tokenStatusEl.innerHTML += '<br>Status: Testing token connection...';
+      
+      try {
+        // Initialize Agora client
+        const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+        const channel = document.getElementById('token-channel').value.trim();
+        
+        console.log(`Testing with token in channel: ${channel}`);
+        
+        try {
+          await client.join(tokenData.appId, channel, tokenData.token, tokenData.uid);
+          tokenStatusEl.innerHTML += `<br><span class="success">SUCCESS ✅ - Connected successfully with token</span>`;
+          
+          // Leave the channel
+          await client.leave();
+          console.log('Left channel');
+        } catch (error) {
+          console.error('Error with token:', error);
+          tokenStatusEl.innerHTML += `<br><span class="error">FAILED ❌ - ${error.message}</span>`;
+        }
+      } catch (error) {
+        console.error('Test failed:', error);
+        tokenStatusEl.innerHTML += `<br><span class="error">Test failed: ${error.message}</span>`;
+      }
+    });
+  </script>
+</body>
+</html> 
