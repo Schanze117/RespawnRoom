@@ -1,48 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import HeroCarousel from '../components/homePage/HeroCarousel';
 import PersonalizedRecommendations from '../components/homePage/PersonalizedRecommendations';
 import GamesLayout from '../components/homePage/GamesLayout';
 import UpcomingReleases from '../components/homePage/UpcomingReleases';
 import TopRated from '../components/homePage/TopRated';
 import GenreSpotlights from '../components/homePage/GenreSpotlights';
-import { resetDisplayedGames, getFeaturedGame } from '../utils/gameFetcher';
+import { useGameContext } from '../utils/GameContext';
 
 export default function Home() {
-    const [isRespawning, setIsRespawning] = useState(false);
-    const [respawnCount, setRespawnCount] = useState(0);
-    const [featuredGameLoaded, setFeaturedGameLoaded] = useState(false);
-
-    // Load the featured game first to add it to displayedGameIds
-    useEffect(() => {
-        const loadFeaturedGame = async () => {
-            try {
-                // This will add the featured game ID to displayedGameIds
-                await getFeaturedGame();
-            } catch (error) {
-                console.error('Error pre-loading featured game:', error);
-            } finally {
-                setFeaturedGameLoaded(true);
-            }
-        };
-
-        loadFeaturedGame();
-    }, [respawnCount]);
-
-    // Handle global respawn button click
-    const handleRespawn = () => {
-        if (isRespawning) return;
-        
-        setIsRespawning(true);
-        resetDisplayedGames();
-        
-        // Increment the count to trigger re-renders
-        setRespawnCount(prev => prev + 1);
-        
-        // Reset the respawning state after a delay
-        setTimeout(() => {
-            setIsRespawning(false);
-        }, 3000);
-    };
+    const { 
+        isRespawning, 
+        respawnCount, 
+        handleRespawn, 
+        isLoading, 
+        initialLoadComplete 
+    } = useGameContext();
 
     return (
         <div className="mt-20 md:ml-55 px-4 sm:px-6 py-8 bg-surface-900">
@@ -72,16 +44,21 @@ export default function Home() {
                 </button>
             </div>
             
-            {/* Featured game always loads first */}
-            <HeroCarousel key={`hero-${respawnCount}`} />
-            
-            {/* Only show other content when featured game is loaded */}
-            {featuredGameLoaded && (
+            {isLoading && !initialLoadComplete ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                    <div className="animate-spin h-12 w-12 mb-4 text-primary-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <p className="text-primary-400">Loading all games...</p>
+                </div>
+            ) : (
                 <>
+                    <HeroCarousel />
                     <PersonalizedRecommendations />
-                    <GamesLayout key={`games-${respawnCount}`} />
-                    <UpcomingReleases key={`upcoming-${respawnCount}`} />
-                    <TopRated key={`toprated-${respawnCount}`} />
+                    <GamesLayout />
                     <GenreSpotlights />
                 </>
             )}

@@ -10,6 +10,7 @@ import Search from './pages/search.jsx';
 import Login from './pages/loginPage.jsx';
 import Saved from './pages/saved.jsx';
 import Register from './pages/register.jsx';
+import { GameProvider } from './utils/GameContext.jsx';
 
 // Create an HTTP link
 const httpLink = createHttpLink({
@@ -68,6 +69,8 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ApolloProvider client={client}>
-    <RouterProvider router={router} />
+    <GameProvider>
+      <RouterProvider router={router} />
+    </GameProvider>
   </ApolloProvider>
 );

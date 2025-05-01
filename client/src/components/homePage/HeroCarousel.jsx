@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { getFeaturedGame } from '../../utils/gameFetcher';
+import React, { useEffect, useState } from 'react';
+import { useGameContext } from '../../utils/GameContext';
 import NoImage from '../../assets/noImage.jpg';
 
 // The specific game ID we want to feature
 const FEATURED_GAME_ID = 238532;
 
 export default function HeroCarousel() {
-  const [featuredGame, setFeaturedGame] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { featuredGame, isLoading, respawnCount } = useGameContext();
+  const [displayGame, setDisplayGame] = useState(null);
+  const [coverImage, setCoverImage] = useState(null);
+  const [backdropImage, setBackdropImage] = useState(null);
 
   // Default featured game as fallback
   const defaultGame = {
@@ -16,59 +17,56 @@ export default function HeroCarousel() {
     summary: "Gather your party and return to the Forgotten Realms in a tale of fellowship and betrayal, sacrifice and survival, and the lure of absolute power.",
   };
 
-  useEffect(() => {
-    const loadFeaturedGame = async () => {
-      try {
-        setIsLoading(true);
-        const game = await getFeaturedGame();
-        if (game) {
-          setFeaturedGame(game);
-        } else {
-          setFeaturedGame(defaultGame);
-        }
-      } catch (err) {
-        console.error('Error loading featured game:', err);
-        setError('Failed to load featured game');
-        setFeaturedGame(defaultGame);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadFeaturedGame();
-  }, []);
-
   // Process image URL to get optimal size
   const getOptimizedImageUrl = (url) => {
     if (!url) return NoImage;
     return url.replace('t_thumb', 't_1080p').replace('t_cover_small', 't_1080p');
   };
 
-  // Get the game to display (either loaded or default)
-  const displayGame = featuredGame || defaultGame;
-  
-  // Get cover image (if available)
-  const coverImage = featuredGame?.cover?.url 
-    ? getOptimizedImageUrl(featuredGame.cover.url)
-    : null;
+  // Force re-render when respawnCount changes
+  useEffect(() => {
+    console.log(`[HeroCarousel] Respawn count changed to ${respawnCount}`);
     
-  // Get a backdrop image (from screenshots or artworks if available)
-  const hasScreenshots = featuredGame?.screenshots && featuredGame.screenshots.length > 0;
-  const hasArtworks = featuredGame?.artworks && featuredGame.artworks.length > 0;
-  
-  let backdropImage = null;
-  if (hasScreenshots) {
-    backdropImage = getOptimizedImageUrl(featuredGame.screenshots[0].url);
-  } else if (hasArtworks) {
-    backdropImage = getOptimizedImageUrl(featuredGame.artworks[0].url);
-  } else if (coverImage) {
-    backdropImage = coverImage;
-  }
+    // Get the game to display (either loaded or default)
+    const gameToDisplay = featuredGame ? { 
+      ...featuredGame,
+      _respawnId: respawnCount // Add respawn ID to force a reference change
+    } : defaultGame;
+    
+    setDisplayGame(gameToDisplay);
+    
+    // Get cover image (if available)
+    const newCoverImage = featuredGame?.cover?.url 
+      ? getOptimizedImageUrl(featuredGame.cover.url)
+      : null;
+    setCoverImage(newCoverImage);
+      
+    // Get a backdrop image (from screenshots or artworks if available)
+    const hasScreenshots = featuredGame?.screenshots && featuredGame.screenshots.length > 0;
+    const hasArtworks = featuredGame?.artworks && featuredGame.artworks.length > 0;
+    
+    let newBackdropImage = null;
+    if (hasScreenshots) {
+      newBackdropImage = getOptimizedImageUrl(featuredGame.screenshots[0].url);
+    } else if (hasArtworks) {
+      newBackdropImage = getOptimizedImageUrl(featuredGame.artworks[0].url);
+    } else if (newCoverImage) {
+      newBackdropImage = newCoverImage;
+    }
+    
+    setBackdropImage(newBackdropImage);
+    
+    // Debug log
+    console.log(`[HeroCarousel] Updated featured game after respawn`);
+  }, [featuredGame, respawnCount]);
 
   return (
     <section className="w-full mb-12">
       <h2 className="text-2xl font-bold text-primary-500 mb-4">Featured Game</h2>
-      <div className="relative overflow-hidden rounded-lg h-80 bg-surface-800 border border-surface-600">
+      <div 
+        className="relative overflow-hidden rounded-lg h-80 bg-surface-800 border border-surface-600" 
+        key={`hero-${respawnCount}`}
+      >
         {/* Backdrop Image */}
         {backdropImage && (
           <div 
@@ -79,7 +77,7 @@ export default function HeroCarousel() {
           </div>
         )}
         
-        {isLoading ? (
+        {isLoading && !featuredGame ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="animate-pulse text-primary-400">Loading featured game...</div>
           </div>
@@ -90,9 +88,18 @@ export default function HeroCarousel() {
                 <div className="flex flex-col md:flex-row h-full">
                   <div className="md:w-1/2 p-6 flex flex-col justify-center">
                     <span className="text-primary-400 text-sm font-semibold mb-1">Featured Game</span>
-                    <h3 className="text-3xl font-bold text-light mb-2">{displayGame.name}</h3>
+                    <h3 className="text-3xl font-bold text-light mb-2">{displayGame?.name}</h3>
+                    
+                    {/* Add rating display if available */}
+                    {displayGame?.rating && (
+                      <div className="text-sm text-primary-400 font-medium mb-2">
+                        Rating: {Math.round(displayGame.rating)}/100
+                        {displayGame.rating_count && ` (${displayGame.rating_count} reviews)`}
+                      </div>
+                    )}
+                    
                     <p className="text-tonal-400 mb-4 line-clamp-3">
-                      {displayGame.summary}
+                      {displayGame?.summary}
                     </p>
                     <button className="bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 w-fit">
                       View Details
@@ -102,7 +109,7 @@ export default function HeroCarousel() {
                     {coverImage ? (
                       <img 
                         src={coverImage} 
-                        alt={displayGame.name} 
+                        alt={displayGame?.name} 
                         className="h-full max-h-64 object-contain rounded-lg shadow-lg"
                       />
                     ) : (

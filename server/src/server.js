@@ -400,6 +400,183 @@ app.get('/api/games/upcoming', async (req, res) => {
   }
 });
 
+// Add new unified games endpoint to fetch all games at once
+// Place this BEFORE the /:id route to prevent conflicts
+app.get('/api/games/all-categories', async (req, res) => {
+  try {
+    console.log('Received request for all game categories');
+    const API_BASE_URL = 'https://api.igdb.com/v4';
+    const token = process.env.VITE_ACCESS_TOKEN;
+    const clientId = process.env.VITE_CLIENT_ID;
+    
+    if (!token || !clientId) {
+      console.error('Missing API credentials:', { 
+        hasToken: !!token, 
+        hasClientId: !!clientId 
+      });
+      return res.status(500).json({ error: 'Missing API credentials' });
+    }
+    
+    // Current timestamp in seconds
+    const now = Math.floor(Date.now() / 1000);
+    // Time references
+    const oneYearAgo = now - (60 * 60 * 24 * 365);
+    const sixMonthsAgo = now - (60 * 60 * 24 * 180);
+    const oneYearLater = now + (60 * 60 * 24 * 365);
+    
+    console.log('Fetching all game categories in a single composite request');
+    
+    // Fetch 4 batches of 500 games with different criteria
+    const batchQueries = [
+      // Batch 1: Trending games (high rating, recent release)
+      `
+        fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id,hypes;
+        where rating > 70 & first_release_date > ${oneYearAgo}; 
+        sort rating desc;
+        limit 500;
+      `,
+      
+      // Batch 2: Latest releases (games released in the last 6 months)
+      `
+        fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id,hypes;
+        where first_release_date > ${sixMonthsAgo} 
+        & first_release_date < ${now} 
+        & rating_count > 5;
+        sort first_release_date desc;
+        limit 500;
+      `,
+      
+      // Batch 3: Top rated games (highest-rated games of all time)
+      `
+        fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id,hypes;
+        where rating >= 90 & rating_count > 100;
+        sort rating desc;
+        limit 500;
+      `,
+      
+      // Batch 4: Upcoming games (games releasing in the next year)
+      `
+        fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id,hypes;
+        where first_release_date > ${now} 
+        & first_release_date < ${oneYearLater}
+        & hypes > 5;
+        sort first_release_date asc;
+        limit 500;
+      `
+    ];
+    
+    // Make all requests in parallel
+    const batchPromises = batchQueries.map((query, index) => {
+      console.log(`Sending batch ${index + 1} request to IGDB API`);
+      return fetch(`${API_BASE_URL}/games`, {
+        method: 'POST',
+        headers: {
+          'Client-ID': clientId,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'text/plain'
+        },
+        body: query
+      });
+    });
+    
+    // Wait for all responses
+    const responses = await Promise.all(batchPromises);
+    
+    // Check if any request failed
+    for (let i = 0; i < responses.length; i++) {
+      if (!responses[i].ok) {
+        console.error(`IGDB API error in batch ${i+1}: ${responses[i].status}`);
+        const errorText = await responses[i].text();
+        console.error(`Error response for batch ${i+1}:`, errorText);
+        return res.status(500).json({ error: `Failed to fetch games from IGDB API in batch ${i+1}`, details: errorText });
+      }
+    }
+    
+    // Parse all JSON responses
+    const allData = await Promise.all(responses.map(r => r.json()));
+    
+    // Log the count of games received from each batch
+    allData.forEach((batch, index) => {
+      console.log(`Received ${batch.length} games from batch ${index + 1}`);
+    });
+    
+    // Create a Map to track unique games by ID
+    const uniqueGamesMap = new Map();
+    
+    // Process all games
+    allData.forEach((batch, batchIndex) => {
+      batch.forEach(game => {
+        // Only add if not already in our map
+        if (!uniqueGamesMap.has(game.id)) {
+          uniqueGamesMap.set(game.id, {
+            ...game,
+            // Add source category based on which batch it came from
+            sourceCategory: batchIndex === 0 ? 'trending' : 
+                           batchIndex === 1 ? 'latest' : 
+                           batchIndex === 2 ? 'topRated' : 'upcoming'
+          });
+        }
+      });
+    });
+    
+    // Convert map values to array
+    const allUniqueGames = Array.from(uniqueGamesMap.values());
+    console.log(`Total unique games fetched: ${allUniqueGames.length}`);
+    
+    // Categorize games into sections without duplicates
+    // We'll use a Set to track which games have been assigned
+    const assignedGameIds = new Set();
+    
+    // Helper function to get unassigned games from a batch
+    const getUnassignedGames = (batchIndex, limit) => {
+      const category = batchIndex === 0 ? 'trending' : 
+                       batchIndex === 1 ? 'latest' : 
+                       batchIndex === 2 ? 'topRated' : 'upcoming';
+      
+      return allUniqueGames
+        .filter(game => 
+          game.sourceCategory === category && 
+          !assignedGameIds.has(game.id)
+        )
+        .slice(0, limit)
+        .map(game => {
+          // Mark as assigned
+          assignedGameIds.add(game.id);
+          return game;
+        });
+    };
+    
+    // Create the categorized response
+    const categorizedGames = {
+      trending: {
+        primary: getUnassignedGames(0, 5),
+        secondary: getUnassignedGames(0, 5)
+      },
+      latest: {
+        primary: getUnassignedGames(1, 5),
+        secondary: getUnassignedGames(1, 10)
+      },
+      topRated: {
+        primary: getUnassignedGames(2, 5),
+        secondary: getUnassignedGames(2, 10)
+      },
+      upcoming: {
+        primary: getUnassignedGames(3, 5),
+        secondary: getUnassignedGames(3, 10)
+      },
+      // Also include all unique games for client-side filtering if needed
+      allGames: allUniqueGames
+    };
+    
+    console.log(`Games categorized: Trending (${categorizedGames.trending.primary.length + categorizedGames.trending.secondary.length}), Latest (${categorizedGames.latest.primary.length + categorizedGames.latest.secondary.length}), Top Rated (${categorizedGames.topRated.primary.length + categorizedGames.topRated.secondary.length}), Upcoming (${categorizedGames.upcoming.primary.length + categorizedGames.upcoming.secondary.length})`);
+    
+    res.json(categorizedGames);
+  } catch (error) {
+    console.error('Server error in composite games endpoint:', error);
+    res.status(500).json({ error: 'Internal server error', message: error.message, stack: error.stack });
+  }
+});
+
 // Add endpoint to fetch game by ID
 app.get('/api/games/:id', async (req, res) => {
   try {
