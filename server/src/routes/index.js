@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import gameRoutes from './api/gameRoutes.js';
 import userRoutes from './api/userRoutes.js';
+import agoraRoutes from './agoraRoutes.js';
 
 // Create router
 const router = express.Router();
@@ -11,6 +12,7 @@ const router = express.Router();
 // API routes
 router.use('/api/games', gameRoutes);
 router.use('/api/user', userRoutes);
+router.use('/api/agora', agoraRoutes);
 
 // Check if api directory has files
 try {
