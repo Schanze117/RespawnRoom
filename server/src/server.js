@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import { typeDefs, resolvers } from './schemas/index.js';
-import { authenticateToken } from './middleware/auth.js';
+import { authenticateToken, getUserFromToken } from './middleware/auth.js';
 import cors from 'cors';
 
 import './config/connection.js';
@@ -14,6 +14,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { handleGoogleAuth } from './controllers/googleAuthController.js';
+import User from './models/users.js';
 
 // Setup __dirname for ES modules
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -31,6 +32,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.static('../client/dist'));
+app.use(routes); // Mount API routes from routes/index.js
 
 passport.use(new GoogleStrategy({
   clientID:     process.env.GOOGLE_CLIENT_ID,
@@ -85,7 +87,7 @@ app.use('/graphql',
   expressMiddleware(server, {
     context: async ({ req }) => {
       // Get the user token from the headers
-      const user = authenticateToken(req);
+      const user = getUserFromToken(req);
       // Add the user to the context
       return { user };
     },
@@ -432,6 +434,47 @@ app.get('/api/games/:id', async (req, res) => {
   } catch (error) {
     console.error('Server error in get game by ID endpoint:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Handle saveGame mutation to update category tokens
+app.post('/api/mutations/saveGame', authenticateToken, async (req, res) => {
+  try {
+    const { game } = req.body;
+    const userId = req.user._id;
+    
+    // Find the user
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Prepare game data with proper format
+    const formattedGame = {
+      name: game.name || 'Unknown Game',
+      cover: game.cover || (game.cover && game.cover.url) || '',
+      summary: game.summary || 'No summary available',
+      // Convert genres and perspectives to string arrays for consistent token handling
+      genres: Array.isArray(game.genres) 
+        ? game.genres.map(genre => typeof genre === 'string' ? genre : genre.name)
+        : [],
+      playerPerspectives: Array.isArray(game.playerPerspectives)
+        ? game.playerPerspectives.map(perspective => typeof perspective === 'string' ? perspective : perspective.name)
+        : []
+    };
+    
+    // Save the game
+    user.savedGames.push(formattedGame);
+    
+    // Update category tokens
+    await user.updateCategoryTokens(formattedGame);
+    
+    // Return the updated user
+    return res.json(user);
+  } catch (error) {
+    console.error('Error saving game:', error);
+    return res.status(500).json({ message: 'Server error' });
   }
 });
 

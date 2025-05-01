@@ -9,7 +9,8 @@
     "start": "node src/server.js --ignore client",
     "dev": "nodemon src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "seed": "node src/seeds/index.js"
+    "seed": "node src/seeds/index.js",
+    "regenerate-tokens": "node regenerate-tokens.js"
   },
   "nodemonConfig": {
     "watch": [
@@ -24,6 +25,7 @@
   "dependencies": {
     "@apollo/server": "^4.12.0",
     "@graphql-tools/schema": "^10.0.23",
+    "axios": "^1.9.0",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -33,7 +35,7 @@
     "googleapis": "^146.0.0",
     "graphql": "^16.11.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.0.0",
+    "mongoose": "^8.14.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.12.0",

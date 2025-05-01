@@ -177,3 +177,128 @@ export const getGameById = async (id) => {
     throw error;
   }
 };
+
+// Get user category tokens for personalized recommendations
+export const getTokens = async () => {
+  try {
+    console.log('Attempting to fetch user tokens from server');
+    
+    // Get the auth token from local storage
+    const token = localStorage.getItem('jwtToken');
+    if (!token) {
+      console.warn('No auth token found, user may not be logged in');
+      return getFallbackTokens();
+    }
+    
+    const response = await fetch(`${SERVER_URL}/api/user/tokens`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`Token API request failed with status ${response.status}: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      console.log('Using fallback tokens due to server error');
+      return getFallbackTokens();
+    }
+    
+    const data = await response.json();
+    console.log('Successfully retrieved tokens from server:', data.categoryTokens);
+    return data.categoryTokens || {};
+  } catch (error) {
+    console.error('Error fetching user tokens:', error);
+    console.log('Using fallback tokens due to error');
+    return getFallbackTokens();
+  }
+};
+
+// Fallback tokens function to use when server is unavailable
+function getFallbackTokens() {
+  console.log('Using hardcoded fallback tokens');
+  return {
+    "RPG": 2,
+    "Action": 1,
+    "Adventure": 1,
+    "Third Person": 2,
+    "Puzzle": 1,
+    "Shooter": 1,
+    "Strategy": 1,
+    "_source": "fallback" // Marker to indicate these are fallback tokens
+  };
+}
+
+// Update user category tokens for personalized recommendations
+export const updateTokens = async (categoryTokens) => {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/user/tokens`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
+      },
+      body: JSON.stringify({ categoryTokens })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error updating user tokens:', error);
+    throw error;
+  }
+};
+
+// Get personalized game recommendations based on user tokens
+export const getPersonalizedGames = async () => {
+  try {
+    console.log('Requesting personalized games from server');
+    
+    // Get the auth token from local storage
+    const token = localStorage.getItem('jwtToken');
+    if (!token) {
+      console.warn('No auth token found, user may not be logged in');
+      return [];
+    }
+    
+    const response = await fetch(`${SERVER_URL}/api/games/personalized`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    // Handle different status codes
+    if (response.status === 429) {
+      console.warn('IGDB API rate limit reached (429) - using client-side fallback');
+      // Return empty array so the component can use the fallback logic
+      return [];
+    }
+    
+    if (!response.ok) {
+      console.error(`API request failed with status ${response.status}: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log(`Received ${data.length} personalized games from server`);
+    
+    // Add a default matchScore if not provided by the server
+    return data.map(game => ({
+      ...game,
+      matchScore: game.matchScore || game.matchPercentage || 85
+    }));
+  } catch (error) {
+    console.error('Error fetching personalized games:', error);
+    throw error;
+  }
+};

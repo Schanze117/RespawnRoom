@@ -2,14 +2,15 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import gameRoutes from './api/gameRoutes.js';
+import userRoutes from './api/userRoutes.js';
 
 // Create router
 const router = express.Router();
 
-// If there are API route files, they would be imported here
-// For example:
-// import apiRoutes from './api/index.js';
-// router.use('/api', apiRoutes);
+// API routes
+router.use('/api/games', gameRoutes);
+router.use('/api/user', userRoutes);
 
 // Check if api directory has files
 try {
