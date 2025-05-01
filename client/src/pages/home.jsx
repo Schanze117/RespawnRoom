@@ -59,7 +59,7 @@ export default function Home() {
                     <HeroCarousel />
                     <PersonalizedRecommendations />
                     <GamesLayout />
-                    <GenreSpotlights />
+                    {/* <GenreSpotlights /> */}
                 </>
             )}
         </div>
