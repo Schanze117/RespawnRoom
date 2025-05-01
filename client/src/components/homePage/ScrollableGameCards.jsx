@@ -424,16 +424,16 @@ export default function ScrollableGameCards({ games, type }) {
                 {/* Rating and review information for all games */}
                 {game.rating && (game.ratingCount || game.rating_count) && type !== 'recommended' && (
                   <div className="text-xs text-primary-400 font-medium mb-2">
-                    Rating: {Math.round(game.rating)}/100 ({game.ratingCount || game.rating_count || 0} reviews)
+                    Rating: {Math.round(game.rating)}/100 ({game.ratingCount || game.rating_count} reviews)
                   </div>
                 )}
                 
                 {/* Match score for recommended games */}
-                {type === 'recommended' && (
+                {type === 'recommended' && game.matchScore && (
                   <div className="text-xs text-green-500 font-medium mb-2">
                     {game.rating 
-                      ? `Rating: ${Math.round(game.rating)}/100 (${game.ratingCount || game.rating_count || 0} reviews)` 
-                      : game.matchScore ? `${game.matchScore}% Match` : "No rating available"}
+                      ? `Rating: ${Math.round(game.rating)}/100 (${game.ratingCount || game.rating_count} reviews)` 
+                      : "Highly Recommended"}
                   </div>
                 )}
                 
