@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import HomePageCard from './HomePageCard';
+import ScrollableGameCards from './ScrollableGameCards';
 import { getPersonalizedGames, getTrendingGames } from '../../utils/api';
 import { UserProfileManager } from '../../utils/userProfile';
 import { Link } from 'react-router-dom';
@@ -119,7 +119,8 @@ export default function PersonalizedRecommendations() {
             
             return {
               ...game,
-              matchScore: score > 0 ? Math.min(Math.round((score / 3) * 100), 99) : 70 // Default score if no match
+              matchScore: score > 0 ? Math.min(Math.round((score / 3) * 100), 99) : 70, // Default score if no match
+              ratingCount: game.rating_count || 0
             };
           });
           
@@ -164,7 +165,8 @@ export default function PersonalizedRecommendations() {
             
             return {
               ...game,
-              matchScore: score > 0 ? Math.min(Math.round((score / 3) * 100), 99) : 85 // Random score if no match
+              matchScore: score > 0 ? Math.min(Math.round((score / 3) * 100), 99) : 85, // Random score if no match
+              ratingCount: game.rating_count || 0
             };
           });
           
@@ -228,104 +230,110 @@ export default function PersonalizedRecommendations() {
     ];
   };
 
-  const renderContent = () => {
-    if (loading) {
-      return (
+  if (loading) {
+    return (
+      <section className="w-full mb-12">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-primary-500">For You</h2>
+        </div>
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
         </div>
-      );
-    }
-    
-    if (error && recommendations.length === 0) {
-      return <div className="text-red-500 text-center py-4">{error}</div>;
-    }
-    
-    if (!hasTokens) {
-      return (
-        <div className="flex flex-col items-center justify-center h-64 text-center">
+      </section>
+    );
+  }
+  
+  if (!hasTokens) {
+    return (
+      <section className="w-full mb-12">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-primary-500">For You</h2>
+        </div>
+        <div className="flex flex-col items-center justify-center h-64 text-center bg-surface-800 rounded-lg p-6 border border-surface-700">
           <h3 className="text-xl font-semibold text-gray-700 mb-4">Save a Game!</h3>
           <p className="text-gray-500 mb-6">
             Save games to your profile to get personalized recommendations based on your preferences.
           </p>
-          <Link 
-            to="/search" 
-            className="px-6 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
-          >
-            Discover Games
+          <Link to="/profile" className="bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg">
+            Go to Profile
           </Link>
         </div>
-      );
-    }
-    
-    // Show recommendations
-    return (
-      <>
-        <HomePageCard games={recommendations} type="recommended" />
-        {forceShowDebug && debugInfo && (
-          <div className="mt-4 p-4 bg-gray-100 rounded text-xs overflow-auto max-h-60">
-            <h4 className="font-bold mb-1">Debug Info:</h4>
-            <div>Has Tokens: {debugInfo.hasTokens ? 'Yes' : 'No'}</div>
-            <div>Token Source: {debugInfo.tokenSource || 'Unknown'}</div>
-            <div>API Status: {debugInfo.apiStatus || 'Unknown'}</div>
-            <div>Token Count: {debugInfo.tokenKeys?.length || 0}</div>
-            <div>Token Keys: {JSON.stringify(debugInfo.tokenKeys)}</div>
-            <div>Recommendation Source: {debugInfo.recommendationSource || 'Unknown'}</div>
-            <div>Games Count: {recommendations.length}</div>
-            {debugInfo.sampleGames && (
-              <div>Sample Games: {JSON.stringify(debugInfo.sampleGames)}</div>
-            )}
-            {debugInfo.scoredGames && (
-              <div className="mt-1">
-                <details>
-                  <summary>Game Scores:</summary>
-                  <pre className="mt-1">{JSON.stringify(debugInfo.scoredGames, null, 2)}</pre>
-                </details>
-              </div>
-            )}
-            {debugInfo.apiError && (
-              <div className="text-red-500 mt-1">API Error: {debugInfo.apiError}</div>
-            )}
-            {debugInfo.trendingError && (
-              <div className="text-orange-500 mt-1">Trending Error: {debugInfo.trendingError}</div>
-            )}
-            {debugInfo.error && (
-              <div className="text-red-500 mt-1">Fatal Error: {debugInfo.error}</div>
-            )}
-            <div className="mt-2">
-              <details>
-                <summary>Full Token Data:</summary>
-                <pre className="mt-1">{JSON.stringify(debugInfo.tokens, null, 2)}</pre>
-              </details>
-            </div>
-          </div>
-        )}
-      </>
+      </section>
     );
-  };
+  }
+
+  if (error && recommendations.length === 0) {
+    return (
+      <section className="w-full mb-12">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-primary-500">For You</h2>
+        </div>
+        <div className="text-red-500 text-center py-4 bg-surface-800 rounded-lg">{error}</div>
+      </section>
+    );
+  }
 
   return (
     <section className="w-full mb-12">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-primary-500">Personalized to you</h2>
-        <div className="flex items-center">
+        <h2 className="text-2xl font-bold text-primary-500">For You</h2>
+        <div className="flex items-center space-x-3">
           <button 
             onClick={handleRefresh}
-            className="mr-4 text-primary-400 hover:text-primary-500 flex items-center text-sm font-medium"
-            disabled={loading}
+            className="text-primary-400 hover:text-primary-300 text-sm flex items-center"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 2v6h-6"></path>
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+              <path d="M3 22v-6h6"></path>
+              <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
             </svg>
             Refresh
           </button>
-          <button className="text-primary-400 hover:text-primary-300 text-sm font-medium">
-            View All
-          </button>
+          <Link to="/games" className="text-primary-400 hover:text-primary-300 text-sm font-medium">
+            See More
+          </Link>
         </div>
       </div>
       
-      {renderContent()}
+      {error && (
+        <div className="text-amber-500 text-sm mb-4 p-2 bg-amber-900/30 rounded-md">
+          {error}
+        </div>
+      )}
+      
+      <ScrollableGameCards games={recommendations} type="recommended" />
+      
+      {/* Debug info panel - only visible when forceShowDebug is true */}
+      {(forceShowDebug && debugInfo) && (
+        <div className="mt-6 p-3 bg-surface-900 border border-surface-700 rounded-md text-xs text-gray-400 overflow-x-auto">
+          <div className="font-semibold mb-1">Debug Info:</div>
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+            <div>Token Source:</div>
+            <div>{debugInfo.tokenSource}</div>
+            
+            <div>Has Tokens:</div>
+            <div>{debugInfo.hasTokens ? 'Yes' : 'No'}</div>
+            
+            <div>API Status:</div>
+            <div>{debugInfo.apiStatus}</div>
+            
+            {debugInfo.recommendationSource && (
+              <>
+                <div>Data Source:</div>
+                <div>{debugInfo.recommendationSource}</div>
+              </>
+            )}
+            
+            {debugInfo.gameCount !== undefined && (
+              <>
+                <div>Game Count:</div>
+                <div>{debugInfo.gameCount}</div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 } 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ScrollableGameCards from './ScrollableGameCards';
-import { getFeaturedGames } from '../../utils/gameFetcher';
+import { getTrendingGames } from '../../utils/api';
 
 export default function TrendingGames() {
   const [trendingGames, setTrendingGames] = useState([]);
@@ -71,20 +71,17 @@ export default function TrendingGames() {
     try {
       setIsLoading(true);
       
-      const { primary, secondary } = await getFeaturedGames();
+      const games = await getTrendingGames();
       
       // If the API returned no results, use mock data
-      if ((!primary && !secondary) || (primary.length === 0 && secondary.length === 0)) {
+      if (!games || games.length === 0) {
         console.warn('No games returned from API. Using mock data instead.');
         setTrendingGames(mockTrendingGames);
         return;
       }
       
-      // Combine primary and secondary arrays
-      const allGames = [...(primary || []), ...(secondary || [])];
-      
       // Transform data to match the expected format for ScrollableGameCards
-      const formattedGames = allGames.map(game => ({
+      const formattedGames = games.map(game => ({
         id: game.id,
         name: game.name,
         cover: game.cover ? {
@@ -95,7 +92,9 @@ export default function TrendingGames() {
         genres: game.genres || [{ name: "Popular" }],
         player_perspectives: game.player_perspectives || [{ name: "Unknown" }],
         summary: game.summary || `Trending game: ${game.name}`,
-        rating: game.rating || null
+        rating: game.rating || null,
+        ratingCount: game.rating_count || 0,
+        videos: game.videos || [] // Preserve videos array if available
       }));
       
       setTrendingGames(formattedGames);

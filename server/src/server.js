@@ -127,7 +127,7 @@ app.get('/api/games/trending', async (req, res) => {
     
     // Fetch first batch of 500 games
     const firstQuery = `
-      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,first_release_date,id;
+      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id;
       where rating > 70 & first_release_date > ${Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 365}; 
       sort rating desc;
       limit 500;
@@ -136,7 +136,7 @@ app.get('/api/games/trending', async (req, res) => {
     
     // Fetch second batch of 500 games
     const secondQuery = `
-      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,first_release_date,id;
+      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id;
       where rating > 70 & first_release_date > ${Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 365}; 
       sort rating desc;
       limit 500;
@@ -491,4 +491,40 @@ if (process.env.NODE_ENV === 'production') {
 app.listen(PORT, () => {
   console.log(`API server running on port ${PORT}!`);
   console.log(`Use GraphQL at http://localhost:${PORT}/graphql`);
+});
+
+app.post("/api/game_videos", async (req, res) => {
+  const { content } = req.body;
+
+  const API_BASE_URL = "https://api.igdb.com/v4"; 
+  const token = process.env.VITE_ACCESS_TOKEN;
+  const clientId = process.env.VITE_CLIENT_ID;
+
+  console.log("Content:", content);
+  console.log("Token:", token ? "Present" : "Missing");
+  console.log("Client ID:", clientId ? "Present" : "Missing");
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/game_videos`, {
+      method: 'POST',
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${token}`,
+      },
+      body: content,
+    });
+
+    const data = await response.json();
+    console.log("IGDB API Response:", data);
+
+    if (!response.ok) {
+      console.error("IGDB API Error:", response.status, response.statusText);
+      return res.status(response.status).json({ error: response.statusText });
+    }
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.error("Server Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
