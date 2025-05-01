@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { LuSearch, LuSave, LuLayoutGrid } from "react-icons/lu";
+import { LuSearch, LuSave, LuLayoutGrid, LuUsers, LuDoorOpen } from "react-icons/lu";
 
 export default function Aside({ asideOpen }) {
     const [isOpen, setisOpen] = useState(false);
@@ -26,7 +26,13 @@ export default function Aside({ asideOpen }) {
                         <Link to="/search" className="flex items-center p-2 rounded-lg hover:bg-surface-600"> <span className="px-2"><LuSearch /></span>Search</Link>
                     </li>
                     <li>
-                        <Link to ="/saved" className="flex items-center p-2 rounded-lg hover:bg-surface-600"> <span className="px-2"><LuSave /></span>Saved</Link>
+                        <Link to="/saved" className="flex items-center p-2 rounded-lg hover:bg-surface-600"> <span className="px-2"><LuSave /></span>Saved</Link>
+                    </li>
+                    <li>
+                        <Link to="/rooms" className="flex items-center p-2 rounded-lg hover:bg-surface-600"> <span className="px-2"><LuDoorOpen /></span>Rooms</Link>
+                    </li>
+                    <li>
+                        <Link to="/friends" className="flex items-center p-2 rounded-lg hover:bg-surface-600"> <span className="px-2"><LuUsers /></span>Friends</Link>
                     </li>
                 </u>
             </div>

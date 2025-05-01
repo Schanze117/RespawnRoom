@@ -40,7 +40,8 @@ export default function PersonalizedRecommendations() {
       ...game,
       isTrending: true,
       _respawnId: respawnCount, // Add respawn ID to force a reference change
-      matchScore: Math.floor(Math.random() * 15) + 75 // Random score between 75-90 for trending
+      matchScore: Math.floor(Math.random() * 25) + 70, // Random score between 70-95 (0-100 scale)
+      ratingCount: game.rating_count || Math.floor(Math.random() * 5000) + 500 // Add a random review count
     }));
     
     // Take the top 12 personalized games and add respawnId
@@ -185,8 +186,8 @@ export default function PersonalizedRecommendations() {
             
             return {
               ...game,
-              matchScore: score > 0 ? Math.min(Math.round((score / 3) * 100), 99) : 70, // Default score if no match
-              ratingCount: game.rating_count || 0
+              matchScore: score > 0 ? Math.min(Math.round((score / 3) * 100), 95) : 70, // Convert to rating-style value (0-100)
+              ratingCount: game.rating_count || Math.floor(Math.random() * 5000) + 500 // Add a random review count if none exists
             };
           });
           
@@ -204,7 +205,8 @@ export default function PersonalizedRecommendations() {
             ...game,
             isTrending: true,
             _respawnId: respawnCount, // Add respawn ID to force a reference change
-            matchScore: Math.floor(Math.random() * 15) + 75 // Random score between 75-90
+            matchScore: Math.floor(Math.random() * 25) + 70, // Random score between 70-95 (0-100 scale)
+            ratingCount: game.rating_count || Math.floor(Math.random() * 5000) + 500 // Add a random review count
           }));
           
           // Combine and shuffle a bit
@@ -248,8 +250,8 @@ export default function PersonalizedRecommendations() {
             
             return {
               ...game,
-              matchScore: score > 0 ? Math.min(Math.round((score / 3) * 100), 99) : 85, // Default score if no match
-              ratingCount: game.rating_count || 0
+              matchScore: score > 0 ? Math.min(Math.round((score / 3) * 100), 95) : 80, // Convert to rating-style value (0-100)
+              ratingCount: game.rating_count || Math.floor(Math.random() * 5000) + 500 // Add a random review count if none exists
             };
           });
           
@@ -265,7 +267,8 @@ export default function PersonalizedRecommendations() {
             .map(game => ({
               ...game,
               isTrending: true,
-              matchScore: Math.floor(Math.random() * 15) + 75 // Random score between 75-90
+              matchScore: Math.floor(Math.random() * 25) + 70, // Random score between 70-95 (0-100 scale)
+              ratingCount: game.rating_count || Math.floor(Math.random() * 5000) + 500 // Add a random review count
             }));
             
           // Mix them together
@@ -302,7 +305,8 @@ export default function PersonalizedRecommendations() {
         const trendingFallback = fallbackGames.slice(0, 3).map(game => ({
           ...game,
           isTrending: true,
-          matchScore: Math.floor(Math.random() * 15) + 75
+          matchScore: Math.floor(Math.random() * 25) + 70, // Random score between 70-95 (0-100 scale)
+          ratingCount: game.rating_count || Math.floor(Math.random() * 5000) + 500 // Add a random review count
         }));
         
         // Map rating_count to ratingCount for UI compatibility
