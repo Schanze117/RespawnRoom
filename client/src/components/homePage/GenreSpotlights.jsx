@@ -1,7 +1,10 @@
 import React from 'react';
 import HomePageCard from './HomePageCard';
+import { useGameContext } from '../../utils/GameContext';
 
 export default function GenreSpotlights() {
+  const { respawnCount } = useGameContext();
+  
   // Mock data for editor's picks
   const editorsPicks = [
     { 
@@ -41,6 +44,12 @@ export default function GenreSpotlights() {
     }
   ];
 
+  // Shuffle editor's picks on each respawn
+  const shuffleGames = () => {
+    const shuffled = [...editorsPicks].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, editorsPicks.length);
+  };
+
   return (
     <section className="w-full mb-12">
       <div className="flex justify-between items-center mb-4">
@@ -50,7 +59,11 @@ export default function GenreSpotlights() {
         </button>
       </div>
       
-      <HomePageCard games={editorsPicks} type="editors-pick" />
+      <HomePageCard 
+        games={shuffleGames()} 
+        type="editors-pick" 
+        key={`editors-pick-${respawnCount}`} 
+      />
     </section>
   );
 } 

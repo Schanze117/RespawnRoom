@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import ScrollableGameCards from './ScrollableGameCards';
-import { getTrendingGames } from '../../utils/api';
+import { useGameContext } from '../../utils/GameContext';
 
 export default function TrendingGames() {
-  const [trendingGames, setTrendingGames] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { featuredGames, isLoading, respawnCount } = useGameContext();
+  const [displayGames, setDisplayGames] = useState([]);
 
   // Mock data for trending games as fallback
   const mockTrendingGames = [
@@ -14,21 +13,30 @@ export default function TrendingGames() {
       name: "Baldur's Gate 3", 
       genres: [{ name: "RPG" }],
       player_perspectives: [{ name: "Isometric" }],
-      summary: "Gather your party and return to the Forgotten Realms in a tale of fellowship and betrayal, sacrifice and survival, and the lure of absolute power. Baldur's Gate 3 is a next-generation RPG set in the D&D universe."
+      summary: "Gather your party and return to the Forgotten Realms in a tale of fellowship and betrayal, sacrifice and survival, and the lure of absolute power. Baldur's Gate 3 is a next-generation RPG set in the D&D universe.",
+      rating: 96.2,
+      rating_count: 14762,
+      first_release_date: 1691107200 // August 3, 2023
     },
     { 
       id: 2, 
       name: "Starfield", 
       genres: [{ name: "RPG" }, { name: "Open World" }],
       player_perspectives: [{ name: "First Person" }, { name: "Third Person" }],
-      summary: "In this next generation role-playing game set amongst the stars, create any character you want and explore with unparalleled freedom as you embark on an epic journey to answer humanity's greatest mystery."
+      summary: "In this next generation role-playing game set amongst the stars, create any character you want and explore with unparalleled freedom as you embark on an epic journey to answer humanity's greatest mystery.",
+      rating: 86.5,
+      rating_count: 8243,
+      first_release_date: 1693958400 // September 6, 2023
     },
     { 
       id: 3, 
       name: "Palworld", 
       genres: [{ name: "Survival" }, { name: "MMO" }],
       player_perspectives: [{ name: "Third Person" }],
-      summary: "Palworld is a multiplayer creature-collection survival game where you can build bases, battle other trainers, and work alongside your captured creatures in a vast open world."
+      summary: "Palworld is a multiplayer creature-collection survival game where you can build bases, battle other trainers, and work alongside your captured creatures in a vast open world.",
+      rating: 83.2,
+      rating_count: 7851,
+      first_release_date: 1705622400 // January 19, 2024
     },
     { 
       id: 4, 
@@ -67,53 +75,30 @@ export default function TrendingGames() {
     }
   ];
 
-  const fetchTrendingGames = async () => {
-    try {
-      setIsLoading(true);
-      
-      const games = await getTrendingGames();
-      
-      // If the API returned no results, use mock data
-      if (!games || games.length === 0) {
-        console.warn('No games returned from API. Using mock data instead.');
-        setTrendingGames(mockTrendingGames);
-        return;
-      }
-      
-      // Transform data to match the expected format for ScrollableGameCards
-      const formattedGames = games.map(game => ({
-        id: game.id,
-        name: game.name,
-        cover: game.cover ? {
-          url: game.cover.url.includes('t_thumb') 
-            ? game.cover.url.replace('t_thumb', 't_cover_big')
-            : game.cover.url
-        } : null,
-        genres: game.genres || [{ name: "Popular" }],
-        player_perspectives: game.player_perspectives || [{ name: "Unknown" }],
-        summary: game.summary || `Trending game: ${game.name}`,
-        rating: game.rating || null,
-        ratingCount: game.rating_count || 0,
-        videos: game.videos || [] // Preserve videos array if available
-      }));
-      
-      setTrendingGames(formattedGames);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching trending games:', err);
-      console.warn('Using mock data due to API error');
-      setTrendingGames(mockTrendingGames);
-      setError("Failed to load trending games. Using sample data instead.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Force component re-render when respawnCount changes
   useEffect(() => {
-    fetchTrendingGames();
-  }, []);
+    console.log(`[TrendingGames] Respawn count changed to ${respawnCount}`);
+    
+    // Combine primary and secondary games
+    const trendingGames = [...featuredGames.primary, ...featuredGames.secondary];
 
-  if (isLoading) {
+    // If we have trending games, use them; otherwise use mock data
+    const baseGames = trendingGames.length > 0 ? trendingGames : mockTrendingGames;
+    
+    // Create new game objects to ensure reference changes
+    const refreshedGames = baseGames.map(game => ({
+      ...game,
+      _respawnId: respawnCount, // Add respawn ID to force React to see the object as new
+      ratingCount: game.rating_count || game.ratingCount || 0 // Map rating_count to ratingCount for UI compatibility
+    }));
+    
+    setDisplayGames(refreshedGames);
+    
+    // Debug log
+    console.log(`[TrendingGames] Updated with ${refreshedGames.length} games after respawn`);
+  }, [featuredGames, respawnCount]);
+
+  if (isLoading && displayGames.length === 0) {
     return (
       <section className="w-full mb-12">
         <div className="flex justify-between items-center mb-4">
@@ -133,13 +118,12 @@ export default function TrendingGames() {
         </button>
       </div>
       
-      {error && (
-        <div className="text-amber-500 text-sm mb-4 p-2 bg-amber-900/30 rounded-md">
-          {error}
-        </div>
-      )}
-      
-      <ScrollableGameCards games={trendingGames} type="trending" />
+      {/* Force re-render with a new component instance by using a unique key */}
+      <ScrollableGameCards 
+        games={displayGames} 
+        type="trending" 
+        key={`trending-${respawnCount}`} 
+      />
     </section>
   );
 } 

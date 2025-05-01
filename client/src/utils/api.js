@@ -71,10 +71,13 @@ export const filterGames = async (genres = [], playerPerspectives = [], themes =
 // Get trending games
 export const getTrendingGames = async () => {
   try {
-    const response = await fetch(`${SERVER_URL}/api/games/trending`, {
+    // Add cache busting timestamp to prevent cached results
+    const timestamp = new Date().getTime();
+    const response = await fetch(`${SERVER_URL}/api/games/trending?_cb=${timestamp}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store'
       }
     });
     
@@ -93,10 +96,13 @@ export const getTrendingGames = async () => {
 // Get latest releases
 export const getLatestReleases = async () => {
   try {
-    const response = await fetch(`${SERVER_URL}/api/games/latest`, {
+    // Add cache busting timestamp to prevent cached results
+    const timestamp = new Date().getTime();
+    const response = await fetch(`${SERVER_URL}/api/games/latest?_cb=${timestamp}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store'
       }
     });
     
@@ -115,10 +121,13 @@ export const getLatestReleases = async () => {
 // Get top rated games
 export const getTopRatedGames = async () => {
   try {
-    const response = await fetch(`${SERVER_URL}/api/games/top-rated`, {
+    // Add cache busting timestamp to prevent cached results
+    const timestamp = new Date().getTime();
+    const response = await fetch(`${SERVER_URL}/api/games/top-rated?_cb=${timestamp}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store'
       }
     });
     
@@ -137,10 +146,13 @@ export const getTopRatedGames = async () => {
 // Get upcoming games
 export const getUpcomingGames = async () => {
   try {
-    const response = await fetch(`${SERVER_URL}/api/games/upcoming`, {
+    // Add cache busting timestamp to prevent cached results
+    const timestamp = new Date().getTime();
+    const response = await fetch(`${SERVER_URL}/api/games/upcoming?_cb=${timestamp}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store'
       }
     });
     
@@ -159,10 +171,13 @@ export const getUpcomingGames = async () => {
 // Get game by ID
 export const getGameById = async (id) => {
   try {
-    const response = await fetch(`${SERVER_URL}/api/games/${id}`, {
+    // Add cache busting timestamp to prevent cached results
+    const timestamp = new Date().getTime();
+    const response = await fetch(`${SERVER_URL}/api/games/${id}?_cb=${timestamp}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store'
       }
     });
     
@@ -326,3 +341,34 @@ export const getGameVideo = async (id) => {
     throw error;
   }
 }
+
+// Fetch all game categories in a single request
+export const getAllCategorizedGames = async () => {
+  try {
+    // Add cache busting timestamp to prevent cached results
+    const timestamp = new Date().getTime();
+    const response = await fetch(`${SERVER_URL}/api/games/all-categories?_cb=${timestamp}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log(`Fetched ${data.allGames?.length || 0} total games with categories: `, 
+      `Trending (${data.trending?.primary?.length + data.trending?.secondary?.length || 0}), `,
+      `Latest (${data.latest?.primary?.length + data.latest?.secondary?.length || 0}), `,
+      `Top Rated (${data.topRated?.primary?.length + data.topRated?.secondary?.length || 0}), `,
+      `Upcoming (${data.upcoming?.primary?.length + data.upcoming?.secondary?.length || 0})`
+    );
+    return data;
+  } catch (error) {
+    console.error('Error fetching all categorized games:', error);
+    throw error;
+  }
+};

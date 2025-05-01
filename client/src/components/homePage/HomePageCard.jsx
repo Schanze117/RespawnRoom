@@ -199,7 +199,7 @@ export default function HomePageCard({ games, type }) {
                 {/* Display type-specific badges */}
                 {type === 'trending' && (
                   <div className="absolute top-2 left-2 bg-primary-600 text-white text-xs font-bold px-2 py-1 rounded">
-                    Trending
+                    {game.rating ? `${Math.round(game.rating)}/100` : 'Trending'}
                   </div>
                 )}
                 {type === 'latest' && (
@@ -214,7 +214,7 @@ export default function HomePageCard({ games, type }) {
                 )}
                 {type === 'top-rated' && (
                   <div className="absolute top-2 left-2 bg-surface-900 text-light font-bold w-10 h-10 rounded-full flex items-center justify-center">
-                    9.5
+                    {game.rating ? Math.round(game.rating) / 10 : 9.5}
                   </div>
                 )}
                 {type === 'editors-pick' && (
@@ -234,7 +234,9 @@ export default function HomePageCard({ games, type }) {
                 <div className="flex justify-between items-center mt-auto">
                   {type === 'recommended' && (
                     <>
-                      <span className="text-xs px-2 py-1 bg-surface-700 rounded-full text-tonal-300">95% Match</span>
+                      <span className="text-xs px-2 py-1 bg-surface-700 rounded-full text-tonal-300">
+                        {game.rating ? `${Math.round(game.rating)}/100 (${game.ratingCount || game.rating_count || 0} reviews)` : '95% Match'}
+                      </span>
                       <button className="text-primary-500 hover:text-primary-400">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
@@ -250,7 +252,7 @@ export default function HomePageCard({ games, type }) {
                           <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
                           <polyline points="17 6 23 6 23 12"></polyline>
                         </svg>
-                        <span className="text-xs text-primary-500">Trending Up</span>
+                        <span className="text-xs text-primary-500">{game.ratingCount || game.rating_count ? `${game.ratingCount || game.rating_count} reviews` : 'Trending Up'}</span>
                       </div>
                       <button 
                         onClick={() => handleGameClick(game)} 
@@ -263,7 +265,11 @@ export default function HomePageCard({ games, type }) {
                   
                   {type === 'latest' && (
                     <>
-                      <span className="text-xs text-tonal-300">Released: Feb 2024</span>
+                      <span className="text-xs text-tonal-300">Released: {
+                        game.first_release_date 
+                          ? new Date(game.first_release_date * 1000).toLocaleDateString('en-US', {month: 'short', year: 'numeric'})
+                          : game.releaseDate || 'Feb 2024'
+                      }</span>
                       <button 
                         onClick={() => handleGameClick(game)} 
                         className="bg-primary-600 hover:bg-primary-700 text-white text-xs py-1 px-2 rounded transition duration-300"
@@ -275,7 +281,11 @@ export default function HomePageCard({ games, type }) {
                   
                   {type === 'upcoming' && (
                     <>
-                      <span className="text-xs text-tonal-300">Coming: Q2 2024</span>
+                      <span className="text-xs text-tonal-300">Coming: {
+                        game.first_release_date 
+                          ? new Date(game.first_release_date * 1000).toLocaleDateString('en-US', {month: 'short', year: 'numeric'})
+                          : game.releaseDate || 'Q2 2024'
+                      }</span>
                       <button 
                         onClick={() => handleGameClick(game)} 
                         className="bg-primary-600 hover:bg-primary-700 text-white text-xs py-1 px-2 rounded transition duration-300"
@@ -290,12 +300,12 @@ export default function HomePageCard({ games, type }) {
                       <div className="flex items-center">
                         <div className="flex">
                           {[...Array(5)].map((_, i) => (
-                            <svg key={i} xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${i < 4 ? 'text-yellow-400' : 'text-surface-600'}`} viewBox="0 0 24 24" fill="currentColor">
+                            <svg key={i} xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${i < Math.floor((game.rating || 95) / 20) ? 'text-yellow-400' : 'text-surface-600'}`} viewBox="0 0 24 24" fill="currentColor">
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
                             </svg>
                           ))}
                         </div>
-                        <span className="text-xs text-tonal-300 ml-2">9.5/10</span>
+                        <span className="text-xs text-tonal-300 ml-2">{(game.rating ? Math.round(game.rating) / 10 : 9.5).toFixed(1)}/10</span>
                       </div>
                       <button 
                         onClick={() => handleGameClick(game)} 
