@@ -191,7 +191,7 @@ router.get('/personalized', authenticateToken, async (req, res) => {
       
       // Query IGDB for games matching these categories
       const igdbResponse = await igdbAPI.post('', `
-        fields name, cover.url, summary, genres.name, player_perspectives.name;
+        fields name, cover.url, summary, genres.name, player_perspectives.name, rating, rating_count;
         where ${whereClause};
         limit 100;
       `);
@@ -242,6 +242,7 @@ router.get('/personalized', authenticateToken, async (req, res) => {
         
         // Sample 8 games based on weights
         const selectedGames = [];
+        const selectedGameIds = new Set(); // Track selected game IDs
         const numToSelect = Math.min(8, weightedGames.length);
         
         // Select games based on weighted probability
@@ -250,7 +251,7 @@ router.get('/personalized', authenticateToken, async (req, res) => {
           let cumulativeWeight = 0;
           
           for (const game of weightedGames) {
-            if (selectedGames.includes(game)) continue;
+            if (selectedGameIds.has(game.id)) continue; // Skip if already selected
             
             cumulativeWeight += game.weight;
             
@@ -258,6 +259,7 @@ router.get('/personalized', authenticateToken, async (req, res) => {
               // Remove weight property before returning
               const { weight, similarityScore, ...gameWithoutWeight } = game;
               selectedGames.push(gameWithoutWeight);
+              selectedGameIds.add(game.id); // Add to tracking set
               break;
             }
           }
@@ -321,7 +323,29 @@ router.get('/personalized', authenticateToken, async (req, res) => {
         const shuffledGames = selectedGames.sort(() => 0.5 - Math.random());
         console.log(`Returning ${shuffledGames.length} personalized games`);
         
-        return res.json(shuffledGames);
+        // Add match percentages for display
+        const gamesWithScores = shuffledGames.map(game => {
+          // Normalize score to percentage from 0-100, capping at 95%
+          const matchScore = Math.min(Math.round((game.similarityScore / 3) * 100), 95);
+          
+          // Remove similarityScore from returned data
+          const { similarityScore, ...gameWithoutScore } = game;
+          
+          return {
+            ...gameWithoutScore,
+            matchPercentage: matchScore,
+            rating_count: game.rating_count || 0
+          };
+        });
+        
+        // Shuffle slightly to introduce some variability
+        const shuffledGamesWithScores = gamesWithScores.sort((a, b) => {
+          // Add a small random element to the sort, but still prioritize higher scores
+          return (b.matchPercentage + (Math.random() * 5)) - 
+                 (a.matchPercentage + (Math.random() * 5));
+        });
+        
+        return res.json(shuffledGamesWithScores);
       } else {
         console.log('No matching games found in IGDB, using fallback data');
         return useLocalFallbackGames(fallbackGames, user, topCategories, res);
@@ -388,7 +412,8 @@ function useLocalFallbackGames(fallbackGames, user, topCategories, res) {
     
     return {
       ...gameWithoutScore,
-      matchPercentage: matchScore
+      matchPercentage: matchScore,
+      rating_count: game.rating_count || 0
     };
   });
   

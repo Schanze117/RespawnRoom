@@ -91,7 +91,7 @@ export default function TopRated() {
     return (
       <section className="w-full mb-12">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-primary-500">Top Rated (90+)</h2>
+          <h2 className="text-2xl font-bold text-primary-500">Top Rated</h2>
         </div>
         <div className="text-center py-8">Loading top rated games...</div>
       </section>
@@ -101,7 +101,7 @@ export default function TopRated() {
   return (
     <section className="w-full mb-12">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-primary-500">Top Rated (90+)</h2>
+        <h2 className="text-2xl font-bold text-primary-500">Top Rated</h2>
         <button className="text-primary-400 hover:text-primary-300 text-sm font-medium">
           See All Top Games
         </button>

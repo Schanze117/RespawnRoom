@@ -94,7 +94,8 @@ export default function LatestReleases() {
         summary: game.summary || `New release: ${game.name}`,
         rating: game.rating || null,
         releaseDate: formatReleaseDate(game.first_release_date),
-        ratingCount: game.rating_count || 0
+        ratingCount: game.rating_count || 0,
+        videos: game.videos || [] // Preserve videos array if available
       }));
       
       setLatestGames(formattedGames);

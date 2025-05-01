@@ -1,5 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import NoImage from '../../assets/noImage.jpg';
+import GameModal from '../card/gameModal';
+import { LuSave, LuCheck } from 'react-icons/lu';
+import { useMutation, useQuery } from '@apollo/client';
+import { SAVE_GAME } from '../../utils/mutations';
+import { GET_ME } from '../../utils/queries';
+import Auth from '../../utils/auth';
 
 // CSS styles for the component
 const cssStyles = `
@@ -34,13 +40,37 @@ export default function ScrollableGameCards({ games, type }) {
   const scrollContainerRef = useRef(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const [expandedTitles, setExpandedTitles] = useState({});
+  const [showModal, setShowModal] = useState(false);
+  const [selectedGame, setSelectedGame] = useState(null);
+  const [savedGames, setSavedGames] = useState({});
+  const [alreadySavedGames, setAlreadySavedGames] = useState([]);
+  const [saveGameMutation] = useMutation(SAVE_GAME);
+  
+  // Fetch user's saved games
+  const { loading, data } = useQuery(GET_ME, {
+    skip: !Auth.loggedIn(), // Skip query if not logged in
+  });
+  
+  // Extract saved games from the query result
+  useEffect(() => {
+    if (data?.me?.savedGames) {
+      // Create a list of names of already saved games
+      const savedGameNames = data.me.savedGames.map(game => game.name.toLowerCase().trim());
+      setAlreadySavedGames(savedGameNames);
+    }
+  }, [data]);
+
+  // Check if a game is already saved
+  const isGameAlreadySaved = (game) => {
+    return alreadySavedGames.includes(game.name.toLowerCase().trim());
+  };
 
   // Create a looping array by duplicating the games
   const loopedGames = [...games, ...games, ...games];
 
   // Card dimensions
-  const cardWidth = 280; // Increased card width
-  const cardHeight = 350; // Increased card height
+  const cardWidth = 280; // Original card width
+  const cardHeight = 350; // Original card height
   const imageHeight = 160; // Image height
   const gap = 16; // Gap between cards (4 in Tailwind = 16px)
   const scrollAmount = cardWidth + gap;
@@ -105,6 +135,123 @@ export default function ScrollableGameCards({ games, type }) {
         setTimeout(() => setIsScrolling(false), 500);
       }
     }
+  };
+
+  // Handle game click to show modal
+  const handleGameClick = (game) => {
+    setSelectedGame(game);
+    setShowModal(true);
+  };
+
+  // Handle modal close
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedGame(null);
+  };
+
+  // Handle save game functionality
+  const saveGame = async (event, game) => {
+    event.stopPropagation(); // Prevent the card click from triggering
+    try {
+      if (!Auth.loggedIn()) {
+        // Instead of alert, redirect to login or show a more subtle notification
+        console.log('User not logged in, cannot save game');
+        // Optional: redirect to login page
+        // window.location.href = '/login';
+        return;
+      }
+      
+      // Check if game is already saved
+      if (isGameAlreadySaved(game)) {
+        console.log('Game already saved:', game.name);
+        setSavedGames(prev => ({
+          ...prev,
+          [game.id]: 'already-saved'
+        }));
+        
+        // Reset status after 2 seconds
+        setTimeout(() => {
+          setSavedGames(prev => {
+            const newState = {...prev};
+            delete newState[game.id];
+            return newState;
+          });
+        }, 2000);
+        return;
+      }
+
+      const gameInput = {
+        cover: game.cover ? game.cover.url : '',
+        name: game.name ? game.name : '',
+        genres: game.genres ? game.genres.map((genre) => genre.name) : [],
+        playerPerspectives: game.player_perspectives
+          ? game.player_perspectives.map((perspective) => perspective.name)
+          : [],
+        summary: game.summary ? game.summary : 'No summary available.',
+      };
+
+      // Set the game as being saved (for UI feedback)
+      setSavedGames(prev => ({
+        ...prev,
+        [game.id]: 'saving'
+      }));
+
+      const { data } = await saveGameMutation({
+        variables: { game: gameInput },
+      });
+
+      console.log('Game saved to server:', data);
+      
+      // Add to already saved games list
+      setAlreadySavedGames(prev => [...prev, game.name.toLowerCase().trim()]);
+      
+      // Visual feedback - mark as saved
+      setSavedGames(prev => ({
+        ...prev,
+        [game.id]: 'saved'
+      }));
+      
+      // Reset status after 2 seconds
+      setTimeout(() => {
+        setSavedGames(prev => {
+          const newState = {...prev};
+          delete newState[game.id];
+          return newState;
+        });
+      }, 2000);
+    } catch (error) {
+      console.error('Error saving game:', error);
+      // Set the game as having an error when saving
+      setSavedGames(prev => ({
+        ...prev,
+        [game.id]: 'error'
+      }));
+      
+      // Reset error status after 2 seconds
+      setTimeout(() => {
+        setSavedGames(prev => {
+          const newState = {...prev};
+          delete newState[game.id];
+          return newState;
+        });
+      }, 2000);
+    }
+  };
+
+  // Get the save button state for a game
+  const getSaveButtonState = (gameId, game) => {
+    // First check if the game has an active save state
+    if (savedGames[gameId]) {
+      return savedGames[gameId];
+    }
+    
+    // Then check if it's already in the user's saved collection
+    if (isGameAlreadySaved(game)) {
+      return 'already-saved';
+    }
+    
+    // Default state
+    return 'default';
   };
 
   // Initialize scroll position to the middle set of items
@@ -184,6 +331,7 @@ export default function ScrollableGameCards({ games, type }) {
         {loopedGames.map((game, index) => {
           const cardKey = `${game.id}-${index}`;
           const isExpanded = expandedTitles[cardKey] || false;
+          const saveState = getSaveButtonState(game.id, game);
           
           return (
             <div 
@@ -194,8 +342,31 @@ export default function ScrollableGameCards({ games, type }) {
                 minWidth: `${cardWidth}px`, 
                 maxWidth: `${cardWidth}px` 
               }}
-              className="flex-shrink-0 flex-grow-0 snap-start bg-surface-800 rounded-lg overflow-hidden border border-surface-700 hover:border-primary-600 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1"
+              className="flex-shrink-0 flex-grow-0 snap-start bg-surface-800 rounded-lg overflow-hidden border border-surface-700 hover:border-primary-600 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 flex flex-col relative"
             >
+              {/* Save Button - with different states */}
+              <button
+                type="button"
+                onClick={(e) => saveGame(e, game)}
+                disabled={saveState === 'saving' || saveState === 'saved' || saveState === 'already-saved'}
+                className={`absolute top-2 right-2 p-1.5 z-10 text-white rounded-full shadow-md transition-all duration-300 ${
+                  saveState === 'default' ? 'bg-primary-600 hover:bg-primary-700' :
+                  saveState === 'saving' ? 'bg-amber-500 cursor-wait' : 
+                  saveState === 'saved' ? 'bg-green-600' :
+                  saveState === 'already-saved' ? 'bg-green-600 opacity-75' :
+                  'bg-red-600'
+                }`}
+                title={
+                  saveState === 'default' ? 'Save Game' :
+                  saveState === 'saving' ? 'Saving...' : 
+                  saveState === 'saved' ? 'Saved!' :
+                  saveState === 'already-saved' ? 'Already Saved' :
+                  'Error saving'
+                }
+              >
+                {saveState === 'saved' || saveState === 'already-saved' ? <LuCheck className="text-sm" /> : <LuSave className="text-sm" />}
+              </button>
+
               <div 
                 style={{ height: `${imageHeight}px` }} 
                 className="bg-surface-900 flex items-center justify-center relative overflow-hidden"
@@ -226,28 +397,6 @@ export default function ScrollableGameCards({ games, type }) {
                     <div className="text-2xl text-primary-400 opacity-30">Game Cover</div>
                   </div>
                 )}
-                
-                {/* Add type-specific badges and info */}
-                {type === 'trending' && (
-                  <div className="absolute top-2 right-2 bg-primary-600 text-white text-xs font-bold px-2 py-1 rounded z-10">
-                    Trending
-                  </div>
-                )}
-                {type === 'latest' && (
-                  <div className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded z-10">
-                    New
-                  </div>
-                )}
-                {type === 'top-rated' && (
-                  <div className="absolute top-2 right-2 bg-yellow-600 text-white text-xs font-bold px-2 py-1 rounded z-10">
-                    90+
-                  </div>
-                )}
-                {type === 'upcoming' && (
-                  <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded z-10">
-                    Coming Soon
-                  </div>
-                )}
               </div>
               
               <div className="p-5 flex flex-col flex-grow">
@@ -272,6 +421,13 @@ export default function ScrollableGameCards({ games, type }) {
                   )}
                 </div>
                 
+                {/* Rating display for trending, recommended, and top-rated games */}
+                {(type === 'trending' || type === 'recommended' || type === 'top-rated') && game.rating && game.ratingCount && (
+                  <div className="text-xs text-primary-400 font-medium mb-2">
+                    Rating: {Math.round(game.rating)}/100 ({game.ratingCount} reviews)
+                  </div>
+                )}
+                
                 {/* Release date for latest games */}
                 {type === 'latest' && game.releaseDate && (
                   <div className="text-xs text-primary-500 font-medium mb-2">
@@ -288,53 +444,30 @@ export default function ScrollableGameCards({ games, type }) {
                 
                 {/* Game genres */}
                 <div className="flex flex-wrap gap-1 mb-3">
-                  {game.genres?.map((genre, gIndex) => (
-                    <span key={`${game.id}-genre-${gIndex}`} className="text-xs bg-surface-700 text-light-200 px-2 py-0.5 rounded-md">
+                  {game.genres?.slice(0, 4).map((genre, gIndex) => (
+                    <span key={`${game.id}-genre-${gIndex}`} className="text-xs bg-primary-600/40 text-primary-100 px-1.5 py-0.5 rounded-md border border-primary-600/20">
                       {genre.name}
                     </span>
                   ))}
                 </div>
                 
-                {/* Rating count for top-rated games */}
-                {type === 'top-rated' && game.ratingCount && game.rating && (
-                  <div className="text-xs text-yellow-500 font-medium mb-2">
-                    Rating: {Math.round(game.rating)}/100 ({game.ratingCount} reviews)
-                  </div>
-                )}
-                
-                {/* Game summary */}
-                <p className="text-sm text-light-300 line-clamp-3 mb-auto">
-                  {game.summary || 'No description available'}
-                </p>
-                
-                {/* Rating indicator if available */}
-                {game.rating && (
-                  <div className="mt-3 flex items-center">
-                    <div 
-                      className={`text-sm font-bold px-2 py-0.5 rounded ${
-                        game.rating >= 85 ? 'bg-green-900 text-green-200' :
-                        game.rating >= 70 ? 'bg-blue-900 text-blue-200' :
-                        game.rating >= 50 ? 'bg-yellow-900 text-yellow-200' :
-                        'bg-red-900 text-red-200'
-                      }`}
-                    >
-                      {Math.round(game.rating)}
-                    </div>
-                    <span className="ml-2 text-xs text-light-400">
-                      {type === 'latest' && game.ratingCount ? `${game.ratingCount} reviews` : 'User Score'}
-                    </span>
-                  </div>
-                )}
-                
-                {/* Add to List button */}
-                <button className="mt-3 w-full rounded-md bg-primary-600 hover:bg-primary-700 text-white py-1.5 text-sm font-medium transition-colors duration-200">
-                  Add to List
-                </button>
+                {/* View Details button */}
+                <div className="mt-auto pt-2 flex justify-end">
+                  <button 
+                    onClick={() => handleGameClick(game)}
+                    className="bg-primary-600 hover:bg-primary-700 text-white text-sm py-1 px-3 rounded transition duration-300"
+                  >
+                    View Details
+                  </button>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
+      
+      {/* Game Modal */}
+      {showModal && <GameModal game={selectedGame} onClose={handleCloseModal} />}
     </div>
   );
 } 
