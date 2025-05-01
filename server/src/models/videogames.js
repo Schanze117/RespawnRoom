@@ -6,7 +6,8 @@ const videoGameSchema = new Schema(
   {
     cover: {
       type: String,
-      required: true,
+      required: false, // Make cover optional to allow saving games without covers
+      default: '' // Provide a default empty value
     },
     name: {
       type: String,

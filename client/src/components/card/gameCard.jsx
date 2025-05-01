@@ -21,7 +21,7 @@ export default function GameCard({ games }) {
                 playerPerspectives: game.player_perspectives
                     ? game.player_perspectives.map((perspective) => perspective.name)
                     : [],
-                summary: game.summary ? game.summary : '',
+                summary: game.summary ? game.summary : 'No summary available.',
             };
 
             const { data } = await saveGameMutation({

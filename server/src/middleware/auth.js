@@ -6,11 +6,39 @@ dotenv.config();
 const JWT_SECRET = process.env.JWT_SECRET_KEY || 'fallbacksecretkey';
 
 /**
- * Authenticates the user by verifying their JWT token
+ * Authenticates the user by verifying their JWT token for Express middleware use
+ * @param {object} req - The request object
+ * @param {object} res - The response object
+ * @param {function} next - The next middleware function
+ */
+export function authenticateToken(req, res, next) {
+  try {
+    // Get the user from token
+    const user = getUserFromToken(req);
+    
+    // If no user found, return unauthorized
+    if (!user) {
+      console.warn('No valid token found in request');
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    // Set user on request object
+    req.user = user;
+    
+    // Continue to next middleware
+    next();
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+}
+
+/**
+ * Utility function to extract user from token (for Apollo context or non-middleware use)
  * @param {object} req - The request object
  * @returns {object|null} - The decoded user data or null if authentication fails
  */
-export function authenticateToken(req) {
+export function getUserFromToken(req) {
   // Look for token in headers
   const authHeader = req.headers.authorization || '';
   let token = '';
@@ -20,7 +48,7 @@ export function authenticateToken(req) {
     token = authHeader.split(' ')[1];
   }
   
-  // If no token found, return null (unauthenticated)
+  // If no token found, return null
   if (!token) {
     return null;
   }
@@ -31,7 +59,6 @@ export function authenticateToken(req) {
     return decoded;
   } catch (err) {
     console.error('Invalid token:', err.message);
-    // Return null if token verification fails
     return null;
   }
 }
