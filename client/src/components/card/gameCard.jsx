@@ -1,5 +1,8 @@
 import NoImage from '../../assets/noImage.jpg';
 import { LuSave } from 'react-icons/lu';
+import GameModal from './gameModal';
+import { useState } from 'react';
+
 import { useMutation } from '@apollo/client';
 import { SAVE_GAME } from '../../utils/mutations';
 import Auth from '../../utils/auth';
@@ -8,6 +11,18 @@ export default function GameCard({ games }) {
     // Use Apollo's useMutation hook for saving a game
     const [saveGameMutation] = useMutation(SAVE_GAME);
 
+    const [showModal, setShowModal] = useState(false);
+    const [selectedGame, setSelectedGame] = useState(null);
+    const handleGameClick = (game) => {
+        setSelectedGame(game);
+        setShowModal(true);
+    }
+    const handleCloseModal = () => {
+        setShowModal(false);
+        setSelectedGame(null);
+    }
+
+    // Function to save the game to the server
     const saveGame = async (game) => {
         try {
             if (!Auth.loggedIn()) {
@@ -58,7 +73,7 @@ export default function GameCard({ games }) {
                         />
                         <div className="flex flex-col w-full items-center justify-center bg-surface-700 rounded-lg">
                             <h2
-                                className={`text-primary-500 ${
+                                className={`text-green-text ${
                                     game.name.length > 15 ? 'text-lg' : 'text-3xl'
                                 } font-medium text-pretty text-center pointer-events-none`}
                             >
@@ -89,8 +104,12 @@ export default function GameCard({ games }) {
                     <p className="text-light bg-surface-700 rounded-lg h-56 w-93 text-base p-2 line-clamp-9 truncate text-pretty pointer-events-none">
                         {game.summary || 'No summary available.'}
                     </p>
+                    <button onClick={() => handleGameClick(game)} className="bg-primary-500 hover:bg-primary-600 text-white font-bold py-2 px-4 rounded-lg w-full">View Details</button>
+                    
                 </div>
             ))}
+            {/* Modal for displaying game details */}
+            {showModal && <GameModal game={selectedGame} onClose={handleCloseModal} />}
         </div>
     );
 }

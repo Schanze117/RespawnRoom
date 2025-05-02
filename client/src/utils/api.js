@@ -10,7 +10,7 @@ export const searchGames = async (game) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        content: `search "${game}"; fields name, cover.url, summary, genres.name, player_perspectives.name; limit 10;`
+        content: `search "${game}"; fields name, cover.url, summary, genres.name, player_perspectives.name, videos, websites; limit 10;`
       })
     });
     
@@ -27,6 +27,30 @@ export const searchGames = async (game) => {
     throw error;
   }
 };
+
+export const getGameVideo = async (id) => {
+  try {
+    const response = await fetch(`/api/game_videos`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content: `fields checksum,game,name,video_id; where id = (${id});`
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+    return data;
+  }
+  catch (error) {
+    console.error("Error fetching game video data:", error);
+    throw error;
+  }
+}
 
 // Filter games by genre, player perspective, theme, and mode
 export const filterGames = async (genres = [], playerPerspectives = [], themes = [], modes = []) => {
@@ -45,7 +69,7 @@ export const filterGames = async (genres = [], playerPerspectives = [], themes =
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        content:  `fields name, cover.url, summary, genres.name, player_perspectives.name; where ${whereClause}; limit 100;`
+        content:  `fields name, cover.url, summary, genres.name, player_perspectives.name, videos; where ${whereClause}; limit 100;`
       }),
     });
 
