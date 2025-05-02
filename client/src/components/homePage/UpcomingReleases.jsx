@@ -15,11 +15,27 @@ export default function UpcomingReleases() {
     const allUpcomingGames = [...upcomingGames.primary, ...upcomingGames.secondary];
     
     // Create new game objects to ensure reference changes
-    const refreshedGames = allUpcomingGames.map(game => ({
-      ...game,
-      _respawnId: respawnCount, // Add respawn ID to force React to see the object as new
-      ratingCount: game.rating_count || game.ratingCount || 0 // Map rating_count to ratingCount for UI compatibility
-    }));
+    const refreshedGames = allUpcomingGames.map(game => {
+      // Format release date for display
+      let releaseDate = null;
+      if (game.first_release_date) {
+        // Convert timestamp to date string
+        releaseDate = new Date(game.first_release_date * 1000).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      } else if (game.release_date) {
+        releaseDate = game.release_date;
+      }
+      
+      return {
+        ...game,
+        _respawnId: respawnCount, // Add respawn ID to force React to see the object as new
+        ratingCount: game.rating_count || game.ratingCount || 0, // Map rating_count to ratingCount for UI compatibility
+        releaseDate: releaseDate // Add formatted release date
+      };
+    });
     
     setDisplayGames(refreshedGames);
     

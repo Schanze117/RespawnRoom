@@ -56,10 +56,8 @@ export default function Login() {
       setError('Authentication failed. Please try again.');
     }
     
-    // Check if already logged in
-    if (Auth.loggedIn()) {
-      navigate('/');
-    }
+    // We're no longer redirecting from login page when already logged in
+    // This allows the AuthWrapper to handle all redirects
   }, [location, navigate]);
 
   return (
