@@ -1,7 +1,105 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Mic, MicOff, Video, VideoOff, LogOut, Copy, CheckCircle } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, LogOut, Copy, CheckCircle, Link as LinkIcon, Share2, X } from 'lucide-react';
 import AgoraRTC from 'agora-rtc-sdk-ng';
+
+// Add a style block at the top of the component to define special CSS for videos
+const videoContainerStyles = `
+  .video-container {
+    min-height: 160px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+
+  .video-container:hover {
+    border-color: rgba(var(--color-primary-500), 0.7);
+    transform: scale(1.01);
+    z-index: 1;
+  }
+
+  @media (max-width: 640px) {
+    .video-container {
+      min-height: 120px;
+    }
+  }
+
+  /* Improve Agora video rendering */
+  .video-container video {
+    object-fit: contain !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+`;
+
+// Helper function to determine grid layout based on participant count
+const getGridLayout = (count) => {
+  // Discord-style layouts for different participant counts
+  switch (count) {
+    case 1:
+      return { 
+        columns: '1fr', 
+        rows: '1fr',
+        areas: '"a"' 
+      };
+    case 2:
+      return { 
+        columns: '1fr 1fr', 
+        rows: '1fr',
+        areas: '"a b"' 
+      };
+    case 3:
+      return { 
+        columns: '1fr 1fr', 
+        rows: '1fr 1fr',
+        areas: '"a a" "b c"' 
+      };
+    case 4:
+      return { 
+        columns: 'repeat(2, 1fr)', 
+        rows: 'repeat(2, 1fr)',
+        areas: '"a b" "c d"' 
+      };
+    case 5:
+      return { 
+        columns: 'repeat(2, 1fr) 1fr', 
+        rows: 'repeat(2, 1fr)',
+        areas: '"a b c" "d e c"' 
+      };
+    case 6:
+      return { 
+        columns: 'repeat(3, 1fr)', 
+        rows: 'repeat(2, 1fr)',
+        areas: '"a b c" "d e f"' 
+      };
+    case 7:
+      return { 
+        columns: 'repeat(3, 1fr)', 
+        rows: 'repeat(3, 1fr)',
+        areas: '"a b c" "d e f" "g g g"' 
+      };
+    case 8:
+      return { 
+        columns: 'repeat(3, 1fr)', 
+        rows: 'repeat(3, 1fr)',
+        areas: '"a b c" "d e f" "g h h"' 
+      };
+    case 9:
+      return { 
+        columns: 'repeat(3, 1fr)', 
+        rows: 'repeat(3, 1fr)',
+        areas: '"a b c" "d e f" "g h i"' 
+      };
+    default:
+      // For more than 9 participants, use a responsive grid
+      return { 
+        columns: 'repeat(auto-fit, minmax(240px, 1fr))', 
+        rows: 'auto',
+        areas: null
+      };
+  }
+};
 
 // Initialize Agora client
 const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
@@ -19,9 +117,11 @@ export default function Room() {
   const [isVideoOff, setIsVideoOff] = useState(mode === 'voice');
   const [joining, setJoining] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [roomName, setRoomName] = useState(roomId.startsWith('room-') ? 'Respawn Room' : roomId);
+  const [roomIdCopied, setRoomIdCopied] = useState(false);
+  const [roomName] = useState('Respawn Room');
   const [connectionError, setConnectionError] = useState('');
   const [tokenDetails, setTokenDetails] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false);
   
   // Use a more deterministic UID when using tokens
   const uid = useRef(Math.floor(Math.random() * 100000));
@@ -62,23 +162,6 @@ export default function Room() {
       client.leave().catch(err => console.error('Error leaving channel:', err));
     };
 
-    // Create and publish local tracks
-    const createAndPublishTracks = async () => {
-      console.log(`Creating local ${mode === 'video' ? 'audio and video' : 'audio only'} tracks`);
-      const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-      let tracks = [audioTrack];
-      
-      if (mode === 'video') {
-        const videoTrack = await AgoraRTC.createCameraVideoTrack();
-        tracks.push(videoTrack);
-      }
-      
-      // Publish local tracks
-      await client.publish(tracks);
-      console.log('Local tracks published successfully');
-      return tracks;
-    };
-
     const join = async () => {
       try {
         console.log(`Joining channel ${roomId} with UID ${uid.current}`);
@@ -99,8 +182,41 @@ export default function Room() {
             await client.join(tokenData.appId, roomId, tokenData.token, tokenData.uid || uid.current);
             console.log('Successfully joined the channel with token');
             
-            // Create and publish tracks
-            const tracks = await createAndPublishTracks();
+            // Create and publish tracks based on mode
+            const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+            let tracks = [audioTrack];
+            
+            if (mode === 'video') {
+              try {
+                const videoTrack = await AgoraRTC.createCameraVideoTrack({
+                  encoderConfig: {
+                    width: { min: 640, ideal: 1280, max: 1920 },
+                    height: { min: 360, ideal: 720, max: 1080 },
+                    frameRate: 30,
+                    bitrateMin: 400, 
+                    bitrateMax: 1000
+                  }
+                });
+                tracks.push(videoTrack);
+              } catch (videoError) {
+                console.error('Error creating video track:', videoError);
+                // If video fails, continue with just audio
+              }
+            }
+            
+            // Make sure each track has proper settings
+            tracks.forEach(track => {
+              if (track.trackMediaType === 'audio') {
+                // Enable echo cancellation, noise suppression, and auto gain control
+                track.setEnabled(true);
+              } else if (track.trackMediaType === 'video') {
+                track.setEnabled(!isVideoOff);
+              }
+            });
+            
+            // Publish local tracks
+            await client.publish(tracks);
+            console.log('Local tracks published successfully:', tracks.map(t => t.trackMediaType).join(', '));
             setLocalTracks(tracks);
             setJoining(false);
             return; // Exit early if successful
@@ -136,40 +252,68 @@ export default function Room() {
   }, [roomId, mode]);
 
   const handleUserPublished = async (user, mediaType) => {
-    await client.subscribe(user, mediaType);
-    
-    setRemoteUsers(prev => {
-      const updatedUsers = { ...prev };
-      
-      if (!updatedUsers[user.uid]) {
-        updatedUsers[user.uid] = { uid: user.uid, audioTrack: null, videoTrack: null };
-      }
-      
-      if (mediaType === 'audio') {
-        updatedUsers[user.uid].audioTrack = user.audioTrack;
-      } else if (mediaType === 'video') {
-        updatedUsers[user.uid].videoTrack = user.videoTrack;
-      }
-      
-      return updatedUsers;
-    });
+    console.log(`Remote user ${user.uid} published ${mediaType} track`);
+
+    try {
+      // Subscribe to the remote user's tracks
+      await client.subscribe(user, mediaType);
+      console.log(`Subscribed to ${user.uid}'s ${mediaType} track successfully`);
+
+      // Update the remoteUsers state based on the media type
+      setRemoteUsers(prev => {
+        const updatedUsers = { ...prev };
+        
+        if (!updatedUsers[user.uid]) {
+          updatedUsers[user.uid] = { 
+            uid: user.uid, 
+            audioTrack: null, 
+            videoTrack: null, 
+            hasAudio: false,
+            hasVideo: false
+          };
+        }
+        
+        if (mediaType === 'audio') {
+          updatedUsers[user.uid].audioTrack = user.audioTrack;
+          updatedUsers[user.uid].hasAudio = true;
+          
+          // Start playing audio immediately
+          if (user.audioTrack) {
+            user.audioTrack.play();
+            console.log(`Playing audio for user ${user.uid}`);
+          }
+        } else if (mediaType === 'video') {
+          updatedUsers[user.uid].videoTrack = user.videoTrack;
+          updatedUsers[user.uid].hasVideo = true;
+          
+          // Video is played via useEffect after state update
+          console.log(`Video track received for user ${user.uid}, will play in container`);
+        }
+        
+        return updatedUsers;
+      });
+    } catch (error) {
+      console.error(`Error subscribing to ${user.uid}'s ${mediaType} track:`, error);
+    }
   };
 
   const handleUserUnpublished = (user, mediaType) => {
+    console.log(`Remote user ${user.uid} unpublished ${mediaType} track`);
+
     setRemoteUsers(prev => {
       const updatedUsers = { ...prev };
       
       if (updatedUsers[user.uid]) {
         if (mediaType === 'audio') {
           updatedUsers[user.uid].audioTrack = null;
+          updatedUsers[user.uid].hasAudio = false;
         } else if (mediaType === 'video') {
           updatedUsers[user.uid].videoTrack = null;
+          updatedUsers[user.uid].hasVideo = false;
         }
         
-        // Remove user if they have no tracks
-        if (!updatedUsers[user.uid].audioTrack && !updatedUsers[user.uid].videoTrack) {
-          delete updatedUsers[user.uid];
-        }
+        // Keep the user in state even if they have no tracks
+        // This helps maintain their UI presence until they leave
       }
       
       return updatedUsers;
@@ -190,27 +334,73 @@ export default function Room() {
     if (localTracks.length > 0) {
       const audioTrack = localTracks.find(track => track.trackMediaType === 'audio');
       if (audioTrack) {
-        if (isMuted) {
-          await audioTrack.setEnabled(true);
-        } else {
-          await audioTrack.setEnabled(false);
+        try {
+          if (isMuted) {
+            await audioTrack.setEnabled(true);
+            console.log('Microphone unmuted');
+          } else {
+            await audioTrack.setEnabled(false);
+            console.log('Microphone muted');
+          }
+          setIsMuted(!isMuted);
+        } catch (error) {
+          console.error('Error toggling mute:', error);
         }
-        setIsMuted(!isMuted);
+      } else {
+        console.warn('No audio track found');
       }
+    } else {
+      console.warn('No local tracks available');
     }
   };
 
   const toggleVideo = async () => {
     if (mode === 'video' && localTracks.length > 0) {
       const videoTrack = localTracks.find(track => track.trackMediaType === 'video');
+      
       if (videoTrack) {
-        if (isVideoOff) {
-          await videoTrack.setEnabled(true);
-        } else {
-          await videoTrack.setEnabled(false);
+        try {
+          if (isVideoOff) {
+            await videoTrack.setEnabled(true);
+            console.log('Camera enabled');
+          } else {
+            await videoTrack.setEnabled(false);
+            console.log('Camera disabled');
+          }
+          setIsVideoOff(!isVideoOff);
+        } catch (error) {
+          console.error('Error toggling video:', error);
         }
-        setIsVideoOff(!isVideoOff);
+      } else {
+        // Try to create a video track if one doesn't exist
+        try {
+          console.log('No video track found, creating one');
+          const newVideoTrack = await AgoraRTC.createCameraVideoTrack({
+            encoderConfig: {
+              width: { min: 640, ideal: 1280, max: 1920 },
+              height: { min: 360, ideal: 720, max: 1080 },
+              frameRate: 30
+            }
+          });
+          
+          // Set initial state
+          newVideoTrack.setEnabled(true);
+          setIsVideoOff(false);
+          
+          // Publish the new track
+          await client.publish(newVideoTrack);
+          
+          // Add to local tracks
+          setLocalTracks(prev => [...prev, newVideoTrack]);
+          console.log('Video track created and published');
+        } catch (error) {
+          console.error('Error creating video track:', error);
+        }
       }
+    } else if (mode !== 'video') {
+      console.warn('Not in video mode');
+    } else {
+      console.warn('No local tracks available');
     }
   };
 
@@ -220,6 +410,14 @@ export default function Room() {
     navigate('/rooms');
   };
 
+  // Function to copy the room ID directly
+  const copyRoomId = () => {
+    navigator.clipboard.writeText(roomId);
+    setRoomIdCopied(true);
+    setTimeout(() => setRoomIdCopied(false), 2000);
+  };
+
+  // Function to copy the invitation link
   const copyInviteLink = () => {
     const inviteLink = `${window.location.origin}/rooms/join?room=${roomId}`;
     navigator.clipboard.writeText(inviteLink);
@@ -227,21 +425,38 @@ export default function Room() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Function to toggle the share modal
+  const toggleShareModal = () => {
+    setShowShareModal(!showShareModal);
+  };
+
   // Render local video view
   useEffect(() => {
     if (localTracks.length > 0 && mode === 'video') {
       const videoTrack = localTracks.find(track => track.trackMediaType === 'video');
       if (videoTrack && !isVideoOff) {
-        videoTrack.play('local-video');
+        videoTrack.play('local-video', { fit: 'contain' });
       }
     }
-  }, [localTracks, isVideoOff]);
+  }, [localTracks, isVideoOff, mode]);
 
-  // Render remote video views
+  // Render remote video views - Update for more robustness
   useEffect(() => {
     Object.values(remoteUsers).forEach(user => {
-      if (user.videoTrack) {
-        user.videoTrack.play(`remote-video-${user.uid}`);
+      if (user.videoTrack && user.hasVideo) {
+        try {
+          // Make sure container exists before trying to play
+          const container = document.getElementById(`remote-video-${user.uid}`);
+          if (container) {
+            // Use fit mode to maintain aspect ratio while filling the space
+            user.videoTrack.play(`remote-video-${user.uid}`, { fit: 'contain' });
+            console.log(`Playing video for remote user ${user.uid}`);
+          } else {
+            console.warn(`Container for remote user ${user.uid} not found`);
+          }
+        } catch (error) {
+          console.error(`Error playing video for user ${user.uid}:`, error);
+        }
       }
     });
   }, [remoteUsers]);
@@ -256,7 +471,7 @@ export default function Room() {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
           </div>
-          <p className="text-primary-400">Joining {roomName}...</p>
+          <p className="text-primary-400">Joining Respawn Room...</p>
         </div>
       </div>
     );
@@ -282,89 +497,172 @@ export default function Room() {
 
   return (
     <div className="flex flex-col h-screen bg-surface-900">
+      {/* Inject our custom CSS */}
+      <style>{videoContainerStyles}</style>
+      
       {/* Header */}
       <div className="flex justify-between items-center px-4 py-3 bg-surface-800 border-b border-surface-700">
         <h1 className="text-xl font-semibold text-primary-500">{roomName}</h1>
-        <button 
-          onClick={copyInviteLink}
-          className="flex items-center px-3 py-1.5 bg-surface-700 hover:bg-surface-600 rounded text-sm text-white transition-colors duration-200"
-        >
-          {copied ? (
-            <>
-              <CheckCircle size={16} className="mr-1.5 text-green-500" />
-              Copied!
-            </>
-          ) : (
-            <>
-              <Copy size={16} className="mr-1.5" />
-              Copy Invite Link
-            </>
-          )}
-        </button>
+        <div className="flex space-x-2">
+          {/* Copy Room ID button */}
+          <button 
+            onClick={copyRoomId}
+            className="flex items-center px-3 py-1.5 bg-surface-700 hover:bg-surface-600 rounded text-sm text-white transition-colors duration-200"
+            title="Copy Room ID"
+          >
+            {roomIdCopied ? (
+              <>
+                <CheckCircle size={16} className="mr-1.5 text-green-500" />
+                ID Copied!
+              </>
+            ) : (
+              <>
+                <Copy size={16} className="mr-1.5" />
+                Copy ID
+              </>
+            )}
+          </button>
+
+          {/* Copy Invite Link button */}
+          <button 
+            onClick={copyInviteLink}
+            className="flex items-center px-3 py-1.5 bg-surface-700 hover:bg-surface-600 rounded text-sm text-white transition-colors duration-200"
+            title="Copy Invite Link"
+          >
+            {copied ? (
+              <>
+                <CheckCircle size={16} className="mr-1.5 text-green-500" />
+                Link Copied!
+              </>
+            ) : (
+              <>
+                <LinkIcon size={16} className="mr-1.5" />
+                Copy Link
+              </>
+            )}
+          </button>
+        </div>
       </div>
       
       {/* Main content */}
-      <div className="flex-1 p-4 overflow-y-auto">
-        <div className={`grid ${mode === 'video' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3'}`}>
-          {/* Local user */}
-          <div className={`bg-surface-800 rounded-lg overflow-hidden relative ${mode === 'video' ? 'aspect-video' : 'aspect-square'}`}>
-            {mode === 'video' ? (
-              isVideoOff ? (
-                <div className="flex items-center justify-center h-full bg-surface-700">
+      <div className="flex-1 p-4 overflow-y-auto relative flex flex-col">
+        <div className="flex-1 flex justify-center items-center w-full h-full min-h-[300px]">
+          {/* Discord-style adaptive grid */}
+          <div 
+            className="grid w-full h-full gap-3"
+            style={{
+              gridTemplateColumns: getGridLayout(Object.keys(remoteUsers).length + 1).columns,
+              gridTemplateRows: getGridLayout(Object.keys(remoteUsers).length + 1).rows,
+              gridTemplateAreas: getGridLayout(Object.keys(remoteUsers).length + 1).areas,
+              minHeight: '100%'
+            }}
+          >
+            {/* Local user */}
+            <div 
+              className="bg-surface-800 rounded-lg overflow-hidden relative flex items-center justify-center transition-all duration-300 video-container"
+              style={{ 
+                gridArea: Object.keys(remoteUsers).length === 0 ? 'a' : 'a',
+              }}
+            >
+              {mode === 'video' ? (
+                isVideoOff ? (
+                  <div className="flex items-center justify-center h-full w-full bg-surface-700">
+                    <div className="w-20 h-20 rounded-full bg-surface-600 flex items-center justify-center text-xl font-bold text-white">
+                      You
+                    </div>
+                  </div>
+                ) : (
+                  <div id="local-video" className="h-full w-full bg-surface-700 flex items-center justify-center object-cover">
+                    {/* Video will be inserted here by Agora */}
+                  </div>
+                )
+              ) : (
+                <div className="flex items-center justify-center h-full w-full bg-surface-700">
                   <div className="w-20 h-20 rounded-full bg-surface-600 flex items-center justify-center text-xl font-bold text-white">
                     You
                   </div>
                 </div>
-              ) : (
-                <div id="local-video" className="h-full w-full bg-surface-700"></div>
-              )
-            ) : (
-              <div className="flex items-center justify-center h-full bg-surface-700">
-                <div className="w-20 h-20 rounded-full bg-surface-600 flex items-center justify-center text-xl font-bold text-white">
-                  You
-                </div>
-              </div>
-            )}
-            
-            <div className="absolute bottom-2 left-2 flex items-center bg-surface-900 bg-opacity-75 px-2 py-1 rounded-full">
-              {isMuted ? (
-                <MicOff size={16} className="text-red-500" />
-              ) : (
-                <Mic size={16} className="text-green-500" />
-              )}
-            </div>
-          </div>
-          
-          {/* Remote users */}
-          {Object.values(remoteUsers).map(user => (
-            <div key={user.uid} className={`bg-surface-800 rounded-lg overflow-hidden relative ${mode === 'video' ? 'aspect-video' : 'aspect-square'}`}>
-              {user.videoTrack ? (
-                <div id={`remote-video-${user.uid}`} className="h-full w-full bg-surface-700"></div>
-              ) : (
-                <div className="flex items-center justify-center h-full bg-surface-700">
-                  <div className="w-20 h-20 rounded-full bg-surface-600 flex items-center justify-center text-xl font-bold text-white">
-                    User
-                  </div>
-                </div>
               )}
               
+              {/* Participant label */}
+              <div className="absolute top-2 left-2 bg-surface-900 bg-opacity-75 px-2 py-1 rounded-full text-xs text-white font-medium">
+                You (Host)
+              </div>
+              
               <div className="absolute bottom-2 left-2 flex items-center bg-surface-900 bg-opacity-75 px-2 py-1 rounded-full">
-                {!user.audioTrack ? (
+                {isMuted ? (
                   <MicOff size={16} className="text-red-500" />
                 ) : (
                   <Mic size={16} className="text-green-500" />
                 )}
               </div>
+
+              {Object.keys(remoteUsers).length === 0 && (
+                <div className="absolute bottom-2 right-2 bg-surface-900 bg-opacity-75 px-2 py-1 rounded-full text-xs text-gray-300">
+                  Only you in this room
+                </div>
+              )}
             </div>
-          ))}
+            
+            {/* Remote users */}
+            {Object.values(remoteUsers).map((user, index) => {
+              // Assign grid areas based on index: b, c, d, etc.
+              const gridArea = String.fromCharCode(98 + index); // 98 is ASCII for 'b'
+              const hasActiveVideo = user.videoTrack && user.hasVideo;
+              
+              return (
+                <div 
+                  key={user.uid} 
+                  className="bg-surface-800 rounded-lg overflow-hidden relative flex items-center justify-center transition-all duration-300 video-container"
+                  style={{ gridArea }}
+                >
+                  {hasActiveVideo ? (
+                    <div id={`remote-video-${user.uid}`} className="h-full w-full bg-surface-700 flex items-center justify-center object-cover">
+                      {/* Video will be inserted here by Agora */}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full w-full bg-surface-700">
+                      <div className="w-20 h-20 rounded-full bg-surface-600 flex items-center justify-center text-xl font-bold text-white">
+                        User
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Participant label */}
+                  <div className="absolute top-2 left-2 bg-surface-900 bg-opacity-75 px-2 py-1 rounded-full text-xs text-white font-medium">
+                    Participant {index + 1}
+                  </div>
+                  
+                  <div className="absolute bottom-2 left-2 flex items-center bg-surface-900 bg-opacity-75 px-2 py-1 rounded-full">
+                    {!user.hasAudio || !user.audioTrack ? (
+                      <MicOff size={16} className="text-red-500" />
+                    ) : (
+                      <Mic size={16} className="text-green-500" />
+                    )}
+                  </div>
+
+                  {/* Video status indicator */}
+                  <div className="absolute bottom-2 right-2 flex items-center bg-surface-900 bg-opacity-75 px-2 py-1 rounded-full">
+                    {!hasActiveVideo ? (
+                      <VideoOff size={16} className="text-red-500" />
+                    ) : (
+                      <Video size={16} className="text-green-500" />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
       
       {/* Controls */}
       <div className="flex justify-center items-center gap-4 py-4 px-4 bg-surface-800 border-t border-surface-700">
+        {/* Mute/Unmute Button */}
         <button
           onClick={toggleMute}
           className={`p-3 rounded-full ${isMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-surface-700 hover:bg-surface-600'}`}
+          title={isMuted ? "Unmute Microphone" : "Mute Microphone"}
         >
           {isMuted ? (
             <MicOff size={24} className="text-white" />
@@ -373,26 +671,92 @@ export default function Room() {
           )}
         </button>
         
-        {mode === 'video' && (
-          <button
-            onClick={toggleVideo}
-            className={`p-3 rounded-full ${isVideoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-surface-700 hover:bg-surface-600'}`}
-          >
-            {isVideoOff ? (
-              <VideoOff size={24} className="text-white" />
-            ) : (
-              <Video size={24} className="text-white" />
-            )}
-          </button>
-        )}
+        {/* Video Toggle Button - Available regardless of initial mode */}
+        <button
+          onClick={toggleVideo}
+          className={`p-3 rounded-full ${isVideoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-surface-700 hover:bg-surface-600'}`}
+          title={isVideoOff ? "Turn On Camera" : "Turn Off Camera"}
+        >
+          {isVideoOff ? (
+            <VideoOff size={24} className="text-white" />
+          ) : (
+            <Video size={24} className="text-white" />
+          )}
+        </button>
         
+        {/* Share Room Button */}
+        <button
+          onClick={toggleShareModal}
+          className="p-3 rounded-full bg-primary-600 hover:bg-primary-700"
+          title="Share Room"
+        >
+          <Share2 size={24} className="text-white" />
+        </button>
+        
+        {/* Leave Room Button */}
         <button
           onClick={leaveRoom}
           className="p-3 rounded-full bg-red-600 hover:bg-red-700"
+          title="Leave Room"
         >
           <LogOut size={24} className="text-white" />
         </button>
       </div>
+
+      {/* Share Room Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-surface-800 rounded-lg p-6 max-w-md w-full mx-4 relative">
+            <button 
+              onClick={toggleShareModal} 
+              className="absolute top-3 right-3 text-gray-400 hover:text-white"
+            >
+              <X size={20} />
+            </button>
+            
+            <h2 className="text-xl font-semibold text-primary-500 mb-4">Share Room</h2>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Room ID
+              </label>
+              <div className="flex">
+                <input
+                  type="text"
+                  readOnly
+                  value={roomId}
+                  className="flex-1 px-4 py-2 bg-surface-700 border border-surface-600 rounded-l-md focus:outline-none text-white"
+                />
+                <button
+                  onClick={copyRoomId}
+                  className="px-4 py-2 bg-primary-700 hover:bg-primary-800 rounded-r-md"
+                >
+                  {roomIdCopied ? <CheckCircle size={20} /> : <Copy size={20} />}
+                </button>
+              </div>
+              <p className="text-sm text-gray-400 mt-1">Share this ID with friends so they can join your room</p>
+            </div>
+            
+            <div className="space-y-4">
+              <button
+                onClick={copyRoomId}
+                className="w-full py-3 bg-surface-700 hover:bg-surface-600 text-white rounded-md font-medium transition-colors duration-200 flex items-center justify-center"
+              >
+                <Copy size={18} className="mr-2" />
+                {roomIdCopied ? 'Room ID Copied!' : 'Copy Room ID'}
+              </button>
+              
+              <button
+                onClick={copyInviteLink}
+                className="w-full py-3 bg-primary-700 hover:bg-primary-800 text-white rounded-md font-medium transition-colors duration-200 flex items-center justify-center"
+              >
+                <LinkIcon size={18} className="mr-2" />
+                {copied ? 'Invite Link Copied!' : 'Copy Invite Link'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
