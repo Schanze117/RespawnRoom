@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon } from 'lucide-react';
 
 export default function JoinRoom() {
   const navigate = useNavigate();
@@ -21,6 +21,11 @@ export default function JoinRoom() {
       
       // Return the room ID if it exists in the URL
       if (roomId) return roomId;
+      
+      // Check if it's a join link with a query parameter
+      const params = new URLSearchParams(url.search);
+      const roomParam = params.get('room');
+      if (roomParam) return roomParam;
     } catch (e) {
       // Not a valid URL, continue to error
     }
@@ -32,7 +37,7 @@ export default function JoinRoom() {
     e.preventDefault();
     
     if (!roomInput.trim()) {
-      setError('Please enter a room ID or invite link');
+      setError('Please enter a room ID or paste an invite link');
       return;
     }
     
@@ -65,6 +70,12 @@ export default function JoinRoom() {
             <label htmlFor="roomInput" className="block text-sm font-medium text-gray-300 mb-2">
               Room ID or Invite Link
             </label>
+            <div className="mb-2 text-sm text-gray-400">
+              <p className="flex items-center">
+                <LinkIcon size={14} className="mr-1.5" />
+                Enter the room ID or paste the invite link shared by your friend
+              </p>
+            </div>
             <input
               type="text"
               id="roomInput"
@@ -73,7 +84,7 @@ export default function JoinRoom() {
                 setRoomInput(e.target.value);
                 setError(''); // Clear error when input changes
               }}
-              placeholder="Enter room ID or paste invite link"
+              placeholder="e.g., room-abc123 or https://respawn.com/rooms/join?room=..."
               className={`w-full px-4 py-2 bg-surface-700 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                 error ? 'border-red-500' : 'border-surface-600'
               }`}

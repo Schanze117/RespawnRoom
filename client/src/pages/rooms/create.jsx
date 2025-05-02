@@ -4,14 +4,13 @@ import { Mic, Video, ArrowLeft } from 'lucide-react';
 
 export default function CreateRoom() {
   const navigate = useNavigate();
-  const [roomName, setRoomName] = useState('');
   const [isVoiceOnly, setIsVoiceOnly] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Generate a random room ID if no name was provided
-    const roomId = roomName.trim() || `room-${Math.random().toString(36).substring(2, 9)}`;
+    // Always generate a random room ID
+    const roomId = `room-${Math.random().toString(36).substring(2, 9)}`;
     
     // Navigate to the room with the mode query parameter
     navigate(`/rooms/${roomId}?mode=${isVoiceOnly ? 'voice' : 'video'}`);
@@ -31,20 +30,6 @@ export default function CreateRoom() {
         <h1 className="text-2xl font-bold mb-6 text-primary-500">Create a Room</h1>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="roomName" className="block text-sm font-medium text-gray-300 mb-2">
-              Room Name (optional)
-            </label>
-            <input
-              type="text"
-              id="roomName"
-              value={roomName}
-              onChange={(e) => setRoomName(e.target.value)}
-              placeholder="Enter room name or leave blank for random ID"
-              className="w-full px-4 py-2 bg-surface-700 border border-surface-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-          
           <div className="flex justify-between items-center p-4 bg-surface-700 rounded-md">
             <div className="flex items-center">
               {isVoiceOnly ? (
@@ -76,7 +61,7 @@ export default function CreateRoom() {
             type="submit"
             className="w-full py-3 bg-primary-700 hover:bg-primary-800 text-white rounded-md font-medium transition-colors duration-200"
           >
-            Start Room
+            Create Random Room
           </button>
         </form>
       </div>
