@@ -1,11 +1,14 @@
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import Header from './components/Header';
+import LoginPrompt from './components/LoginPrompt';
 import './App.css'
-import { useEffect } from 'react';
 import Auth from './utils/auth';
 
 function App() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   useEffect(() => {
     // Process token from URL if present
@@ -19,13 +22,17 @@ function App() {
       // Clear URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [navigate]);
+
+    // Show login prompt if not on login/register page and not logged in
+    const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+    setShowLoginPrompt(!isAuthPage && !Auth.loggedIn());
+  }, [navigate, location]);
 
   return (
     <>
       <Header />
       <main>
-        <Outlet />
+        {showLoginPrompt ? <LoginPrompt /> : <Outlet />}
       </main>
     </>
   )
