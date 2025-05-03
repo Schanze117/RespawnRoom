@@ -1,6 +1,7 @@
 import User from '../models/users.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { signToken } from '../middleware/auth.js';
 
 dotenv.config();
 
@@ -53,18 +54,8 @@ export const handleGoogleAuth = async (profile) => {
       throw new Error('Failed to create or find user from Google profile.');
     }
     
-    // Generate JWT token for the user
-    const secretKey = process.env.JWT_SECRET_KEY || '';
-    const token = jwt.sign(
-      { 
-        _id: user._id,
-        userName: user.userName,
-        email: user.email,
-        googleId: user.googleId 
-      }, 
-      secretKey, 
-      { expiresIn: '7d' }
-    );
+    // Generate JWT token using the signToken function from auth.js for consistency
+    const token = signToken(user.userName, user.email, user._id);
     
     return { user, token };
   } catch (error) {

@@ -40,6 +40,27 @@ const userSchema = new Schema(
       type: Date,
       default: Date.now,
     },
+    // Add friends list - references to other users
+    friends: [{
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    }],
+    // Add friend requests - references to other users who sent requests
+    friendRequests: [{
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    }],
+    // User's online status
+    status: {
+      type: String,
+      enum: ['Online', 'Offline', 'Away', 'Do Not Disturb'],
+      default: 'Offline'
+    },
+    // Last time user was seen online
+    lastSeen: {
+      type: Date,
+      default: Date.now,
+    },
   },
   {
     toJSON: {

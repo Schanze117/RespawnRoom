@@ -29,26 +29,14 @@ export const GameProvider = ({ children }) => {
   const loadAllGameData = async () => {
     setIsLoading(true);
     try {
-      console.log('🎮 Starting to load game data using the optimized approach');
-      
       // Load the featured game first
-      console.log('⭐ Loading featured game...');
       const featured = await getFeaturedGame();
       setFeaturedGame(featured);
-      console.log('⭐ Featured game loaded', featured?.name || 'No featured game');
       
       // Then load all games at once using our new endpoint
-      console.log('🔄 Loading all game categories in a single API call...');
       const categorizedGames = await getAllCategorizedGames();
       
-      console.log('📊 Game data loaded:',
-        `Featured: ${categorizedGames.trending?.primary?.length + categorizedGames.trending?.secondary?.length || 0}`,
-        `Latest: ${categorizedGames.latest?.primary?.length + categorizedGames.latest?.secondary?.length || 0}`,
-        `Top: ${categorizedGames.topRated?.primary?.length + categorizedGames.topRated?.secondary?.length || 0}`,
-        `Upcoming: ${categorizedGames.upcoming?.primary?.length + categorizedGames.upcoming?.secondary?.length || 0}`,
-        `Total unique games: ${categorizedGames.allGames?.length || 0}`
-      );
-      
+      // Update state with fetched data
       setFeaturedGames(categorizedGames.trending || { primary: [], secondary: [] });
       setLatestGames(categorizedGames.latest || { primary: [], secondary: [] });
       setTopGames(categorizedGames.topRated || { primary: [], secondary: [] });
@@ -56,9 +44,8 @@ export const GameProvider = ({ children }) => {
       setAllGames(categorizedGames.allGames || []);
       
       setInitialLoadComplete(true);
-      console.log('✅ All game data loaded and set in state');
     } catch (error) {
-      console.error('❌ Error loading game data:', error);
+      // Silently fail - errors are already logged in the fetcher functions
     } finally {
       setIsLoading(false);
     }
@@ -68,7 +55,6 @@ export const GameProvider = ({ children }) => {
   const handleRespawn = async () => {
     if (isRespawning) return;
     
-    console.log('🔄 Starting respawn process...');
     setIsRespawning(true);
     
     // First, reset the game data state to empty arrays
@@ -81,38 +67,26 @@ export const GameProvider = ({ children }) => {
     
     // Clear the displayed games tracking
     resetDisplayedGames();
-    console.log('🧹 Cleared displayed games tracking');
     
     // Increment the respawn count to trigger component updates
-    setRespawnCount(prev => {
-      const newCount = prev + 1;
-      console.log(`🔢 Incremented respawn count to ${newCount}`);
-      return newCount;
-    });
+    setRespawnCount(prev => prev + 1);
     
     // Add a small delay to ensure state updates have propagated
     await new Promise(resolve => setTimeout(resolve, 300));
     
     // Reload all game data with a fresh API fetch
     try {
-      console.log('📥 Loading new game data from API...');
-    await loadAllGameData();
-    console.log('✅ New game data loaded successfully');
+      await loadAllGameData();
     } catch (error) {
-      console.error('❌ Error reloading game data:', error);
+      // Error handling in loadAllGameData
     }
     
     // Reset the respawning state after a delay
     setTimeout(() => {
       setIsRespawning(false);
-      console.log('🏁 Respawn process completed');
       
       // Force one more respawnCount update to ensure all components re-render
-      setRespawnCount(prev => {
-        const finalCount = prev + 1;
-        console.log(`🔄 Final respawn count update to ${finalCount}`);
-        return finalCount;
-      });
+      setRespawnCount(prev => prev + 1);
     }, 2000);
   };
 

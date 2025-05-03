@@ -139,7 +139,6 @@ export default function Room() {
       }
       return data;
     } catch (error) {
-      console.error('Error fetching token:', error);
       return null;
     }
   };
@@ -164,23 +163,18 @@ export default function Room() {
 
     const join = async () => {
       try {
-        console.log(`Joining channel ${roomId} with UID ${uid.current}`);
-        
         // Set up event listeners
         setupEventListeners();
         
         // Attempt token-based authentication first (recommended)
-        console.log('Attempting to fetch token from server...');
         const tokenData = await fetchToken(roomId);
         
         if (tokenData && tokenData.token) {
-          console.log('Token received, using token-based authentication');
           setTokenDetails(tokenData);
           
           try {
             // Join with token
             await client.join(tokenData.appId, roomId, tokenData.token, tokenData.uid || uid.current);
-            console.log('Successfully joined the channel with token');
             
             // Create and publish tracks based on mode
             const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
@@ -198,50 +192,63 @@ export default function Room() {
                   }
                 });
                 tracks.push(videoTrack);
-              } catch (videoError) {
-                console.error('Error creating video track:', videoError);
-                // If video fails, continue with just audio
+                setIsVideoOff(false);
+              } catch (err) {
+                setConnectionError('Could not access camera. Using voice only mode.');
+                setIsVideoOff(true);
               }
             }
             
-            // Make sure each track has proper settings
-            tracks.forEach(track => {
-              if (track.trackMediaType === 'audio') {
-                // Enable echo cancellation, noise suppression, and auto gain control
-                track.setEnabled(true);
-              } else if (track.trackMediaType === 'video') {
-                track.setEnabled(!isVideoOff);
-              }
-            });
-            
-            // Publish local tracks
-            await client.publish(tracks);
-            console.log('Local tracks published successfully:', tracks.map(t => t.trackMediaType).join(', '));
+            // Save tracks to local state
             setLocalTracks(tracks);
+            
+            // Publish tracks
+            await client.publish(tracks);
+            
+            // Joining complete
             setJoining(false);
-            return; // Exit early if successful
-          } catch (tokenError) {
-            console.error('Error joining with token:', tokenError);
-            throw new Error(`Token authentication failed: ${tokenError.message}`);
+          } catch (err) {
+            setConnectionError(`Failed to join room: ${err.message}`);
+            cleanup();
           }
         } else {
-          console.warn('No token available from server, voice chat may be limited');
-          throw new Error('Could not retrieve token from server');
+          // Fallback to direct join if token fails
+          try {
+            // Direct join without token
+            await client.join(import.meta.env.VITE_AGORA_APP_ID, roomId, null, uid.current);
+            
+            // Create and publish tracks
+            const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+            let tracks = [audioTrack];
+            
+            if (mode === 'video') {
+              try {
+                const videoTrack = await AgoraRTC.createCameraVideoTrack({
+                  encoderConfig: {
+                    width: { min: 640, ideal: 1280, max: 1920 },
+                    height: { min: 360, ideal: 720, max: 1080 },
+                    frameRate: 30
+                  }
+                });
+                tracks.push(videoTrack);
+                setIsVideoOff(false);
+              } catch (err) {
+                setConnectionError('Could not access camera. Using voice only mode.');
+                setIsVideoOff(true);
+              }
+            }
+            
+            setLocalTracks(tracks);
+            await client.publish(tracks);
+            setJoining(false);
+          } catch (err) {
+            setConnectionError(`Failed to join room: ${err.message}`);
+            cleanup();
+          }
         }
-      } catch (error) {
-        console.error('Error joining channel:', error);
-        let errorMessage = `Failed to join room: ${error.message}`;
-        
-        if (error.message.includes('PERMISSION_DENIED')) {
-          errorMessage = 'Microphone or camera access denied. Please grant permissions in your browser settings.';
-        } else if (error.message.includes('DEVICE_NOT_FOUND')) {
-          errorMessage = 'No microphone or camera detected. Please connect one and try again.';
-        } else if (error.message.includes('invalid vendor key') || error.message.includes('CAN_NOT_GET_GATEWAY_SERVER')) {
-          errorMessage = 'Voice chat is temporarily unavailable. Please try again later.';
-        }
-        
-        setConnectionError(errorMessage);
-        setJoining(false);
+      } catch (err) {
+        setConnectionError(`Connection error: ${err.message}`);
+        cleanup();
       }
     };
 
@@ -252,71 +259,52 @@ export default function Room() {
   }, [roomId, mode]);
 
   const handleUserPublished = async (user, mediaType) => {
-    console.log(`Remote user ${user.uid} published ${mediaType} track`);
-
-    try {
-      // Subscribe to the remote user's tracks
-      await client.subscribe(user, mediaType);
-      console.log(`Subscribed to ${user.uid}'s ${mediaType} track successfully`);
-
-      // Update the remoteUsers state based on the media type
-      setRemoteUsers(prev => {
-        const updatedUsers = { ...prev };
-        
-        if (!updatedUsers[user.uid]) {
-          updatedUsers[user.uid] = { 
-            uid: user.uid, 
-            audioTrack: null, 
-            videoTrack: null, 
-            hasAudio: false,
-            hasVideo: false
-          };
+    // Subscribe to the remote user
+    await client.subscribe(user, mediaType);
+    
+    // Update state with the new user's stream
+    setRemoteUsers(prev => {
+      return {
+        ...prev,
+        [user.uid]: {
+          ...prev[user.uid],
+          [mediaType]: true,
+          user
         }
-        
-        if (mediaType === 'audio') {
-          updatedUsers[user.uid].audioTrack = user.audioTrack;
-          updatedUsers[user.uid].hasAudio = true;
-          
-          // Start playing audio immediately
-          if (user.audioTrack) {
-            user.audioTrack.play();
-            console.log(`Playing audio for user ${user.uid}`);
+      };
+    });
+    
+    // Handle audio playback
+    if (mediaType === 'audio') {
+      user.audioTrack?.play();
+    }
+    
+    // Handle video container setup
+    if (mediaType === 'video') {
+      // Ensure we have a container for the video before playing
+      const playerContainer = document.getElementById(`player-${user.uid}`);
+      if (playerContainer) {
+        user.videoTrack?.play(`player-${user.uid}`);
+      } else {
+        // If container doesn't exist, set a small delay and try again
+        setTimeout(() => {
+          const container = document.getElementById(`player-${user.uid}`);
+          if (container) {
+            user.videoTrack?.play(`player-${user.uid}`);
           }
-        } else if (mediaType === 'video') {
-          updatedUsers[user.uid].videoTrack = user.videoTrack;
-          updatedUsers[user.uid].hasVideo = true;
-          
-          // Video is played via useEffect after state update
-          console.log(`Video track received for user ${user.uid}, will play in container`);
-        }
-        
-        return updatedUsers;
-      });
-    } catch (error) {
-      console.error(`Error subscribing to ${user.uid}'s ${mediaType} track:`, error);
+        }, 200);
+      }
     }
   };
 
   const handleUserUnpublished = (user, mediaType) => {
-    console.log(`Remote user ${user.uid} unpublished ${mediaType} track`);
-
+    // Update state to reflect the unpublished track
     setRemoteUsers(prev => {
-      const updatedUsers = { ...prev };
-      
-      if (updatedUsers[user.uid]) {
-        if (mediaType === 'audio') {
-          updatedUsers[user.uid].audioTrack = null;
-          updatedUsers[user.uid].hasAudio = false;
-        } else if (mediaType === 'video') {
-          updatedUsers[user.uid].videoTrack = null;
-          updatedUsers[user.uid].hasVideo = false;
-        }
-        
-        // Keep the user in state even if they have no tracks
-        // This helps maintain their UI presence until they leave
+      const updatedUser = { ...prev[user.uid] };
+      if (updatedUser) {
+        updatedUser[mediaType] = false;
       }
-      
-      return updatedUsers;
+      return { ...prev, [user.uid]: updatedUser };
     });
   };
 
@@ -337,10 +325,8 @@ export default function Room() {
         try {
           if (isMuted) {
             await audioTrack.setEnabled(true);
-            console.log('Microphone unmuted');
           } else {
             await audioTrack.setEnabled(false);
-            console.log('Microphone muted');
           }
           setIsMuted(!isMuted);
         } catch (error) {
@@ -362,10 +348,8 @@ export default function Room() {
         try {
           if (isVideoOff) {
             await videoTrack.setEnabled(true);
-            console.log('Camera enabled');
           } else {
             await videoTrack.setEnabled(false);
-            console.log('Camera disabled');
           }
           setIsVideoOff(!isVideoOff);
         } catch (error) {
@@ -392,7 +376,6 @@ export default function Room() {
           
           // Add to local tracks
           setLocalTracks(prev => [...prev, newVideoTrack]);
-          console.log('Video track created and published');
         } catch (error) {
           console.error('Error creating video track:', error);
         }
@@ -450,7 +433,6 @@ export default function Room() {
           if (container) {
             // Use fit mode to maintain aspect ratio while filling the space
             user.videoTrack.play(`remote-video-${user.uid}`, { fit: 'contain' });
-            console.log(`Playing video for remote user ${user.uid}`);
           } else {
             console.warn(`Container for remote user ${user.uid} not found`);
           }

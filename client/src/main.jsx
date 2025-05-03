@@ -10,6 +10,7 @@ import Search from './pages/search.jsx';
 import Login from './pages/loginPage.jsx';
 import Saved from './pages/saved.jsx';
 import Register from './pages/register.jsx';
+import Friends from './pages/friends/index.jsx';
 import RoomsRoutes from './pages/rooms/index.jsx';
 import { GameProvider } from './utils/GameContext.jsx';
 
@@ -55,6 +56,10 @@ const router = createBrowserRouter([
       {
         path: '/saved',
         element: <Saved />,
+      },
+      {
+        path: '/friends',
+        element: <Friends />,
       },
       {
         path: '/login',
