@@ -6,10 +6,6 @@ import dotenv from 'dotenv';
 // Load environment variables with simpler path
 dotenv.config();
 
-// Hard-coded values as fallback - these will be overridden by environment variables
-const APP_ID_FALLBACK = '411338675';
-const APP_CERTIFICATE_FALLBACK = 'cdc5bb9fde2e491d95fd6eb5d6a51941';
-
 // For debugging - log to make sure we have the values
 console.log("Agora credentials check:");
 const APP_ID = process.env.AGORA_APP_ID || APP_ID_FALLBACK;
