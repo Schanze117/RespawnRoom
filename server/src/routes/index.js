@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import gameRoutes from './api/gameRoutes.js';
 import userRoutes from './api/userRoutes.js';
-import agoraRoutes from './agoraRoutes.js';
+import agoraRoutes from './api/agora.js';
 
 // Create router
 const router = express.Router();

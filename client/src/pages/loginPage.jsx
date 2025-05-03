@@ -8,7 +8,7 @@ export default function Login() {
   const location = useLocation();
   const navigate = useNavigate();
   const [loginData, setLoginData] = useState({
-    email: '',
+    userName: '',
     password: '',
   });
   const [error, setError] = useState('');
@@ -27,7 +27,7 @@ export default function Login() {
     
     try {
       const { data } = await loginUser({
-        variables: { email: loginData.email, password: loginData.password },
+        variables: { userName: loginData.userName, password: loginData.password },
       });
       
       if (data && data.login && data.login.token) {
@@ -66,13 +66,13 @@ export default function Login() {
             <form className="space-y-6" onSubmit={handleSubmit}>
                 <h5 className="text-xl font-medium text-light">RespawnRoom // Login</h5>
                 <div>
-                    <label htmlFor="email" className="block mb-2 text-sm font-medium text-light">Email</label>
+                    <label htmlFor="userName" className="block mb-2 text-sm font-medium text-light">Username</label>
                     <input 
-                    type="email" 
-                    name="email" 
+                    type="text" 
+                    name="userName" 
                     onChange={handleChange}
-                    value={loginData.email} 
-                    placeholder="Enter Your Email"
+                    value={loginData.userName} 
+                    placeholder="Enter Your Username"
                     className="bg-surface-600 border border-tonal-400 text-light text-sm rounded-lg focus:outline-2 focus:outline-primary-400 focus:outline-offset-2 focus:border-primary-400 block w-full p-2.5" 
                     required
                     />
