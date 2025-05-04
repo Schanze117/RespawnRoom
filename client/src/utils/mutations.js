@@ -133,6 +133,10 @@ export const SEND_MESSAGE = gql`
       content
       timestamp
       read
+      sender {
+        _id
+        userName
+      }
     }
   }
 `;
