@@ -12,14 +12,19 @@
   "dependencies": {
     "@apollo/client": "^3.13.8",
     "@tailwindcss/vite": "^4.0.9",
+    "agora-rtc-sdk-ng": "^4.23.3",
     "dotenv": "^16.4.7",
     "jsonwebtoken": "^9.0.2",
     "jwt-decode": "^4.0.0",
+    "pubnub": "^7.6.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-draggable": "^4.4.6",
     "react-icons": "^5.5.0",
+    "react-resizable": "^3.0.5",
     "react-router-dom": "^6.10.0",
-    "tailwindcss": "^4.0.9"
+    "tailwindcss": "^4.0.9",
+    "webfontloader": "^1.6.28"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

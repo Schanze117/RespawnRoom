@@ -2,10 +2,27 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import LoginPrompt from './components/LoginPrompt';
+import FloatingRoomWindow from './components/rooms/FloatingRoomWindow';
+import { RoomProvider, useRoomContext } from './utils/RoomContext';
 import './App.css'
 import Auth from './utils/auth';
 
-function App() {
+// This component is just to track location changes and notify the room context
+function LocationListener() {
+  const location = useLocation();
+  const { activeRoom, checkPathAndToggleWindow } = useRoomContext();
+  
+  // Update when either location or activeRoom changes
+  useEffect(() => {
+    console.log('LocationListener: path changed to', location.pathname);
+    console.log('LocationListener: activeRoom is', activeRoom?.id || 'none');
+    checkPathAndToggleWindow(location.pathname);
+  }, [location.pathname, activeRoom, checkPathAndToggleWindow]);
+  
+  return null;
+}
+
+function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -35,7 +52,17 @@ function App() {
         {showLoginPrompt ? <LoginPrompt /> : <Outlet />}
       </main>
     </>
-  )
+  );
+}
+
+function App() {
+  return (
+    <RoomProvider>
+      <LocationListener />
+      <AppContent />
+      <FloatingRoomWindow />
+    </RoomProvider>
+  );
 }
 
 export default App

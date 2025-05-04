@@ -55,7 +55,13 @@ const FriendsList = ({
     try {
       // Check if the friend object has required properties
       if (!friend || !friend._id) {
+        console.error("Invalid friend object:", friend);
         setChatError(true);
+        return;
+      }
+      
+      // If the user is trying to open a chat that's already open, do nothing
+      if (activeChatFriend && activeChatFriend._id === friend._id) {
         return;
       }
       
@@ -64,6 +70,7 @@ const FriendsList = ({
       // If there was an error before, clear it
       if (chatError) setChatError(false);
     } catch (error) {
+      console.error("Error opening chat:", error);
       setChatError(true);
     }
   };

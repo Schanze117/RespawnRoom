@@ -156,26 +156,52 @@ export const resolvers = {
         throw new AuthenticationError('You need to be logged in!');
       }
 
-      // Find messages between current user and friend (in both directions)
-      // sort by timestamp in descending order and limit to the specified amount
-      const messages = await Message.find({
-        $or: [
-          { senderId: context.user._id, receiverId: friendId },
-          { senderId: friendId, receiverId: context.user._id }
-        ]
-      })
-      .sort({ timestamp: -1 })
-      .limit(limit)
-      .populate({
-        path: 'senderId',
-        select: '_id userName'
-      });
+      try {
+        // Find messages between current user and friend (in both directions)
+        // sort by timestamp in descending order and limit to the specified amount
+        const messages = await Message.find({
+          $or: [
+            { senderId: context.user._id, receiverId: friendId },
+            { senderId: friendId, receiverId: context.user._id }
+          ]
+        })
+        .sort({ timestamp: -1 })
+        .limit(limit)
+        .populate({
+          path: 'senderId',
+          select: '_id userName'
+        });
 
-      // Reverse the array to show messages in ascending order (oldest first)
-      return messages.map(message => ({
-        ...message._doc,
-        sender: message.senderId
-      })).reverse();
+        // Handle the case where no messages are found
+        if (!messages || messages.length === 0) {
+          return [];
+        }
+
+        // Map messages to the expected format, ensuring sender is properly populated
+        const formattedMessages = messages.map(message => {
+          // Ensure senderId exists and is populated
+          const sender = message.senderId && typeof message.senderId === 'object' 
+            ? message.senderId 
+            : { _id: message.senderId, userName: 'Unknown' };
+
+          return {
+            _id: message._id,
+            senderId: sender._id,
+            receiverId: message.receiverId,
+            content: message.content,
+            timestamp: message.timestamp,
+            read: message.read,
+            sender: sender
+          };
+        });
+
+        // Reverse the array to show messages in ascending order (oldest first)
+        return formattedMessages.reverse();
+      } catch (error) {
+        console.error("Error getting messages:", error);
+        // Return an empty array instead of throwing an error
+        return [];
+      }
     },
 
     getUnreadMessageCount: async (parent, { friendId }, context) => {
@@ -606,31 +632,58 @@ export const resolvers = {
         throw new AuthenticationError('You need to be logged in!');
       }
 
-      // Ensure users are friends
-      const user = await User.findById(context.user._id);
-      if (!user.friends.includes(receiverId)) {
-        throw new AuthenticationError('You can only message your friends');
+      try {
+        // Ensure users are friends
+        const user = await User.findById(context.user._id);
+        if (!user || !user.friends) {
+          throw new Error('User not found or friends list is undefined');
+        }
+
+        // Check if receiverId is in the user's friends array
+        const isFriend = user.friends.some(
+          friendId => friendId.toString() === receiverId.toString()
+        );
+
+        if (!isFriend) {
+          throw new Error('You can only message your friends');
+        }
+
+        // Create the message
+        const message = await Message.create({
+          senderId: context.user._id,
+          receiverId,
+          content,
+          timestamp: new Date(),
+          read: false
+        });
+
+        // Populate sender info
+        const populatedMessage = await Message.findById(message._id).populate({
+          path: 'senderId',
+          select: '_id userName'
+        });
+
+        if (!populatedMessage) {
+          throw new Error('Failed to create or populate message');
+        }
+
+        // Create a properly structured response that matches the Message type
+        return {
+          _id: populatedMessage._id,
+          senderId: populatedMessage.senderId._id,
+          receiverId: populatedMessage.receiverId,
+          content: populatedMessage.content,
+          timestamp: populatedMessage.timestamp,
+          read: populatedMessage.read,
+          sender: {
+            _id: populatedMessage.senderId._id,
+            userName: populatedMessage.senderId.userName
+          }
+        };
+      } catch (error) {
+        console.error('Error sending message:', error);
+        throw new Error(`Failed to send message: ${error.message}`);
       }
-
-      // Create the message
-      const message = await Message.create({
-        senderId: context.user._id,
-        receiverId,
-        content,
-        timestamp: new Date(),
-        read: false
-      });
-
-      // Populate sender info
-      const populatedMessage = await Message.findById(message._id).populate({
-        path: 'senderId',
-        select: '_id userName'
-      });
-
-      return {
-        ...populatedMessage._doc,
-        sender: populatedMessage.senderId
-      };
     },
 
     markMessagesAsRead: async (parent, { senderId }, context) => {

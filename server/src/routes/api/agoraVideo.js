@@ -1,17 +1,15 @@
 import express from 'express';
 import pkg from 'agora-access-token';
 const { RtcTokenBuilder, RtcRole } = pkg;
-import { randomUUID } from 'crypto';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const router = express.Router();
 
-// Configuration for Agora
-const APP_ID = process.env.AGORA_APP_ID || '';
-const APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE || '';
-const CHAT_APP_KEY = process.env.AGORA_CHAT_APP_KEY || '';
+// Configuration for Agora Video
+const APP_ID = process.env.AGORA_APP_ID;
+const APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE;
 
 // Generate a token for Agora RTC (voice/video)
 router.get('/token', (req, res) => {
@@ -24,7 +22,7 @@ router.get('/token', (req, res) => {
   
   // Check if Agora credentials are configured
   if (!APP_ID || !APP_CERTIFICATE) {
-    return res.status(500).json({ success: false, message: 'Agora credentials not configured on server' });
+    return res.status(500).json({ success: false, message: 'Agora video credentials not configured on server' });
   }
   
   try {
@@ -57,40 +55,8 @@ router.get('/token', (req, res) => {
       expiresIn: expirationTimeInSeconds
     });
   } catch (error) {
-    console.error('Error generating Agora token:', error);
+    console.error('Error generating Agora video token:', error);
     return res.status(500).json({ success: false, message: 'Failed to generate token' });
-  }
-});
-
-// Generate a token for Agora Chat
-router.get('/chat-token', async (req, res) => {
-  const { userId } = req.query;
-  
-  // Check if required parameters are provided
-  if (!userId) {
-    return res.status(400).json({ success: false, message: 'User ID is required' });
-  }
-  
-  // Check if Agora Chat credentials are configured
-  if (!CHAT_APP_KEY) {
-    return res.status(500).json({ success: false, message: 'Agora Chat credentials not configured on server' });
-  }
-  
-  try {
-    // In a real production environment, you would generate a proper token
-    // using Agora's server SDK or REST API
-    // This is just a placeholder - you would replace this with actual implementation
-    const chatToken = `${randomUUID()}_${userId}`;
-    
-    return res.json({
-      success: true,
-      chatToken,
-      appKey: CHAT_APP_KEY,
-      userId,
-    });
-  } catch (error) {
-    console.error('Error generating Agora Chat token:', error);
-    return res.status(500).json({ success: false, message: 'Failed to generate chat token' });
   }
 });
 

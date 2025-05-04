@@ -1,4 +1,7 @@
 import React from 'react';
+import { useQuery } from '@apollo/client';
+import { GET_ME } from '../utils/queries';
+import Auth from '../utils/auth';
 import HeroCarousel from '../components/homePage/HeroCarousel';
 import PersonalizedRecommendations from '../components/homePage/PersonalizedRecommendations';
 import GamesLayout from '../components/homePage/GamesLayout';
@@ -16,10 +19,22 @@ export default function Home() {
         initialLoadComplete 
     } = useGameContext();
 
+    // Get user data if they're logged in
+    const isLoggedIn = Auth.loggedIn();
+    const { data: userData } = useQuery(GET_ME, {
+        skip: !isLoggedIn,
+    });
+    
+    // Get username if available
+    const username = userData?.me?.userName;
+    const welcomeMessage = username 
+        ? `${username}, Welcome to Respawn Room`
+        : 'Welcome to Respawn Room';
+
     return (
         <div className="mt-20 md:ml-55 px-4 sm:px-6 py-8 bg-surface-900">
             <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold text-primary-600">Welcome to Respawn Room</h1>
+                <h1 className="text-3xl font-bold text-primary-600">{welcomeMessage}</h1>
                 <button 
                     onClick={handleRespawn}
                     disabled={isRespawning}
