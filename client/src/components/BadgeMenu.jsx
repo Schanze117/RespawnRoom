@@ -1,21 +1,16 @@
 import React, { useState } from 'react';
 import { FaMedal as Medal } from 'react-icons/fa';
-
-// Badge shape: image source and display name
-interface Badge {
-  src: string;
-  name: string;
-}
-
-// Props for BadgeMenu: list of badges
-interface BadgeMenuProps {
-  badges: Badge[];
-}
+import badgeList from './badgeList';
 
 // BadgeMenu component: button toggles visibility of a badge popover
-const BadgeMenu: React.FC<BadgeMenuProps> = ({ badges }) => {
+const BadgeMenu = ({ badges = badgeList }) => {
   const [open, setOpen] = useState(false);
   const toggleOpen = () => setOpen(prev => !prev);
+
+  // Ensure badges is an array
+  if (!Array.isArray(badges)) {
+    return <div>Error: Invalid badges data</div>;
+  }
 
   return (
     <div
@@ -37,13 +32,13 @@ const BadgeMenu: React.FC<BadgeMenuProps> = ({ badges }) => {
         <div className="absolute right-0 mt-2 w-64 p-3 bg-white shadow-lg rounded max-h-64 overflow-y-auto z-50">
           {/* Grid layout for badge icons */}
           <div className="grid grid-cols-5 gap-2">
-            {badges.map(badge => (
+            {badges.map((badge) => (
               <img
-                key={badge.name}
-                src={badge.src}
-                alt={badge.name}
-                title={badge.name}
-                className="w-10 h-10 object-contain"
+                  key={badge.name}
+                  src={badge.src}
+                  alt={badge.name}
+                  title={badge.name}
+                  className="w-10 h-10 object-contain"
               />
             ))}
           </div>
@@ -53,4 +48,4 @@ const BadgeMenu: React.FC<BadgeMenuProps> = ({ badges }) => {
   );
 };
 
-export default BadgeMenu; 
+export default BadgeMenu;

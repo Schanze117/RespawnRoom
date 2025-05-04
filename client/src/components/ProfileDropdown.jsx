@@ -23,13 +23,8 @@ export default function ProfileDropdown({ user, onLogout }) {
   const dropdownRef = useRef(null);
 
   // Example badge data; replace with user.badges if available
-  const badges = [
-    { src: badge10, name: '10 Searches' },
-    { src: badge50, name: '50 Searches' },
-    { src: badge100, name: '100 Searches' },
-    { src: badge250, name: '250 Searches' },
-  ];
-
+  const badges = user?.badges;
+  
   // Close dropdown if clicked outside
   useEffect(() => {
     function handleClickOutside(event) {

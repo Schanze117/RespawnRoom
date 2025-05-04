@@ -7,18 +7,18 @@ import Auth from '../../utils/auth';
 import GameModal from './gameModal';
 import { useState, useEffect } from 'react';
 
-export default function GameCard({ games }) {
+export default function GameCard({ games, onSave }) {
     const [showModal, setShowModal] = useState(false);
     const [selectedGame, setSelectedGame] = useState(null);
     const [savedGames, setSavedGames] = useState({});
     const [alreadySavedGames, setAlreadySavedGames] = useState([]);
     const [saveGameMutation] = useMutation(SAVE_GAME);
-    
+
     // Fetch user's saved games
     const { loading, data } = useQuery(GET_ME, {
         skip: !Auth.loggedIn(), // Skip query if not logged in
     });
-    
+
     // Extract saved games from the query result
     useEffect(() => {
         if (data?.me?.savedGames) {
@@ -50,7 +50,7 @@ export default function GameCard({ games }) {
                 console.log('User not logged in, cannot save game');
                 return;
             }
-            
+
             // Check if game is already saved
             if (isGameAlreadySaved(game)) {
                 console.log('Game already saved:', game.name);
@@ -58,11 +58,11 @@ export default function GameCard({ games }) {
                     ...prev,
                     [game.id]: 'already-saved'
                 }));
-                
+
                 // Reset status after 2 seconds
                 setTimeout(() => {
                     setSavedGames(prev => {
-                        const newState = {...prev};
+                        const newState = { ...prev };
                         delete newState[game.id];
                         return newState;
                     });
@@ -91,20 +91,29 @@ export default function GameCard({ games }) {
             });
 
             console.log('Game saved to server:', data);
-            
+
             // Add to already saved games list
             setAlreadySavedGames(prev => [...prev, game.name.toLowerCase().trim()]);
-            
+
             // Visual feedback - mark as saved
             setSavedGames(prev => ({
                 ...prev,
                 [game.id]: 'saved'
             }));
-            
+
+            // Call the onSave function if provided
+            if (typeof onSave === 'function') {
+                onSave(); // Notify parent component that a game was saved
+                console.log('Game saved:', game.name);
+                // Safely access savedGames
+                const savedGamesList = data?.me?.savedGames || [];
+                console.log('Saved games:', savedGamesList);
+            }
+
             // Reset status after 2 seconds
             setTimeout(() => {
                 setSavedGames(prev => {
-                    const newState = {...prev};
+                    const newState = { ...prev };
                     delete newState[game.id];
                     return newState;
                 });
@@ -116,11 +125,11 @@ export default function GameCard({ games }) {
                 ...prev,
                 [game.id]: 'error'
             }));
-            
+
             // Reset error status after 2 seconds
             setTimeout(() => {
                 setSavedGames(prev => {
-                    const newState = {...prev};
+                    const newState = { ...prev };
                     delete newState[game.id];
                     return newState;
                 });
@@ -134,12 +143,12 @@ export default function GameCard({ games }) {
         if (savedGames[gameId]) {
             return savedGames[gameId];
         }
-        
+
         // Then check if it's already in the user's saved collection
         if (isGameAlreadySaved(game)) {
             return 'already-saved';
         }
-        
+
         // Default state
         return 'default';
     };
@@ -148,7 +157,7 @@ export default function GameCard({ games }) {
         <div className="flex flex-wrap gap-4 justify-center py-5">
             {games.map((game) => {
                 const saveState = getSaveButtonState(game.id, game);
-                
+
                 return (
                     <div
                         key={game.id}
@@ -159,19 +168,18 @@ export default function GameCard({ games }) {
                                 type="button"
                                 onClick={(e) => saveGame(e, game)}
                                 disabled={saveState === 'saving' || saveState === 'saved' || saveState === 'already-saved'}
-                                className={`block p-0.5 text-lg rounded-lg cursor-pointer ${
-                                    saveState === 'default' ? 'text-tonal-600 hover:text-tonal-800 focus:text-tonal-800 bg-primary-500 hover:bg-primary-600 focus:outline-2 focus:outline-offset-1 focus:outline-light' :
-                                    saveState === 'saving' ? 'bg-amber-500 text-white cursor-wait' : 
-                                    saveState === 'saved' ? 'bg-green-600 text-white' :
-                                    saveState === 'already-saved' ? 'bg-green-600 opacity-75 text-white' :
-                                    'bg-red-600 text-white'
-                                }`}
+                                className={`block p-0.5 text-lg rounded-lg cursor-pointer ${saveState === 'default' ? 'text-tonal-600 hover:text-tonal-800 focus:text-tonal-800 bg-primary-500 hover:bg-primary-600 focus:outline-2 focus:outline-offset-1 focus:outline-light' :
+                                        saveState === 'saving' ? 'bg-amber-500 text-white cursor-wait' :
+                                            saveState === 'saved' ? 'bg-green-600 text-white' :
+                                                saveState === 'already-saved' ? 'bg-green-600 opacity-75 text-white' :
+                                                    'bg-red-600 text-white'
+                                    }`}
                                 title={
                                     saveState === 'default' ? 'Save Game' :
-                                    saveState === 'saving' ? 'Saving...' : 
-                                    saveState === 'saved' ? 'Saved!' :
-                                    saveState === 'already-saved' ? 'Already Saved' :
-                                    'Error saving'
+                                        saveState === 'saving' ? 'Saving...' :
+                                            saveState === 'saved' ? 'Saved!' :
+                                                saveState === 'already-saved' ? 'Already Saved' :
+                                                    'Error saving'
                                 }
                             >
                                 {saveState === 'saved' || saveState === 'already-saved' ? <LuCheck /> : <LuSave />}
@@ -185,9 +193,8 @@ export default function GameCard({ games }) {
                             />
                             <div className="flex flex-col w-full items-center justify-center bg-surface-700 rounded-lg">
                                 <h2
-                                    className={`text-primary-500 ${
-                                        game.name.length > 15 ? 'text-lg' : 'text-3xl'
-                                    } font-medium text-pretty text-center pointer-events-none`}
+                                    className={`text-primary-500 ${game.name.length > 15 ? 'text-lg' : 'text-3xl'
+                                        } font-medium text-pretty text-center pointer-events-none`}
                                 >
                                     {game.name}
                                 </h2>
@@ -216,8 +223,8 @@ export default function GameCard({ games }) {
                         <p className="text-light bg-surface-700 rounded-lg h-56 w-93 text-base p-2 line-clamp-9 truncate text-pretty pointer-events-none">
                             {game.summary || 'No summary available.'}
                         </p>
-                        <button 
-                            onClick={() => handleGameClick(game)} 
+                        <button
+                            onClick={() => handleGameClick(game)}
                             className="bg-primary-500 hover:bg-primary-600 text-white font-bold py-2 px-4 rounded-lg w-full"
                         >
                             View Details
