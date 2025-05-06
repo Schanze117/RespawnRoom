@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "type": "module",
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
     "build": "echo \"No build step required\"",
     "start": "node src/server.js --ignore client",
