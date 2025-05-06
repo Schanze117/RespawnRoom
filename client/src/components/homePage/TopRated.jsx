@@ -8,8 +8,6 @@ export default function TopRated() {
   
   // Force component re-render when respawnCount changes
   useEffect(() => {
-
-    
     // This should refresh even if the games array is the same by creating a new array reference
     const allTopGames = [...topGames.primary, ...topGames.secondary];
     
@@ -21,9 +19,6 @@ export default function TopRated() {
     }));
     
     setDisplayGames(refreshedGames);
-    
-    // Debug log
-      refreshedGames.length > 0 ? refreshedGames[0] : 'No games available');
     
     // Cleanup function to check unmounting
     return () => {
