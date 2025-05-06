@@ -7,7 +7,6 @@ export const seedVideoGames = async () => {
     const userIds = users.map(user => user._id);
     
     if (userIds.length === 0) {
-      console.log('No users found to associate with video games.');
       return;
     }
     
@@ -60,8 +59,6 @@ export const seedVideoGames = async () => {
       );
     }
     
-    console.log('Video games have been seeded successfully.');
   } catch (err) {
-    console.error('Error seeding video games:', err);
   }
 };

@@ -77,7 +77,6 @@ export default function TrendingGames() {
 
   // Force component re-render when respawnCount changes
   useEffect(() => {
-    console.log(`[TrendingGames] Respawn count changed to ${respawnCount}`);
     
     // Combine primary and secondary games
     const trendingGames = [...featuredGames.primary, ...featuredGames.secondary];
@@ -95,7 +94,6 @@ export default function TrendingGames() {
     setDisplayGames(refreshedGames);
     
     // Debug log
-    console.log(`[TrendingGames] Updated with ${refreshedGames.length} games after respawn`);
   }, [featuredGames, respawnCount]);
 
   if (isLoading && displayGames.length === 0) {

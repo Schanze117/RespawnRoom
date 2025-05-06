@@ -9,26 +9,19 @@ const router = Router();
 // Get personalized game recommendations based on user tokens
 router.get('/personalized', authenticateToken, async (req, res) => {
   try {
-    console.log('Received request for personalized games');
-    
     // Check if user is authenticated
     if (!req.user || !req.user._id) {
-      console.error('No authenticated user found in request');
       return res.status(401).json({ message: 'User not authenticated' });
     }
     
     const userId = req.user._id;
-    console.log(`Processing personalized games for user: ${userId}`);
     
     // Find the user
     const user = await User.findById(userId);
     
     if (!user) {
-      console.error(`User not found with ID: ${userId}`);
       return res.status(404).json({ message: 'User not found' });
     }
-    
-    console.log(`Found user: ${user.userName}`);
     
     // Apply token decay if needed
     await user.decayTokens();
@@ -42,15 +35,9 @@ router.get('/personalized', authenticateToken, async (req, res) => {
       }
     });
     
-    console.log(`User has ${categoryTokens.length} significant category tokens`);
-    
     if (categoryTokens.length === 0) {
-      console.log('No significant tokens found, checking if user has saved games');
-      
       // Check if user has saved games but no tokens
       if (user.savedGames && user.savedGames.length > 0) {
-        console.log(`User has ${user.savedGames.length} saved games but no tokens, generating tokens now`);
-        
         // Generate tokens from saved games
         for (const game of user.savedGames) {
           await user.updateCategoryTokens(game);
@@ -64,18 +51,14 @@ router.get('/personalized', authenticateToken, async (req, res) => {
           }
         });
         
-        console.log(`Generated ${refreshedCategoryTokens.length} tokens from saved games`);
-        
         // If we still have no tokens, return empty array
         if (refreshedCategoryTokens.length === 0) {
-          console.log('Still no significant tokens after generation, returning empty array');
           return res.json([]);
         }
         
         // Use the newly generated tokens
         categoryTokens.push(...refreshedCategoryTokens);
       } else {
-        console.log('User has no saved games, returning empty array');
         return res.json([]);
       }
     }
@@ -169,12 +152,9 @@ router.get('/personalized', authenticateToken, async (req, res) => {
     
     // Take top 5 categories
     const topCategories = categoryTokens.slice(0, 5).map(entry => entry.category);
-    console.log('Top categories:', topCategories);
     
     // Try to query IGDB first, but handle rate limiting
     try {
-      console.log('Attempting to query IGDB API for personalized recommendations');
-      
       // Build IGDB query based on top categories
       const categoryQueries = topCategories.map(category => {
         // Check if it's a genre or perspective
@@ -187,7 +167,6 @@ router.get('/personalized', authenticateToken, async (req, res) => {
       
       // Join with OR operator
       const whereClause = categoryQueries.join(' | ');
-      console.log('IGDB query where clause:', whereClause);
       
       // Query IGDB for games matching these categories
       const igdbResponse = await igdbAPI.post('', `
@@ -197,8 +176,6 @@ router.get('/personalized', authenticateToken, async (req, res) => {
       `);
       
       if (igdbResponse.data && igdbResponse.data.length > 0) {
-        console.log(`Found ${igdbResponse.data.length} matching games from IGDB`);
-        
         // Calculate similarity score for each game
         const games = igdbResponse.data.map(game => {
           // Extract game categories
@@ -225,7 +202,6 @@ router.get('/personalized', authenticateToken, async (req, res) => {
         
         // Take top 20 games
         const topGames = sortedGames.slice(0, 20);
-        console.log(`Selected top ${topGames.length} games by similarity score`);
         
         // Apply weighting with exponent alpha = 2
         const alpha = 2;
@@ -276,11 +252,8 @@ router.get('/personalized', authenticateToken, async (req, res) => {
           }
         }
         
-        console.log(`Selected ${selectedGames.length} games based on weighted sampling`);
-        
         // Get trending games to mix in
         try {
-          console.log('Getting trending games to mix in');
           // Get trending games with higher popularity/rating
           const trendingResponse = await igdbAPI.post('', `
             fields name, cover.url, summary, genres.name, player_perspectives.name;
@@ -291,8 +264,6 @@ router.get('/personalized', authenticateToken, async (req, res) => {
           
           // Add 1-2 trending games if we have them
           if (trendingResponse.data && trendingResponse.data.length > 0) {
-            console.log(`Found ${trendingResponse.data.length} trending games to potentially mix in`);
-            
             // Randomly select 1-2 trending games not already in selectedGames
             const trendingGames = trendingResponse.data.filter(
               trendingGame => !selectedGames.some(
@@ -310,18 +281,14 @@ router.get('/personalized', authenticateToken, async (req, res) => {
                 const randomTrending = trendingGames.splice(randomIndex, 1)[0];
                 selectedGames.push(randomTrending);
               }
-              
-              console.log(`Mixed in ${numToAdd} trending games`);
             }
           }
         } catch (trendingError) {
-          console.error('Error fetching trending games to mix in:', trendingError);
           // Continue without trending games if there's an error
         }
         
         // Shuffle the final result
         const shuffledGames = selectedGames.sort(() => 0.5 - Math.random());
-        console.log(`Returning ${shuffledGames.length} personalized games`);
         
         // Add match percentages for display
         const gamesWithScores = shuffledGames.map(game => {
@@ -347,30 +314,23 @@ router.get('/personalized', authenticateToken, async (req, res) => {
         
         return res.json(shuffledGamesWithScores);
       } else {
-        console.log('No matching games found in IGDB, using fallback data');
         return useLocalFallbackGames(fallbackGames, user, topCategories, res);
       }
     } catch (igdbError) {
       // Check if it's a rate limiting error
       if (igdbError.response && igdbError.response.status === 429) {
-        console.error('IGDB API rate limit reached (429), using fallback data');
         return useLocalFallbackGames(fallbackGames, user, topCategories, res);
       }
       
-      console.error('IGDB API error:', igdbError);
-      console.log('Using fallback data due to IGDB API error');
       return useLocalFallbackGames(fallbackGames, user, topCategories, res);
     }
   } catch (error) {
-    console.error('Error getting personalized game recommendations:', error);
     return res.status(500).json({ message: 'Server error' });
   }
 });
 
 // Helper function to generate recommendations from local fallback games
 function useLocalFallbackGames(fallbackGames, user, topCategories, res) {
-  console.log('Using local fallback games for recommendations');
-  
   // Calculate similarity score for each fallback game
   const scoredGames = fallbackGames.map(game => {
     // Extract game categories
@@ -400,7 +360,6 @@ function useLocalFallbackGames(fallbackGames, user, topCategories, res) {
   
   // Take top games
   const selectedGames = sortedGames.slice(0, 8);
-  console.log(`Selected ${selectedGames.length} games based on similarity to user preferences`);
   
   // Add match percentages for display
   const gamesWithScores = selectedGames.map(game => {
@@ -424,7 +383,6 @@ function useLocalFallbackGames(fallbackGames, user, topCategories, res) {
            (a.matchPercentage + (Math.random() * 5));
   });
   
-  console.log('Returning personalized recommendations from local data');
   return res.json(shuffledGames);
 }
 
@@ -446,7 +404,6 @@ async function getTrendingGamesForResponse(res) {
     const shuffled = trendingResponse.data.sort(() => 0.5 - Math.random());
     return res.json(shuffled.slice(0, 8));
   } catch (error) {
-    console.error('Error getting trending games fallback:', error);
     return res.status(500).json({ message: 'Server error' });
   }
 }

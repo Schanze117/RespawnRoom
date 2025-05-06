@@ -78,7 +78,6 @@ const Friends = () => {
   // User search for finding players
   const [searchUsers, { loading: searchLoading, data: searchData }] = useLazyQuery(SEARCH_USERS, {
     onCompleted: (data) => {
-      console.log('Search results:', data);
     }
   });
 
@@ -143,7 +142,7 @@ const Friends = () => {
         await acceptFriendRequest({ 
           variables: { userId: id },
           onCompleted: (data) => {
-            console.log("Friend request accepted successfully", data);
+            ("Friend request accepted successfully", data);
             // Refetch friends and requests to update UI
             refetchFriends();
             refetchRequests();
@@ -169,7 +168,7 @@ const Friends = () => {
         await declineFriendRequest({ 
           variables: { userId: id },
           onCompleted: (data) => {
-            console.log("Friend request declined successfully", data);
+            ("Friend request declined successfully", data);
             // Refetch requests to update UI
             refetchRequests();
             // If no more requests, close dropdown
@@ -196,7 +195,7 @@ const Friends = () => {
         await removeFriend({ 
           variables: { userId: id },
           onCompleted: () => {
-            console.log("Friend removed successfully");
+            ("Friend removed successfully");
             // Remove from pinned friends if pinned
             if (isPinned(id)) {
               setPinnedFriends(prev => prev.filter(friendId => friendId !== id));

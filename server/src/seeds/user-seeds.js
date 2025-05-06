@@ -4,7 +4,6 @@ export const seedUsers = async () => {
   try {
     // Delete all existing users to avoid duplicates
     await User.deleteMany({});
-    console.log('Existing users have been cleared.');
 
     // Create 25 seed users with names matching the placeholder data in friends.jsx
     const users = [
@@ -43,7 +42,6 @@ export const seedUsers = async () => {
     
     // Record the seeded users' IDs for reference
     const seededUsers = await User.find({});
-    console.log(`${seededUsers.length} users have been seeded successfully.`);
     
     // Create a few friend connections between users to demonstrate the feature
     // Get the first user to add some friends
@@ -57,7 +55,6 @@ export const seedUsers = async () => {
     ];
     
     await user1.save();
-    console.log(`Added friends for ${user1.userName}`);
     
     // Add pending friend requests to the first user
     // Find the first user again after saving
@@ -68,7 +65,6 @@ export const seedUsers = async () => {
     ];
     
     await updatedUser1.save();
-    console.log(`Added friend requests for ${updatedUser1.userName}`);
     
     // Add some search-ready data - make users ready for search demonstration
     // These will be the ones shown when searching in "Find Players" mode
@@ -80,7 +76,6 @@ export const seedUsers = async () => {
     ];
     
     await User.insertMany(searchUsers);
-    console.log(`Added ${searchUsers.length} searchable users for player search demonstration`);
   } catch (err) {
     console.error('Error seeding users:', err);
   }
