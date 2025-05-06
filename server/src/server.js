@@ -6,13 +6,14 @@ import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import { typeDefs, resolvers } from './schemas/index.js';
 import { authenticateToken, getUserFromToken } from './middleware/auth.js';
-import cors from 'cors';
 
 import './config/connection.js';
 import routes from './routes/index.js';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import fetch from 'node-fetch';
+import cors from 'cors';
 import { handleGoogleAuth } from './controllers/googleAuthController.js';
 import User from './models/users.js';
 
@@ -26,7 +27,9 @@ const PORT = process.env.PORT || 3001;
 
 // Apply CORS middleware globally
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.CLIENT_URL || 'https://respawn-room.herokuapp.com' 
+    : 'http://localhost:3000',
   credentials: true
 }));
 
@@ -102,11 +105,6 @@ app.post('/api/games', async (req, res) => {
   const token = process.env.IGDB_ACCESS_TOKEN;
   const clientId = process.env.IGDB_CLIENT_ID;
 
-  console.log('IGDB API request initiated with:', { 
-    tokenAvailable: !!token, 
-    clientIdAvailable: !!clientId 
-  });
-
   try {
     const response = await fetch(`${API_BASE_URL}/games`, {
       method: 'POST',
@@ -118,13 +116,14 @@ app.post('/api/games', async (req, res) => {
     });
 
     if (!response.ok) {
-      console.error(`IGDB API error: ${response.status} ${response.statusText}`);
+      console.error('IGDB API Error:', response.status, response.statusText);
       return res.status(response.status).json({ error: response.statusText });
     }
+    
     const data = await response.json();
     res.status(200).json(data);
   } catch (error) {
-    console.error('Error in /api/games endpoint:', error);
+    console.error('Server error in games endpoint:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -677,9 +676,12 @@ app.post('/api/mutations/saveGame', authenticateToken, async (req, res) => {
       genres: Array.isArray(game.genres) 
         ? game.genres.map(genre => typeof genre === 'string' ? genre : genre.name)
         : [],
+      // Handle both playerPerspectives and player_perspectives (from API)
       playerPerspectives: Array.isArray(game.playerPerspectives)
         ? game.playerPerspectives.map(perspective => typeof perspective === 'string' ? perspective : perspective.name)
-        : []
+        : Array.isArray(game.player_perspectives)
+          ? game.player_perspectives.map(perspective => typeof perspective === 'string' ? perspective : perspective.name)
+          : []
     };
     
     // Save the game
@@ -696,21 +698,7 @@ app.post('/api/mutations/saveGame', authenticateToken, async (req, res) => {
   }
 });
 
-// Serve static files from the React app
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../../client/dist')));
-
-  app.get('*', (_req, res) => {
-    res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
-  });
-}
-
-// Start the server
-app.listen(PORT, () => {
-  console.log(`API server running on port ${PORT}!`);
-  console.log(`Use GraphQL at http://localhost:${PORT}/graphql`);
-});
-
+// Add endpoint for game videos
 app.post("/api/game_videos", async (req, res) => {
   const { content } = req.body;
 
@@ -745,4 +733,19 @@ app.post("/api/game_videos", async (req, res) => {
     console.error("Server Error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
+});
+
+// Serve static files from the React app
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../../client/dist')));
+
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
+  });
+}
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`API server running on port ${PORT}!`);
+  console.log(`Use GraphQL at http://localhost:${PORT}/graphql`);
 });
