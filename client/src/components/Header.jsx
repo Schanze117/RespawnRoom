@@ -8,13 +8,18 @@ import Auth from '../utils/auth';
 import ProfileDropdown from './ProfileDropdown';
 
 export default function Header() {
-    const [asideOpen, setAsideOpen] = useState(false); // State to manage the aside menu
-    const [isLoggedIn, setIsLoggedIn] = useState(Auth.loggedIn()); // State to manage login status
+    const [asideOpen, setAsideOpen] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(Auth.loggedIn());
 
     // Use Apollo's useQuery hook to fetch user data
     const { loading, error, data } = useQuery(GET_ME, {
         skip: !isLoggedIn, // Skip query if the user is not logged in
     });
+
+    // Check login status whenever the component renders
+    useEffect(() => {
+        setIsLoggedIn(Auth.loggedIn());
+    }, []);
 
     const toggleAside = () => {
         setAsideOpen(!asideOpen);
@@ -22,7 +27,6 @@ export default function Header() {
 
     const handleLogout = () => {
         Auth.logout();
-        setIsLoggedIn(false);
     };
 
     if (loading) {
@@ -48,13 +52,13 @@ export default function Header() {
                                 <Link to="/" className="text-xl font-bold text-primary-600">RespawnRoom</Link>
                             </div>
                             <div className="flex items-center space-x-4"> 
-                                {isLoggedIn && data?.me ?
+                                {isLoggedIn && data?.me ? (
                                     <ProfileDropdown user={data.me} onLogout={handleLogout} />
-                                    :
+                                ) : (
                                     <button>
                                         <Link to="/login" className="text-lg font-medium text-light py-0.5 px-1 rounded-lg bg-primary-600 hover:bg-primary-700">Log in</Link>
                                     </button>
-                                }
+                                )}
                             </div>
                         </div>
                     </div>

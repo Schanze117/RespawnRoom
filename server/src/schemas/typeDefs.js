@@ -5,6 +5,10 @@ export const typeDefs = `
     email: String
     googleId: String
     savedGames: [VideoGame]
+    friends: [User]
+    friendRequests: [User]
+    status: String
+    lastSeen: String
   }
 
   type VideoGame {
@@ -22,6 +26,22 @@ export const typeDefs = `
     user: User!
   }
 
+  type FriendRequest {
+    _id: ID!
+    userName: String!
+    sentTime: String
+  }
+
+  type Message {
+    _id: ID!
+    senderId: ID!
+    receiverId: ID!
+    content: String!
+    timestamp: String!
+    read: Boolean!
+    sender: User
+  }
+
   input VideoGameInput {
     cover: String!
     name: String!
@@ -34,12 +54,24 @@ export const typeDefs = `
   type Query {
     me: User
     getVideoGames: [VideoGame]
+    getFriends: [User]
+    getFriendRequests: [FriendRequest]
+    searchUsers(username: String!): [User]
+    getMessages(friendId: ID!, limit: Int): [Message]
+    getUnreadMessageCount(friendId: ID): Int
   }
 
   type Mutation {
-    login(email: String!, password: String!): Auth
+    login(userName: String, email: String, password: String!): Auth
     addUser(userName: String!, email: String, password: String): Auth
     saveGame(game: VideoGameInput!): User
     removeGame(gameId: ID!): User
+    sendFriendRequest(userId: ID!): User
+    acceptFriendRequest(userId: ID!): User
+    declineFriendRequest(userId: ID!): User
+    removeFriend(userId: ID!): User
+    updateStatus(status: String!): User
+    sendMessage(receiverId: ID!, content: String!): Message
+    markMessagesAsRead(senderId: ID!): Boolean
   }
 `;
