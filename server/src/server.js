@@ -76,10 +76,10 @@ async (req, res) => {
   try {
     // req.user is now { user, token }
     const { token } = req.user;
-    const redirectUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    const redirectUrl = process.env.CLIENT_URL ;
     res.redirect(`${redirectUrl}?token=${token}`);
   } catch (error) {
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/login?error=auth_failed`);
+    res.redirect(`${process.env.CLIENT_URL}`);
   }
 }
 );
