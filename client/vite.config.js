@@ -12,14 +12,15 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     build: {
       rollupOptions: {
-        external: ['react-youtube', 'date-fns'],
         output: {
-          globals: {
-            'react-youtube': 'ReactYoutube',
-            'date-fns': 'dateFns'
+          manualChunks: {
+            vendor: ['react', 'react-dom', 'react-router-dom'],
+            youtube: ['react-youtube'],
+            date: ['date-fns']
           }
         }
-      }
+      },
+      chunkSizeWarningLimit: 1000
     },
     server: {
       proxy: {
