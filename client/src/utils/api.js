@@ -342,30 +342,6 @@ export const getPersonalizedGames = async () => {
   }
 };
 
-export const getGameVideo = async (id) => {
-  try {
-    const response = await fetch(`${SERVER_URL}/api/game_videos`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        content: `fields checksum,game,name,video_id; where id = (${id});`
-      })
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
-    }
-    return data;
-  }
-  catch (error) {
-    console.error("Error fetching game video data:", error);
-    throw error;
-  }
-}
-
 // Fetch all game categories in a single request
 export const getAllCategorizedGames = async () => {
   try {
