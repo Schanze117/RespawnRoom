@@ -8,9 +8,9 @@ const BadgeMenu = ({ badges = badgeList }) => {
   const toggleOpen = () => setOpen(prev => !prev);
 
   // Ensure badges is an array
-  if (!Array.isArray(badges)) {
-    return <div>Error: Invalid badges data</div>;
-  }
+  // if (!Array.isArray(badges)) {
+  //   return <div>Error: Invalid badges data</div>;
+  // }
 
   return (
     <div

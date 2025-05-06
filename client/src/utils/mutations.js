@@ -142,3 +142,13 @@ export const MARK_MESSAGES_AS_READ = gql`
     markMessagesAsRead(senderId: $senderId)
   }
 `;
+
+export const UPDATE_USER_BADGES = gql`
+  mutation UpdateUserBadges($badges: [String]!) {
+    updateUserBadges(badges: $badges) {
+      _id
+      userName
+      badges
+    }
+  }
+`

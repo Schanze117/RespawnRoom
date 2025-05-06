@@ -3,6 +3,9 @@ import { LuSearch } from "react-icons/lu";
 import { searchGames } from '../utils/api'; 
 import GameCard from './card/gameCard';
 import BadgeMenu from './BadgeMenu'; // Import BadgeMenu component
+import { GET_ME } from '../utils/queries';
+import { UPDATE_USER_BADGES } from '../utils/mutations';
+import { useQuery, useMutation } from '@apollo/client';
 
 export default function SearchForm() {
     // State to hold the search form data
@@ -20,6 +23,9 @@ export default function SearchForm() {
     // State to hold awarded badges
     const [badges, setBadges] = useState([]);
 
+    const { loading: userLoading, error: userError, data: userData } = useQuery(GET_ME);
+    const [updateUserBadges] = useMutation(UPDATE_USER_BADGES);
+
     function displayError(error){
         return <div className="text-red-500 py-1 px-5">{error}</div>
     }
@@ -32,7 +38,7 @@ export default function SearchForm() {
 
     // Award badges based on milestones
     const awardBadge = (type, count) => {
-        const newBadges = [];
+        const newBadges = userData.badges || [];
         if (type === "search") {
             if (count === 1 && !badges.includes("First Search")) {
                 newBadges.push("First Search");
@@ -54,9 +60,12 @@ export default function SearchForm() {
                 newBadges.push("Save Master");
             }
         }
-        if (newBadges.length > 0) {
-            setBadges((prev) => [...prev, ...newBadges]);
-        }
+
+        updateUserBadges(newBadges)
+        // if (newBadges.length > 0) {
+        //     setBadges((prev) => [...prev, ...newBadges]);
+        // }
+
     };
 
     // Handle form submission
@@ -78,11 +87,12 @@ export default function SearchForm() {
                 return;
             }
             // Increment search count and award badges
-            setSearchCount((prev) => {
-                const newCount = prev + 1;
+            // setSearchCount((prev) => {
+                const newCount = searchCount + 1;
                 awardBadge("search", newCount);
-                return newCount;
-            });
+                setSearchCount(newCount);
+            //     return newCount;
+            // });
 
             // Log or process the form submission with searchCount and savedCount
             console.log("Form submitted:", {

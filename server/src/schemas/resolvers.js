@@ -647,5 +647,28 @@ export const resolvers = {
 
       return result.modifiedCount > 0;
     },
+
+    updateUserBadges: async (parent, { badges }, context) => {
+      // Ensure user is authenticated
+      if (!context.user) {
+        throw new AuthenticationError('You need to be logged in!');
+      }
+
+      // Update the user's badges
+      const updatedUser = await User.findByIdAndUpdate(
+        context.user._id,
+        { $set: { badges: badges } },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        throw new GraphQLError('User not found', {
+          extensions: { code: 'NOT_FOUND' }
+        });
+      }
+
+      return updatedUser;
+    }
+
   },
 };

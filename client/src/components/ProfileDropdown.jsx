@@ -1,10 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaUserCircle, FaMedal, FaKey, FaSignOutAlt } from 'react-icons/fa';
 import BadgeMenu from './BadgeMenu';
-import badge10 from '../assets/10-search-badge.png';
-import badge50 from '../assets/50-search-badge.png';
-import badge100 from '../assets/100-search-badge.png';
-import badge250 from '../assets/250-search-badge.png';
+
 
 /**
  * ProfileDropdown - Shows a profile/account icon with a dropdown menu for user actions.
@@ -23,7 +20,16 @@ export default function ProfileDropdown({ user, onLogout }) {
   const dropdownRef = useRef(null);
 
   // Example badge data; replace with user.badges if available
-  const badges = user?.badges;
+  // const badges = user?.badges;
+  const badges = [
+    { src: '/assets/save1Game.png', name: 'First Saved Game' },
+    { src: '/assets/save10Games.png', name: 'Save Enthusiast' },
+    { src: '/assets/save100Games.png', name: 'Save Master' }, 
+    { src: '/assets/firstGameSearch.png', name: 'First Searched Game' },
+    { src: '/assets/tenGameSearch.png', name: 'Search Enthusiast' },
+    { src: '/assets/hundredGameSearch.png', name: 'Search Master' },
+  ];
+
   
   // Close dropdown if clicked outside
   useEffect(() => {
@@ -98,7 +104,7 @@ export default function ProfileDropdown({ user, onLogout }) {
             </li>
             <li>
               <div className="flex items-center justify-start px-4 py-2 text-light">
-                <BadgeMenu badges={badges} />
+                <BadgeMenu badges={badges}/>
               </div>
             </li>
             <li>

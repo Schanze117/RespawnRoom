@@ -9,6 +9,7 @@ export const typeDefs = `
     friendRequests: [User]
     status: String
     lastSeen: String
+    badges: [String]
   }
 
   type VideoGame {
@@ -73,5 +74,6 @@ export const typeDefs = `
     updateStatus(status: String!): User
     sendMessage(receiverId: ID!, content: String!): Message
     markMessagesAsRead(senderId: ID!): Boolean
-  }
+    updateUserBadges(badges: [String!]!): User
+    }
 `;

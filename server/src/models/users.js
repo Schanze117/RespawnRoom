@@ -61,6 +61,20 @@ const userSchema = new Schema(
       type: Date,
       default: Date.now,
     },
+    badges: [
+      {
+        type: String,
+        enum: [
+          'First Saved Game',
+          'Save Enthusiast',
+          'Save Master',
+          'First Searched Game',
+          'Search Enthusiast',
+          'Search Master'
+        ],
+        default: [],
+      }
+    ]
   },
   {
     toJSON: {
