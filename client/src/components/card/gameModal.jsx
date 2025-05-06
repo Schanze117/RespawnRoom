@@ -11,11 +11,27 @@ export default function GameModal({ game, onClose, location}) {
 
     function handleImage(location) {
         let hdCover;
-        if (location == "saved") {
-            hdCover = game.cover ? game.cover.replace('t_thumb', 't_720p') : NoImage;
+        if (location === "saved") {
+            // Handle saved games which might have direct image IDs
+            if (game.cover) {
+                if (game.cover.startsWith('co') || game.cover.startsWith('tm')) {
+                    hdCover = `https://images.igdb.com/igdb/image/upload/t_1080p/${game.cover}`;
+                } else {
+                    hdCover = game.cover.replace('t_thumb', 't_1080p')
+                                      .replace('t_cover_small', 't_1080p')
+                                      .replace('t_729p', 't_1080p');
+                }
+            } else {
+                hdCover = NoImage;
+            }
         } else {
-            hdCover = game.cover ? game.cover.url.replace('t_thumb', 't_720p'): NoImage;
+            // Handle regular games from IGDB API
+            hdCover = game.cover ? game.cover.url.replace('t_thumb', 't_1080p')
+                                              .replace('t_cover_small', 't_1080p')
+                                              .replace('t_729p', 't_1080p')
+                                : NoImage;
         }
+        console.log('Modal image URL:', hdCover);
         return hdCover;
     }
 

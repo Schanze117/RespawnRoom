@@ -1,26 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import { useGameContext } from '../../utils/GameContext';
 import NoImage from '../../assets/noImage.jpg';
+import GameModal from '../card/gameModal';
 
 // The specific game ID we want to feature
-const FEATURED_GAME_ID = 238532;
+const FEATURED_GAME_ID = 2903;
 
 export default function HeroCarousel() {
   const { featuredGame, isLoading, respawnCount } = useGameContext();
   const [displayGame, setDisplayGame] = useState(null);
   const [coverImage, setCoverImage] = useState(null);
   const [backdropImage, setBackdropImage] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   // Default featured game as fallback
   const defaultGame = {
-    name: "Baldur's Gate 3",
-    summary: "Gather your party and return to the Forgotten Realms in a tale of fellowship and betrayal, sacrifice and survival, and the lure of absolute power.",
+    name: "Warframe",
+    summary: "Warframe situates players as members of the Tenno race, newly awoken after years of cryo-sleep into a solar system at war. Reborn into a corrupt era, the Tenno are sought by the oppressive Grineer Empire for annihilation. Warframe armor is the key to overthrowing the Grineer by providing players with unique offensive and defensive powers to explore, upgrade and master during purpose-driven radical raids.",
   };
 
   // Process image URL to get optimal size
   const getOptimizedImageUrl = (url) => {
     if (!url) return NoImage;
-    return url.replace('t_thumb', 't_729p').replace('t_cover_small', 't_720p');
+    
+    // Handle both direct URLs and URLs with size parameters
+    if (url.includes('t_thumb') || url.includes('t_cover_small') || url.includes('t_729p')) {
+      return url.replace('t_thumb', 't_1080p')
+                .replace('t_cover_small', 't_1080p')
+                .replace('t_729p', 't_1080p');
+    }
+    
+    // If it's a direct image ID, construct the full URL
+    if (url.startsWith('co') || url.startsWith('tm')) {
+      return `https://images.igdb.com/igdb/image/upload/t_1080p/${url}`;
+    }
+    
+    return url;
   };
 
   // Force re-render when respawnCount changes
@@ -59,6 +74,16 @@ export default function HeroCarousel() {
     // Debug log
     console.log(`[HeroCarousel] Updated featured game after respawn`);
   }, [featuredGame, respawnCount]);
+
+  const handleViewDetails = () => {
+    console.log('Opening modal for game:', displayGame);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    console.log('Closing modal');
+    setShowModal(false);
+  };
 
   return (
     <section className="w-full mb-12">
@@ -101,7 +126,10 @@ export default function HeroCarousel() {
                     <p className="text-tonal-400 mb-4 line-clamp-3">
                       {displayGame?.summary}
                     </p>
-                    <button className="bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 w-fit">
+                    <button 
+                      onClick={handleViewDetails}
+                      className="bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 w-fit"
+                    >
                       View Details
                     </button>
                   </div>
@@ -111,6 +139,10 @@ export default function HeroCarousel() {
                         src={coverImage} 
                         alt={displayGame?.name} 
                         className="h-full max-h-64 object-contain rounded-lg shadow-lg"
+                        onError={(e) => {
+                          console.log('Image failed to load:', coverImage);
+                          e.target.src = NoImage;
+                        }}
                       />
                     ) : (
                       <div className="h-full w-full bg-gradient-to-r from-surface-800 to-surface-700 flex items-center justify-center">
@@ -124,6 +156,15 @@ export default function HeroCarousel() {
           </div>
         )}
       </div>
+
+      {/* Game Modal */}
+      {showModal && displayGame && (
+        <GameModal
+          game={displayGame}
+          onClose={handleCloseModal}
+          location="featured"
+        />
+      )}
     </section>
   );
 } 

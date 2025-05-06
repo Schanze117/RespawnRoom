@@ -68,9 +68,6 @@ export default function UpcomingReleases() {
     <section className="w-full mb-12" key={`upcoming-section-${respawnCount}`}>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-primary-500">Upcoming Releases</h2>
-        <button className="text-primary-400 hover:text-primary-300 text-sm font-medium">
-          See All Upcoming
-        </button>
       </div>
       
       {/* Force re-render with a new component instance by using a unique key */}

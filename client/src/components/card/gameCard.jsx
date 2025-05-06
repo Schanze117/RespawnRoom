@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import NoImage from '../../assets/noImage.jpg';
 import { LuSave, LuCheck } from 'react-icons/lu';
 import { useMutation, useQuery } from '@apollo/client';
@@ -5,28 +6,59 @@ import { SAVE_GAME } from '../../utils/mutations';
 import { GET_ME } from '../../utils/queries';
 import Auth from '../../utils/auth';
 import GameModal from './gameModal';
-import { useState, useEffect } from 'react';
+
+// CSS styles for the component
+const cssStyles = `
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-none {
+    -webkit-line-clamp: unset;
+  }
+`;
 
 export default function GameCard({ games }) {
     const [showModal, setShowModal] = useState(false);
     const [selectedGame, setSelectedGame] = useState(null);
     const [savedGames, setSavedGames] = useState({});
     const [alreadySavedGames, setAlreadySavedGames] = useState([]);
+    const [expandedTitles, setExpandedTitles] = useState({});
     const [saveGameMutation] = useMutation(SAVE_GAME);
     
     // Fetch user's saved games
     const { loading, data } = useQuery(GET_ME, {
-        skip: !Auth.loggedIn(), // Skip query if not logged in
+        skip: !Auth.loggedIn(),
     });
     
     // Extract saved games from the query result
     useEffect(() => {
         if (data?.me?.savedGames) {
-            // Create a list of names of already saved games
             const savedGameNames = data.me.savedGames.map(game => game.name.toLowerCase().trim());
             setAlreadySavedGames(savedGameNames);
         }
     }, [data]);
+
+    // Add CSS styles to the document
+    useEffect(() => {
+        const styleElement = document.createElement('style');
+        styleElement.innerHTML = cssStyles;
+        document.head.appendChild(styleElement);
+        
+        return () => {
+            document.head.removeChild(styleElement);
+        };
+    }, []);
 
     // Check if a game is already saved
     const isGameAlreadySaved = (game) => {
@@ -43,15 +75,29 @@ export default function GameCard({ games }) {
         setSelectedGame(null);
     };
 
+    // Toggle title expansion
+    const toggleTitleExpansion = (gameId) => {
+        setExpandedTitles(prev => ({
+            ...prev,
+            [gameId]: !prev[gameId]
+        }));
+    };
+
+    // Process image URL to get the best quality version
+    const getOptimizedImageUrl = (url) => {
+        if (!url) return NoImage;
+        return url.replace('t_thumb', 't_cover_big')
+                  .replace('t_cover_small', 't_cover_big');
+    };
+
     const saveGame = async (event, game) => {
-        event.stopPropagation(); // Prevent the card click from triggering
+        event.stopPropagation();
         try {
             if (!Auth.loggedIn()) {
                 console.log('User not logged in, cannot save game');
                 return;
             }
             
-            // Check if game is already saved
             if (isGameAlreadySaved(game)) {
                 console.log('Game already saved:', game.name);
                 setSavedGames(prev => ({
@@ -59,7 +105,6 @@ export default function GameCard({ games }) {
                     [game.id]: 'already-saved'
                 }));
                 
-                // Reset status after 2 seconds
                 setTimeout(() => {
                     setSavedGames(prev => {
                         const newState = {...prev};
@@ -80,7 +125,6 @@ export default function GameCard({ games }) {
                 summary: game.summary ? game.summary : 'No summary available.',
             };
 
-            // Set the game as being saved (for UI feedback)
             setSavedGames(prev => ({
                 ...prev,
                 [game.id]: 'saving'
@@ -90,18 +134,13 @@ export default function GameCard({ games }) {
                 variables: { game: gameInput },
             });
 
-            console.log('Game saved to server:', data);
-            
-            // Add to already saved games list
             setAlreadySavedGames(prev => [...prev, game.name.toLowerCase().trim()]);
             
-            // Visual feedback - mark as saved
             setSavedGames(prev => ({
                 ...prev,
                 [game.id]: 'saved'
             }));
             
-            // Reset status after 2 seconds
             setTimeout(() => {
                 setSavedGames(prev => {
                     const newState = {...prev};
@@ -111,13 +150,11 @@ export default function GameCard({ games }) {
             }, 2000);
         } catch (error) {
             console.error('Error saving game:', error);
-            // Set the game as having an error when saving
             setSavedGames(prev => ({
                 ...prev,
                 [game.id]: 'error'
             }));
             
-            // Reset error status after 2 seconds
             setTimeout(() => {
                 setSavedGames(prev => {
                     const newState = {...prev};
@@ -128,43 +165,44 @@ export default function GameCard({ games }) {
         }
     };
 
-    // Get the save button state for a game
     const getSaveButtonState = (gameId, game) => {
-        // First check if the game has an active save state
         if (savedGames[gameId]) {
             return savedGames[gameId];
         }
         
-        // Then check if it's already in the user's saved collection
         if (isGameAlreadySaved(game)) {
             return 'already-saved';
         }
         
-        // Default state
         return 'default';
     };
+
+    if (loading) {
+        return <div className="text-center text-light mt-20">Loading games...</div>;
+    }
 
     return (
         <div className="flex flex-wrap gap-4 justify-center py-5">
             {games.map((game) => {
                 const saveState = getSaveButtonState(game.id, game);
+                const isExpanded = expandedTitles[game.id] || false;
                 
                 return (
                     <div
                         key={game.id}
-                        className="pb-4 px-4 mx-1 space-y-2 bg-surface-800 rounded-lg hover:outline-3 hover:outline-primary-600 w-100 h-105 flex flex-col items-center justify-center shadow-md hover:shadow-2xl transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-102"
+                        className="w-[280px] h-[350px] flex-shrink-0 flex-grow-0 bg-surface-800 rounded-lg overflow-hidden border border-surface-700 hover:border-primary-600 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 flex flex-col relative"
                     >
-                        <div className="flex flex-row w-full justify-end">
+                        {/* Save Button */}
                             <button
                                 type="button"
                                 onClick={(e) => saveGame(e, game)}
                                 disabled={saveState === 'saving' || saveState === 'saved' || saveState === 'already-saved'}
-                                className={`block p-0.5 text-lg rounded-lg cursor-pointer ${
-                                    saveState === 'default' ? 'text-tonal-600 hover:text-tonal-800 focus:text-tonal-800 bg-primary-500 hover:bg-primary-600 focus:outline-2 focus:outline-offset-1 focus:outline-light' :
-                                    saveState === 'saving' ? 'bg-amber-500 text-white cursor-wait' : 
-                                    saveState === 'saved' ? 'bg-green-600 text-white' :
-                                    saveState === 'already-saved' ? 'bg-green-600 opacity-75 text-white' :
-                                    'bg-red-600 text-white'
+                            className={`absolute top-2 right-2 p-1.5 z-10 text-white rounded-full shadow-md transition-all duration-300 ${
+                                saveState === 'default' ? 'bg-primary-600 hover:bg-primary-700' :
+                                saveState === 'saving' ? 'bg-amber-500 cursor-wait' : 
+                                saveState === 'saved' ? 'bg-green-600' :
+                                saveState === 'already-saved' ? 'bg-green-600 opacity-75' :
+                                'bg-red-600'
                                 }`}
                                 title={
                                     saveState === 'default' ? 'Save Game' :
@@ -174,58 +212,86 @@ export default function GameCard({ games }) {
                                     'Error saving'
                                 }
                             >
-                                {saveState === 'saved' || saveState === 'already-saved' ? <LuCheck /> : <LuSave />}
+                            {saveState === 'saved' || saveState === 'already-saved' ? <LuCheck className="text-sm" /> : <LuSave className="text-sm" />}
                             </button>
+
+                        {/* Game Cover Image */}
+                        <div className="h-[160px] bg-surface-900 flex items-center justify-center relative overflow-hidden">
+                            {game.cover ? (
+                                <div className="w-full h-full relative flex items-center justify-center">
+                                    <div 
+                                        className="absolute inset-0 z-0 bg-center bg-no-repeat bg-cover blur-sm opacity-40 scale-110"
+                                        style={{ 
+                                            backgroundImage: `url(${getOptimizedImageUrl(game.cover.url)})`,
+                                            backgroundPosition: 'center center'
+                                        }}
+                                    ></div>
+                                    <div className="absolute inset-0 bg-surface-900/30 z-1"></div>
+                                    <img 
+                                        src={getOptimizedImageUrl(game.cover.url)}
+                                        alt={game.name} 
+                                        className="h-full object-contain z-2 relative"
+                                        loading="lazy"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-surface-800/80 z-3"></div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center h-full w-full">
+                                    <div className="text-2xl text-primary-400 opacity-30">Game Cover</div>
+                                </div>
+                            )}
                         </div>
-                        <div className="flex flex-row w-full justify-between space-x-4">
-                            <img
-                                src={game.cover ? game.cover.url.replace('t_thumb', 't_720p') : NoImage}
-                                alt={game.name}
-                                className="w-32 h-32 object-cover rounded-lg"
-                            />
-                            <div className="flex flex-col w-full items-center justify-center bg-surface-700 rounded-lg">
-                                <h2
-                                    className={`text-primary-500 ${
-                                        game.name.length > 15 ? 'text-lg' : 'text-3xl'
-                                    } font-medium text-pretty text-center pointer-events-none`}
+                        
+                        {/* Game Info */}
+                        <div className="p-5 flex flex-col flex-grow">
+                            {/* Title */}
+                            <div className="relative">
+                                <h3 
+                                    onClick={() => toggleTitleExpansion(game.id)}
+                                    className={`text-xl font-semibold text-light mb-2 cursor-pointer hover:text-primary-400 transition-all duration-200 ${isExpanded ? 'line-clamp-none' : 'line-clamp-2'}`}
+                                    title={game.name}
                                 >
                                     {game.name}
-                                </h2>
-                                <div className="flex flex-col items-center justify-center text-center text-pretty text-tonal-400 text-sm pt-2">
-                                    <p className="pointer-events-none">
-                                        <span className="text-primary-400 font-medium pointer-events-none">
-                                            Genres:{' '}
-                                        </span>
-                                        {game.genres
-                                            ? game.genres.map((genre) => genre.name).join(', ')
-                                            : 'N/A'}
-                                    </p>
-                                    <p className="pointer-events-none">
-                                        <span className="text-primary-400 font-medium pointer-events-none">
-                                            POV:{' '}
-                                        </span>
-                                        {game.player_perspectives
-                                            ? game.player_perspectives
-                                                .map((perspective) => perspective.name)
-                                                .join(', ')
-                                            : 'N/A'}
-                                    </p>
-                                </div>
+                                </h3>
+                                
+                                {game.name && game.name.length > 40 && (
+                                    <button 
+                                        onClick={() => toggleTitleExpansion(game.id)}
+                                        className="absolute right-0 top-0 text-xs text-primary-400 hover:text-primary-300"
+                                    >
+                                        {isExpanded ? 'Less' : 'More'}
+                                    </button>
+                                )}
                             </div>
-                        </div>
-                        <p className="text-light bg-surface-700 rounded-lg h-56 w-93 text-base p-2 line-clamp-9 truncate text-pretty pointer-events-none">
+
+                            {/* Game genres */}
+                            <div className="flex flex-wrap gap-1 mb-3">
+                                {game.genres?.slice(0, 4).map((genre, gIndex) => (
+                                    <span key={`${game.id}-genre-${gIndex}`} className="text-xs bg-primary-600/40 text-primary-100 px-1.5 py-0.5 rounded-md border border-primary-600/20">
+                                        {genre.name}
+                                        </span>
+                                ))}
+                            </div>
+
+                            {/* Summary */}
+                            <p className="text-light text-sm line-clamp-3 mb-4">
                             {game.summary || 'No summary available.'}
                         </p>
+                            
+                            {/* View Details button */}
+                            <div className="mt-auto pt-2 flex justify-end">
                         <button 
                             onClick={() => handleGameClick(game)} 
-                            className="bg-primary-500 hover:bg-primary-600 text-white font-bold py-2 px-4 rounded-lg w-full"
+                                    className="bg-primary-600 hover:bg-primary-700 text-white text-sm py-1 px-3 rounded transition duration-300"
                         >
                             View Details
                         </button>
+                            </div>
+                        </div>
                     </div>
                 );
             })}
-            {showModal && <GameModal game={selectedGame} onClose={handleCloseModal} location={'other'}/>}
+            {showModal && <GameModal game={selectedGame} onClose={handleCloseModal} location="other" />}
         </div>
     );
 }
