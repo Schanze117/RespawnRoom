@@ -99,31 +99,47 @@ app.post('/api/games', async (req, res) => {
   const { content } = req.body;
 
   const API_BASE_URL = 'https://api.igdb.com/v4';
-  const token = process.env.VITE_ACCESS_TOKEN;
-  const clientId = process.env.VITE_CLIENT_ID;
+  const token = process.env.IGDB_ACCESS_TOKEN;
+  const clientId = process.env.IGDB_CLIENT_ID;
 
-  const response = await fetch(`${API_BASE_URL}/games`, {
-    method: 'POST',
-    headers: {
-      'Client-ID': clientId,
-      'Authorization': `Bearer ${token}`,
-    },
-    body: content,
+  console.log('IGDB API request initiated with:', { 
+    tokenAvailable: !!token, 
+    clientIdAvailable: !!clientId 
   });
 
-  if (!response.ok) {
-    return res.status(response.status).json({ error: response.statusText });
+  try {
+    const response = await fetch(`${API_BASE_URL}/games`, {
+      method: 'POST',
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${token}`,
+      },
+      body: content,
+    });
+
+    if (!response.ok) {
+      console.error(`IGDB API error: ${response.status} ${response.statusText}`);
+      return res.status(response.status).json({ error: response.statusText });
+    }
+    const data = await response.json();
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Error in /api/games endpoint:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
-  const data = await response.json();
-  res.status(200).json(data);
 });
 
 // Add trending games endpoint
 app.get('/api/games/trending', async (req, res) => {
   try {
     const API_BASE_URL = 'https://api.igdb.com/v4';
-    const token = process.env.VITE_ACCESS_TOKEN;
-    const clientId = process.env.VITE_CLIENT_ID;
+    const token = process.env.IGDB_ACCESS_TOKEN;
+    const clientId = process.env.IGDB_CLIENT_ID;
+    
+    console.log('Trending games request initiated with:', { 
+      tokenAvailable: !!token, 
+      clientIdAvailable: !!clientId 
+    });
     
     // Fetch first batch of 500 games
     const firstQuery = `
@@ -188,8 +204,13 @@ app.get('/api/games/trending', async (req, res) => {
 app.get('/api/games/latest', async (req, res) => {
   try {
     const API_BASE_URL = 'https://api.igdb.com/v4';
-    const token = process.env.VITE_ACCESS_TOKEN;
-    const clientId = process.env.VITE_CLIENT_ID;
+    const token = process.env.IGDB_ACCESS_TOKEN;
+    const clientId = process.env.IGDB_CLIENT_ID;
+    
+    console.log('Latest games request initiated with:', { 
+      tokenAvailable: !!token, 
+      clientIdAvailable: !!clientId 
+    });
     
     // Current timestamp in seconds
     const now = Math.floor(Date.now() / 1000);
@@ -263,8 +284,13 @@ app.get('/api/games/latest', async (req, res) => {
 app.get('/api/games/top-rated', async (req, res) => {
   try {
     const API_BASE_URL = 'https://api.igdb.com/v4';
-    const token = process.env.VITE_ACCESS_TOKEN;
-    const clientId = process.env.VITE_CLIENT_ID;
+    const token = process.env.IGDB_ACCESS_TOKEN;
+    const clientId = process.env.IGDB_CLIENT_ID;
+    
+    console.log('Top rated games request initiated with:', { 
+      tokenAvailable: !!token, 
+      clientIdAvailable: !!clientId 
+    });
     
     // Fetch first batch of 500 games
     const firstQuery = `
@@ -329,8 +355,13 @@ app.get('/api/games/top-rated', async (req, res) => {
 app.get('/api/games/upcoming', async (req, res) => {
   try {
     const API_BASE_URL = 'https://api.igdb.com/v4';
-    const token = process.env.VITE_ACCESS_TOKEN;
-    const clientId = process.env.VITE_CLIENT_ID;
+    const token = process.env.IGDB_ACCESS_TOKEN;
+    const clientId = process.env.IGDB_CLIENT_ID;
+    
+    console.log('Upcoming games request initiated with:', { 
+      tokenAvailable: !!token, 
+      clientIdAvailable: !!clientId 
+    });
     
     // Current timestamp in seconds
     const now = Math.floor(Date.now() / 1000);
@@ -400,14 +431,13 @@ app.get('/api/games/upcoming', async (req, res) => {
   }
 });
 
-// Add new unified games endpoint to fetch all games at once
-// Place this BEFORE the /:id route to prevent conflicts
+// Add all-categories endpoint
 app.get('/api/games/all-categories', async (req, res) => {
   try {
     console.log('Received request for all game categories');
     const API_BASE_URL = 'https://api.igdb.com/v4';
-    const token = process.env.VITE_ACCESS_TOKEN;
-    const clientId = process.env.VITE_CLIENT_ID;
+    const token = process.env.IGDB_ACCESS_TOKEN;
+    const clientId = process.env.IGDB_CLIENT_ID;
     
     if (!token || !clientId) {
       console.error('Missing API credentials:', { 
@@ -577,17 +607,21 @@ app.get('/api/games/all-categories', async (req, res) => {
   }
 });
 
-// Add endpoint to fetch game by ID
+// Add game by ID endpoint
 app.get('/api/games/:id', async (req, res) => {
   try {
     const gameId = req.params.id;
     const API_BASE_URL = 'https://api.igdb.com/v4';
-    const token = process.env.VITE_ACCESS_TOKEN;
-    const clientId = process.env.VITE_CLIENT_ID;
+    const token = process.env.IGDB_ACCESS_TOKEN;
+    const clientId = process.env.IGDB_CLIENT_ID;
     
-    // Query for the specific game by ID
+    console.log(`Game by ID request for ${gameId} initiated with:`, { 
+      tokenAvailable: !!token, 
+      clientIdAvailable: !!clientId 
+    });
+    
     const query = `
-      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,first_release_date,id,screenshots.url,artworks.url,videos.*;
+      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id,screenshots.url,videos.video_id,websites.url,websites.category;
       where id = ${gameId};
     `;
     
@@ -602,14 +636,21 @@ app.get('/api/games/:id', async (req, res) => {
     });
     
     if (!response.ok) {
-      console.error('IGDB API error:', response.status, response.statusText);
-      return res.status(500).json({ error: 'Failed to fetch game details from IGDB API' });
+      console.error(`IGDB API error for game ID ${gameId}: ${response.status} ${response.statusText}`);
+      return res.status(response.status).json({ error: response.statusText });
     }
     
     const data = await response.json();
-    res.json(data.length > 0 ? data[0] : null);
+    
+    // If no game found with that ID
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Return the first (and should be only) game
+    res.json(data[0]);
   } catch (error) {
-    console.error('Server error in get game by ID endpoint:', error);
+    console.error(`Server error in game by ID endpoint for ID ${req.params.id}:`, error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -674,8 +715,8 @@ app.post("/api/game_videos", async (req, res) => {
   const { content } = req.body;
 
   const API_BASE_URL = "https://api.igdb.com/v4"; 
-  const token = process.env.VITE_ACCESS_TOKEN;
-  const clientId = process.env.VITE_CLIENT_ID;
+  const token = process.env.IGDB_ACCESS_TOKEN;
+  const clientId = process.env.IGDB_CLIENT_ID;
 
   console.log("Content:", content);
   console.log("Token:", token ? "Present" : "Missing");
