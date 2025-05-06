@@ -353,11 +353,6 @@ export const getAllCategorizedGames = async () => {
     }
     
     const data = await response.json();
-      `Trending (${data.trending?.primary?.length + data.trending?.secondary?.length || 0}), `,
-      `Latest (${data.latest?.primary?.length + data.latest?.secondary?.length || 0}), `,
-      `Top Rated (${data.topRated?.primary?.length + data.topRated?.secondary?.length || 0}), `,
-      `Upcoming (${data.upcoming?.primary?.length + data.upcoming?.secondary?.length || 0})`
-    );
     return data;
   } catch (error) {
     console.error('Error fetching all categorized games:', error);

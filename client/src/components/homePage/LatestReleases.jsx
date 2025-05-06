@@ -8,7 +8,6 @@ export default function LatestReleases() {
   
   // Force component re-render when respawnCount changes
   useEffect(() => {
-    
     // This should refresh even if the games array is the same by creating a new array reference
     const allLatestGames = [...latestGames.primary, ...latestGames.secondary];
     
@@ -20,9 +19,6 @@ export default function LatestReleases() {
     }));
     
     setDisplayGames(refreshedGames);
-    
-    // Debug log
-      refreshedGames.length > 0 ? refreshedGames[0] : 'No games available');
   }, [latestGames, respawnCount]);
   
   if (isLoading && displayGames.length === 0) {
