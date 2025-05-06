@@ -530,9 +530,6 @@ export default function PersonalizedRecommendations() {
             </svg>
             Refresh
           </button>
-          <Link to="/games" className="text-primary-400 hover:text-primary-300 text-sm font-medium">
-            See More
-          </Link>
         </div>
       </div>
       

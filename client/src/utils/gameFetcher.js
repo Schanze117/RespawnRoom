@@ -1,7 +1,7 @@
 import { API_BASE_URL, getTrendingGames, getLatestReleases, getTopRatedGames, getUpcomingGames, getGameById, getAllCategorizedGames as apiGetAllCategorizedGames } from './api';
 
 // IGDB ID for our featured game
-const FEATURED_GAME_ID = 238532;
+const FEATURED_GAME_ID = 2903;
 
 // Store already displayed game IDs to prevent duplicates across sections
 let displayedGameIds = new Set();

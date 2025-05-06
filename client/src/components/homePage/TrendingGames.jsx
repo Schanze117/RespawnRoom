@@ -113,9 +113,6 @@ export default function TrendingGames() {
     <section className="w-full mb-12">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-primary-500">Trending Now</h2>
-        <button className="text-primary-400 hover:text-primary-300 text-sm font-medium">
-          See All Trending
-        </button>
       </div>
       
       {/* Force re-render with a new component instance by using a unique key */}
