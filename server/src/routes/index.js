@@ -24,7 +24,6 @@ try {
   const __dirname = dirname(__filename);
   
   // Log for debugging
-  console.log('Routes initialized successfully');
 } catch (error) {
   console.error('Error setting up routes:', error);
 }

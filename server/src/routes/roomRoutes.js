@@ -20,11 +20,8 @@ const updateRoomCounter = (roomId, change) => {
   roomData.userCount += change;
   roomData.lastActivity = Date.now();
   
-  console.log(`Room ${roomId}: ${roomData.userCount} users (${change > 0 ? 'join' : 'leave'})`);
-  
   // If room is empty, schedule it for cleanup
   if (roomData.userCount <= 0) {
-    console.log(`Room ${roomId} is empty, scheduling for cleanup`);
     roomData.scheduledForDeletion = Date.now() + 30000; // 30 seconds grace period
   } else {
     // Room is active, remove deletion schedule
@@ -58,7 +55,6 @@ router.post('/join', (req, res) => {
       userCount
     });
   } catch (error) {
-    console.error('Error in room join endpoint:', error);
     return res.status(500).json({
       success: false,
       message: 'Server error processing room join'
@@ -91,7 +87,6 @@ router.post('/leave', (req, res) => {
       isEmptyRoom: userCount <= 0
     });
   } catch (error) {
-    console.error('Error in room leave endpoint:', error);
     return res.status(500).json({
       success: false,
       message: 'Server error processing room leave'
@@ -128,7 +123,6 @@ router.get('/status/:roomId', (req, res) => {
       lastActivity: roomExists ? roomData.lastActivity : null
     });
   } catch (error) {
-    console.error('Error in room status endpoint:', error);
     return res.status(500).json({
       success: false,
       message: 'Server error processing room status'
@@ -160,7 +154,6 @@ router.get('/list', (req, res) => {
       rooms
     });
   } catch (error) {
-    console.error('Error in room list endpoint:', error);
     return res.status(500).json({
       success: false,
       message: 'Server error processing room list'
@@ -176,7 +169,6 @@ setInterval(() => {
   activeRooms.forEach((data, roomId) => {
     // Delete rooms that have been empty for more than 30 seconds
     if (data.scheduledForDeletion && now > data.scheduledForDeletion) {
-      console.log(`Cleaning up inactive room: ${roomId}`);
       activeRooms.delete(roomId);
       roomsRemoved++;
     }
@@ -185,15 +177,10 @@ setInterval(() => {
     // This is a fallback to prevent memory leaks from abandoned sessions
     const twelveHoursAgo = now - (12 * 60 * 60 * 1000);
     if (data.lastActivity < twelveHoursAgo) {
-      console.log(`Cleaning up stale room: ${roomId} (inactive for >12 hours)`);
       activeRooms.delete(roomId);
       roomsRemoved++;
     }
   });
-  
-  if (roomsRemoved > 0) {
-    console.log(`Room cleanup completed: removed ${roomsRemoved} inactive rooms`);
-  }
 }, 60000);
 
 export default router; 

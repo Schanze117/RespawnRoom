@@ -14,8 +14,6 @@ function LocationListener() {
   
   // Update when either location or activeRoom changes
   useEffect(() => {
-    console.log('LocationListener: path changed to', location.pathname);
-    console.log('LocationListener: activeRoom is', activeRoom?.id || 'none');
     checkPathAndToggleWindow(location.pathname);
   }, [location.pathname, activeRoom, checkPathAndToggleWindow]);
   

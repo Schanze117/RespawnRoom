@@ -76,7 +76,6 @@ export default function PersonalizedRecommendations() {
           console.error('Error getting tokens:', tokenError);
         }
         
-        console.log('User tokens from server:', tokens);
         
         // Update state with token info
         const hasAnyTokens = Object.keys(tokens).filter(k => k !== '_source').length > 0;
@@ -90,7 +89,6 @@ export default function PersonalizedRecommendations() {
         });
         
         if (!hasAnyTokens) {
-          console.log('No tokens available from server');
           // Show empty state instead of hardcoded games
           setLoading(false);
           setDebugInfo(prev => ({ ...prev, apiStatus: 'no tokens' }));
@@ -115,14 +113,12 @@ export default function PersonalizedRecommendations() {
         
         // STEP 2: Try to get personalized recommendations from the server API
         try {
-          console.log('Attempting to fetch personalized games from server API');
           setDebugInfo(prev => ({ ...prev, apiStatus: 'fetching from server API' }));
           
           // Get personalized games from server
           const personalizedGames = await getPersonalizedGames();
           
           if (personalizedGames && personalizedGames.length > 0) {
-            console.log(`Received ${personalizedGames.length} personalized games from server`);
             
             // Mix personalized games with trending games
             const mixedRecommendations = mixRecommendations(
@@ -143,11 +139,9 @@ export default function PersonalizedRecommendations() {
             setInitialLoadComplete(true);
             return;
           } else {
-            console.log('Server returned no personalized games, falling back to trending games with local scoring');
             setDebugInfo(prev => ({ ...prev, apiStatus: 'no server recommendations, using trending games with token scoring' }));
           }
         } catch (apiError) {
-          console.error('Error fetching personalized games from server:', apiError);
           setDebugInfo(prev => ({ 
             ...prev, 
             apiStatus: 'server API error, using trending games with token scoring',
@@ -157,7 +151,6 @@ export default function PersonalizedRecommendations() {
         
         // STEP 3: Fallback - Get trending games and score them locally
         try {
-          console.log('Fetching trending games to score with user tokens');
           
           // Get trending games from API if we don't already have them
           const trendingGames = trendingGamesForMixing.length > 0 
@@ -167,9 +160,7 @@ export default function PersonalizedRecommendations() {
           if (!trendingGames || trendingGames.length === 0) {
             throw new Error('No trending games available');
           }
-          
-          console.log(`Retrieved ${trendingGames.length} trending games for local scoring`);
-          
+                    
           // Score the games using our tokens
           const scoredGames = trendingGames.map(game => {
             // Calculate score based on token matches

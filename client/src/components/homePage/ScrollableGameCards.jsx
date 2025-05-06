@@ -154,16 +154,13 @@ export default function ScrollableGameCards({ games, type }) {
     event.stopPropagation(); // Prevent the card click from triggering
     try {
       if (!Auth.loggedIn()) {
-        // Instead of alert, redirect to login or show a more subtle notification
-        console.log('User not logged in, cannot save game');
-        // Optional: redirect to login page
+        // Instead of alert, redirect to login or show a more subtle notification        // Optional: redirect to login page
         // window.location.href = '/login';
         return;
       }
       
       // Check if game is already saved
       if (isGameAlreadySaved(game)) {
-        console.log('Game already saved:', game.name);
         setSavedGames(prev => ({
           ...prev,
           [game.id]: 'already-saved'
@@ -200,7 +197,6 @@ export default function ScrollableGameCards({ games, type }) {
         variables: { game: gameInput },
       });
 
-      console.log('Game saved to server:', data);
       
       // Add to already saved games list
       setAlreadySavedGames(prev => [...prev, game.name.toLowerCase().trim()]);

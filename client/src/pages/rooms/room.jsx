@@ -123,7 +123,6 @@ export default function Room() {
     
     const initializeClient = () => {
       if (!clientRef.current && initAttempts < maxInitAttempts) {
-        console.log(`Creating new Agora RTC client (attempt ${initAttempts + 1}/${maxInitAttempts})`);
         try {
           // Configure client with better parameters for challenging networks
           clientRef.current = AgoraRTC.createClient({ 
@@ -134,15 +133,12 @@ export default function Room() {
             enableCloudProxy: false // Enable if network conditions are difficult
             // No proxyServer parameter to avoid INVALID_PARAMS error
           });
-          console.log('Agora RTC client created successfully');
         } catch (err) {
-          console.error('Failed to create Agora client:', err);
           setConnectionError('Failed to initialize video call system. Please try again later.');
           
           // Retry initialization after delay
           initAttempts++;
           if (initAttempts < maxInitAttempts) {
-            console.log(`Retrying client initialization in ${initAttempts} seconds...`);
             setTimeout(initializeClient, initAttempts * 1000);
           }
         }
@@ -205,7 +201,6 @@ export default function Room() {
       }
       return data;
     } catch (error) {
-      console.error('Token fetch error:', error);
       return null;
     }
   };
@@ -216,7 +211,6 @@ export default function Room() {
     const setupEventListeners = () => {
       // Check if client is initialized before attaching event listeners
       if (!clientRef.current) {
-        console.error('Cannot set up event listeners: Agora client is not initialized');
         return;
       }
       
@@ -226,16 +220,14 @@ export default function Room() {
       
       // Add connection state change listener
       clientRef.current.on('connection-state-change', (curState, prevState) => {
-        console.log(`Connection state changed from ${prevState} to ${curState}`);
         if (curState === 'DISCONNECTED') {
           setConnectionError('Connection to the room was lost. Please check your network connection.');
         } else if (curState === 'CONNECTING') {
-          console.log('Attempting to connect to Agora service...');
+          // Connection attempt in progress
         } else if (curState === 'CONNECTED') {
-          console.log('Successfully connected to Agora service');
           setConnectionError('');
         } else if (curState === 'RECONNECTING') {
-          console.log('Attempting to reconnect to Agora service...');
+          // Reconnection attempt in progress
         } else if (curState === 'FAILED') {
           setConnectionError('Failed to connect to the room. Please try again later.');
         }
@@ -243,11 +235,9 @@ export default function Room() {
 
       // Add specific error handling for token issues
       clientRef.current.on('token-privilege-did-expire', async function() {
-        console.log('Token expired, attempting to refresh...');
         const newTokenData = await fetchToken(roomId);
         if (newTokenData && newTokenData.token) {
           await clientRef.current.renewToken(newTokenData.token);
-          console.log('Token renewed successfully');
         } else {
           setConnectionError('Your session has expired. Please rejoin the room.');
         }
@@ -255,7 +245,6 @@ export default function Room() {
 
       // Add error event listener
       clientRef.current.on('exception', (event) => {
-        console.error('Agora exception:', event);
         if (event.code === 'CAN_NOT_JOIN_CHANNEL' || (event.message && event.message.includes('token access room forbidden'))) {
           setConnectionError('Cannot join room: Access denied. This may be due to an expired token or insufficient permissions.');
         }
@@ -264,21 +253,16 @@ export default function Room() {
 
     // Clean up resources
     const cleanup = async () => {
-      console.log('Running cleanup process...');
-      
       // Close local tracks properly
       if (localTracks.length > 0) {
-        console.log(`Closing ${localTracks.length} local tracks`);
-        
         for (const track of localTracks) {
           try {
             // Stop playing the track
             track.stop();
             // Close the track to release resources
             track.close();
-            console.log(`Closed track: ${track.trackMediaType}`);
           } catch (e) {
-            console.error(`Error closing track ${track.trackMediaType}:`, e);
+            // Ignore errors
           }
         }
         
@@ -289,29 +273,21 @@ export default function Room() {
       // Check if client exists before cleanup
       if (clientRef.current) {
         // Remove all event listeners
-        console.log('Removing event listeners');
         clientRef.current.removeAllListeners();
         
         // Leave the channel
         try {
-          console.log('Leaving Agora channel');
           await clientRef.current.leave();
-          console.log('Successfully left channel');
         } catch (err) {
-          console.error('Error leaving channel:', err);
+          // Ignore errors
         }
-      } else {
-        console.log('No Agora client to clean up');
       }
       
       // Notify context that we're exiting the room
-      console.log('Notifying context of room exit');
       exitRoom();
     };
 
     const join = async () => {
-      console.log('Starting room join process...');
-      
       try {
         // Check network connectivity first
         const isOnline = navigator.onLine;
@@ -322,7 +298,6 @@ export default function Room() {
         
         // Check if client is initialized before proceeding
         if (!clientRef.current) {
-          console.error('Cannot join: Agora client is not initialized');
           setConnectionError('Failed to initialize video call system. Please refresh and try again.');
           return;
         }
@@ -333,45 +308,35 @@ export default function Room() {
         // Check if we have a valid App ID
         const appId = import.meta.env.AGORA_APP_ID;
         if (!appId) {
-          console.error('Missing Agora App ID - check your environment variables');
           setConnectionError('Agora App ID not configured properly. Please check your environment variables.');
           return;
         }
         
-        console.log('Attempting to join with AppID:', appId);
-        
         // Clear any previous connections to avoid conflicts
         try {
           await clientRef.current.leave();
-          console.log('Cleared previous connection if any');
         } catch (e) {
           // Ignore errors from leave since we might not be in a channel
-          console.log('No previous connection to clear');
         }
         
         try {
           // First check if the room is full
           try {
-            console.log('Checking room capacity...');
             const userCount = await clientRef.current.getChannelMemberCount([roomId]);
             if (userCount && userCount[roomId] && userCount[roomId] >= MAX_PARTICIPANTS) {
               setRoomFull(true);
               setConnectionError(`Room is full (maximum ${MAX_PARTICIPANTS} participants)`);
               return;
             }
-            console.log('Room has space, proceeding with join');
           } catch (countError) {
             // Continue even if we can't check count
-            console.warn('Could not check room count:', countError);
           }
           
           // Try to get token first
-          console.log('Attempting to get token...');
           const tokenData = await fetchToken(roomId);
           
           try {
             if (tokenData && tokenData.token) {
-              console.log('Got valid token, joining with token');
               setTokenDetails(tokenData);
               
               // Join with token - with retries for network issues
@@ -383,11 +348,9 @@ export default function Room() {
                 try {
                   // Use hardcoded ID as fallback
                   await clientRef.current.join(tokenData.appId || import.meta.env.AGORA_APP_ID, roomId, tokenData.token, tokenData.uid || uid.current);
-                  console.log('Successfully joined with token');
                   joinSuccess = true;
                 } catch (tokenJoinError) {
                   retryCount++;
-                  console.error(`Join attempt ${retryCount} failed:`, tokenJoinError);
                   
                   // Check for token access error
                   if (tokenJoinError.message && (
@@ -398,25 +361,19 @@ export default function Room() {
                   }
                   
                   if (retryCount > maxRetries) {
-                    console.log('Max retries reached, attempting direct join');
                     // Fallback to direct join as last resort
                     await clientRef.current.join(import.meta.env.AGORA_APP_ID, roomId, null, uid.current);
-                    console.log('Successfully joined with direct join');
                     joinSuccess = true;
                   } else {
-                    console.log(`Retrying connection in ${retryCount} seconds...`);
                     await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
                   }
                 }
               }
             } else {
               // Direct join without token
-              console.log('No token available, using direct join');
               await clientRef.current.join(import.meta.env.AGORA_APP_ID, roomId, null, uid.current);
-              console.log('Successfully joined with direct join');
             }
           } catch (joinError) {
-            console.error('Final join error:', joinError);
             if (joinError.message && (
                 joinError.message.includes('token access room forbidden') ||
                 joinError.message.includes('CAN_NOT_JOIN_CHANNEL')
@@ -429,21 +386,17 @@ export default function Room() {
           }
           
           // Create and publish tracks based on mode
-          console.log('Creating local tracks for mode:', mode);
           let tracks = [];
           
           try {
-            console.log('Creating audio track');
             const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
             tracks.push(audioTrack);
           } catch (audioError) {
-            console.error('Failed to create audio track:', audioError);
             setConnectionError('Could not access microphone. Please check permissions.');
           }
           
           if (mode === 'video' && tracks.length > 0) {
             try {
-              console.log('Creating video track');
               const videoTrack = await AgoraRTC.createCameraVideoTrack({
                 encoderConfig: {
                   width: { min: 640, ideal: 1280, max: 1920 },
@@ -456,8 +409,6 @@ export default function Room() {
               tracks.push(videoTrack);
               setIsVideoOff(false);
             } catch (videoError) {
-              console.error('Failed to create video track:', videoError);
-              console.warn('Continuing without video');
               setIsVideoOff(true);
             }
           }
@@ -470,22 +421,17 @@ export default function Room() {
           setLocalTracks(tracks);
           
           // Publish tracks
-          console.log('Publishing tracks:', tracks.length);
           for (const track of tracks) {
             await clientRef.current.publish(track);
-            console.log('Published track type:', track.trackMediaType);
           }
           
           // Joining complete
-          console.log('Join process complete!');
           setJoining(false);
         } catch (joinError) {
-          console.error('Error during join process:', joinError);
           setConnectionError(`Failed to join room: ${joinError.message}`);
           cleanup();
         }
       } catch (outerError) {
-        console.error('Unexpected error in join process:', outerError);
         setConnectionError(`Connection error: ${outerError.message}`);
         cleanup();
       }
@@ -498,20 +444,15 @@ export default function Room() {
   }, [roomId, mode]);
 
   const handleUserPublished = async (user, mediaType) => {
-    console.log(`Remote user ${user.uid} published ${mediaType} track`);
-    
     // Check if adding this user would exceed MAX_PARTICIPANTS
     const currentCount = Object.keys(remoteUsers).length;
     if (currentCount >= MAX_PARTICIPANTS - 1) {
-      console.warn(`Cannot add more participants. Maximum limit of ${MAX_PARTICIPANTS} reached.`);
       return;
     }
     
     try {
       // Subscribe to the remote user
-      console.log(`Subscribing to ${user.uid}'s ${mediaType}`);
       await clientRef.current.subscribe(user, mediaType);
-      console.log(`Subscribed to ${user.uid}'s ${mediaType} successfully`);
       
       // Update state with the new user's stream
       setRemoteUsers(prev => {
@@ -533,44 +474,33 @@ export default function Room() {
       
       // Handle audio playback
       if (mediaType === 'audio' && user.audioTrack) {
-        console.log(`Playing ${user.uid}'s audio`);
         user.audioTrack.play();
       }
       
       // Handle video container setup
       if (mediaType === 'video' && user.videoTrack) {
-        console.log(`Setting up ${user.uid}'s video display`);
-        
         // Use a timeout to ensure the container is ready
         setTimeout(() => {
           const playerContainer = document.getElementById(`remote-video-${user.uid}`);
           if (playerContainer) {
-            console.log(`Playing ${user.uid}'s video in container`);
             user.videoTrack.play(`remote-video-${user.uid}`);
           } else {
-            console.warn(`Container for ${user.uid} not found, trying again...`);
-            
             // Try again after a longer delay
             setTimeout(() => {
               const container = document.getElementById(`remote-video-${user.uid}`);
               if (container) {
-                console.log(`Playing ${user.uid}'s video in container (second attempt)`);
                 user.videoTrack.play(`remote-video-${user.uid}`);
-              } else {
-                console.error(`Container for ${user.uid} still not found`);
               }
             }, 500);
           }
         }, 200);
       }
     } catch (error) {
-      console.error(`Error handling published track from ${user.uid}:`, error);
+      // Ignore errors
     }
   };
 
   const handleUserUnpublished = (user, mediaType) => {
-    console.log(`Remote user ${user.uid} unpublished ${mediaType} track`);
-    
     // Update state to reflect the unpublished track
     setRemoteUsers(prev => {
       const updated = { ...prev };
@@ -580,11 +510,6 @@ export default function Room() {
           ...updated[user.uid],
           [mediaType]: false
         };
-        
-        // If user has unpublished both audio and video, consider removing them
-        if (!updated[user.uid].audio && !updated[user.uid].video) {
-          console.log(`User ${user.uid} has no active tracks, considering removal`);
-        }
       }
       
       return updated;
@@ -592,8 +517,6 @@ export default function Room() {
   };
 
   const handleUserLeft = (user) => {
-    console.log(`Remote user ${user.uid} left the channel`);
-    
     // Remove the user from remoteUsers state
     setRemoteUsers(prev => {
       const updated = { ...prev };
@@ -604,7 +527,7 @@ export default function Room() {
           try {
             updated[user.uid].audioTrack.stop();
           } catch (e) {
-            console.warn(`Error stopping audio track for user ${user.uid}:`, e);
+            // Ignore errors
           }
         }
         
@@ -612,13 +535,12 @@ export default function Room() {
           try {
             updated[user.uid].videoTrack.stop();
           } catch (e) {
-            console.warn(`Error stopping video track for user ${user.uid}:`, e);
+            // Ignore errors
           }
         }
         
         // Remove user from state
         delete updated[user.uid];
-        console.log(`Removed user ${user.uid} from state`);
       }
       
       return updated;
@@ -647,7 +569,6 @@ export default function Room() {
       } else {
         // Try to create a video track if one doesn't exist
         try {
-          console.log('No video track found, creating one');
           const newVideoTrack = await AgoraRTC.createCameraVideoTrack({
             encoderConfig: {
               width: { min: 640, ideal: 1280, max: 1920 },
@@ -666,13 +587,9 @@ export default function Room() {
           // Add to local tracks
           setLocalTracks(prev => [...prev, newVideoTrack]);
         } catch (error) {
-          console.error('Error creating video track:', error);
+          // Ignore errors
         }
       }
-    } else if (mode !== 'video') {
-      console.warn('Not in video mode');
-    } else {
-      console.warn('No local tracks available');
     }
   };
 
@@ -683,7 +600,7 @@ export default function Room() {
           track.stop();
           track.close();
         } catch (err) {
-          console.error('Error closing track:', err);
+          // Ignore errors
         }
       });
     }
@@ -692,7 +609,7 @@ export default function Room() {
       try {
         await clientRef.current.leave();
       } catch (err) {
-        console.error('Error leaving channel:', err);
+        // Ignore errors
       }
     }
     
@@ -743,16 +660,12 @@ export default function Room() {
   // Render local video view
   useEffect(() => {
     if (!joining && localTracks.length > 0 && mode === 'video') {
-      console.log('Setting up local video display');
-      
       const videoTrack = localTracks.find(track => track.trackMediaType === 'video');
       if (videoTrack && !isVideoOff) {
         // Get the container element
         const localContainer = document.getElementById('local-video');
         
         if (localContainer) {
-          console.log('Playing local video in container');
-          
           // Stop playing first in case it's already playing
           try {
             videoTrack.stop();
@@ -766,13 +679,10 @@ export default function Room() {
             mirror: true
           });
         } else {
-          console.warn('Local video container not found');
-          
           // Try again after a delay
           setTimeout(() => {
             const retryContainer = document.getElementById('local-video');
             if (retryContainer) {
-              console.log('Playing local video after delay');
               videoTrack.play('local-video', { 
                 fit: 'contain',
                 mirror: true
@@ -788,19 +698,13 @@ export default function Room() {
   useEffect(() => {
     if (joining) return;
     
-    console.log('Setting up remote videos for', Object.keys(remoteUsers).length, 'users');
-    
     Object.values(remoteUsers).forEach(user => {
       if (user.videoTrack && user.video) {
-        console.log(`Setting up remote video for user ${user.uid}`);
-        
         // Get the container element
         const containerId = `remote-video-${user.uid}`;
         const container = document.getElementById(containerId);
         
         if (container) {
-          console.log(`Playing video for user ${user.uid} in container`);
-          
           // Stop first if already playing
           try {
             user.videoTrack.stop();
@@ -815,10 +719,8 @@ export default function Room() {
               mirror: false
             });
           } catch (error) {
-            console.error(`Error playing video for user ${user.uid}:`, error);
+            // Ignore errors
           }
-        } else {
-          console.warn(`Container for remote user ${user.uid} not found`);
         }
       }
     });
@@ -826,21 +728,8 @@ export default function Room() {
 
   // Debug logs
   useEffect(() => {
-    console.log('Room component mounted');
-    
-    // Log state changes
-    console.log('Current room state:', {
-      roomId,
-      mode,
-      joining,
-      isMuted,
-      isVideoOff,
-      roomFull,
-      remoteUsersCount: Object.keys(remoteUsers).length
-    });
-    
     return () => {
-      console.log('Room component unmounting', roomId);
+      // Cleanup on unmount
     };
   }, [roomId, mode, joining, isMuted, isVideoOff, roomFull, remoteUsers]);
 

@@ -220,7 +220,6 @@ export const getGameById = async (id) => {
 // Get user category tokens for personalized recommendations
 export const getTokens = async () => {
   try {
-    console.log('Attempting to fetch user tokens from server');
     
     // Get the auth token from local storage
     const token = localStorage.getItem('jwtToken');
@@ -241,23 +240,19 @@ export const getTokens = async () => {
       console.error(`Token API request failed with status ${response.status}: ${response.statusText}`);
       const errorText = await response.text();
       console.error('Error response:', errorText);
-      console.log('Using fallback tokens due to server error');
       return getFallbackTokens();
     }
     
     const data = await response.json();
-    console.log('Successfully retrieved tokens from server:', data.categoryTokens);
     return data.categoryTokens || {};
   } catch (error) {
     console.error('Error fetching user tokens:', error);
-    console.log('Using fallback tokens due to error');
     return getFallbackTokens();
   }
 };
 
 // Fallback tokens function to use when server is unavailable
 function getFallbackTokens() {
-  console.log('Using hardcoded fallback tokens');
   return {
     "RPG": 2,
     "Action": 1,
@@ -297,7 +292,6 @@ export const updateTokens = async (categoryTokens) => {
 // Get personalized game recommendations based on user tokens
 export const getPersonalizedGames = async () => {
   try {
-    console.log('Requesting personalized games from server');
     
     // Get the auth token from local storage
     const token = localStorage.getItem('jwtToken');
@@ -329,7 +323,6 @@ export const getPersonalizedGames = async () => {
     }
     
     const data = await response.json();
-    console.log(`Received ${data.length} personalized games from server`);
     
     // Add a default matchScore if not provided by the server
     return data.map(game => ({
@@ -360,7 +353,6 @@ export const getAllCategorizedGames = async () => {
     }
     
     const data = await response.json();
-    console.log(`Fetched ${data.allGames?.length || 0} total games with categories: `, 
       `Trending (${data.trending?.primary?.length + data.trending?.secondary?.length || 0}), `,
       `Latest (${data.latest?.primary?.length + data.latest?.secondary?.length || 0}), `,
       `Top Rated (${data.topRated?.primary?.length + data.topRated?.secondary?.length || 0}), `,

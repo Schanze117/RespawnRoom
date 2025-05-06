@@ -31,7 +31,6 @@ export default function GameModal({ game, onClose, location}) {
                                               .replace('t_729p', 't_1080p')
                                 : NoImage;
         }
-        console.log('Modal image URL:', hdCover);
         return hdCover;
     }
 
@@ -55,7 +54,6 @@ export default function GameModal({ game, onClose, location}) {
                 
                 // If game already has videos array, use it
                 if (game.videos && game.videos.length > 0) {
-                    console.log('Game has videos array:', game.videos);
                     // Make sure we're passing a number as the ID
                     const videoId = typeof game.videos[0] === 'object' ? game.videos[0].id : game.videos[0];
                     const videoData = await getGameVideo(videoId);
@@ -69,7 +67,6 @@ export default function GameModal({ game, onClose, location}) {
                 } 
                 // If game doesn't have videos array but has an ID, fetch full game data
                 else if (game.id) {
-                    console.log('Fetching full game data to get videos for ID:', game.id);
                     try {
                         // Fetch complete game data that includes videos
                         const fullGameData = await getGameById(game.id);
@@ -90,7 +87,6 @@ export default function GameModal({ game, onClose, location}) {
                         game.videoId = null;
                     }
                 } else {
-                    console.log('No videos array or game ID available');
                     game.videoId = null;
                 }
             } catch (error) {

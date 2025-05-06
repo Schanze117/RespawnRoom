@@ -8,8 +8,7 @@ export default function UpcomingReleases() {
   
   // Force component re-render when respawnCount changes
   useEffect(() => {
-    console.log(`[UpcomingReleases] Respawn count changed to ${respawnCount}`);
-    console.log(`[UpcomingReleases] Current upcoming games:`, upcomingGames);
+
     
     // This should refresh even if the games array is the same by creating a new array reference
     const allUpcomingGames = [...upcomingGames.primary, ...upcomingGames.secondary];
@@ -40,12 +39,10 @@ export default function UpcomingReleases() {
     setDisplayGames(refreshedGames);
     
     // Debug log
-    console.log(`[UpcomingReleases] Updated with ${refreshedGames.length} games after respawn, first game:`, 
       refreshedGames.length > 0 ? refreshedGames[0] : 'No games available');
       
     // Cleanup function to check unmounting
     return () => {
-      console.log(`[UpcomingReleases] Component cleanup - respawn count was: ${respawnCount}`);
     };
   }, [upcomingGames, respawnCount]);
   

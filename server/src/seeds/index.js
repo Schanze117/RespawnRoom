@@ -7,19 +7,15 @@ const seedAll = async () => {
   try {
     // Connect to MongoDB
     await db;
-    console.log('\n----- DATABASE CONNECTED -----\n');
 
     // Seed users
     await seedUsers();
-    console.log('\n----- USERS SEEDED -----\n');
 
     // Seed video games
     await seedVideoGames();
-    console.log('\n----- VIDEOGAMES SEEDED -----\n');
 
     // Close the database connection
     mongoose.connection.close();
-    console.log('\n----- DATABASE CONNECTION CLOSED -----\n');
 
     process.exit(0);
   } catch (err) {
