@@ -21,7 +21,7 @@ export default function Saved() {
     const savedGames = data?.me?.savedGames || [];
 
     return (
-        <div className="mt-20 sm:ml-55 mr-4 bg-surface-900 border-2 rounded-lg border-tonal-800 height-full">
+        <div className="mt-20 md:ml-55 mx-4 bg-surface-900 border-2 rounded-lg border-tonal-800 h-full">
             <h1 className="text-3xl font-bold text-light px-5 pt-3 text-center">Saved Games</h1>
             <div className="flex flex-wrap justify-center">
                 {savedGames.length > 0 ? (
