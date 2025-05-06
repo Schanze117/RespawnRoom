@@ -39,7 +39,7 @@ export default function UpcomingReleases() {
     setDisplayGames(refreshedGames);
     
     // Debug log
-      refreshedGames.length > 0 ? refreshedGames[0] : 'No games available');
+    console.log(refreshedGames.length > 0 ? refreshedGames[0] : 'No games available');
       
     // Cleanup function to check unmounting
     return () => {
