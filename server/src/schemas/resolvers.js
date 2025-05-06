@@ -1,7 +1,6 @@
 import User from '../models/users.js';
 import { signToken } from '../middleware/auth.js';
 import { GraphQLError } from 'graphql';
-import { AuthenticationError } from 'apollo-server-express';
 import { VideoGame, Message } from '../models/index.js';
 
 export const resolvers = { 
@@ -153,7 +152,7 @@ export const resolvers = {
     getMessages: async (parent, { friendId, limit = 50 }, context) => {
       // Ensure user is authenticated
       if (!context.user) {
-        throw new AuthenticationError('You need to be logged in!');
+        throw new GraphQLError('You need to be logged in!');
       }
 
       try {
@@ -207,7 +206,7 @@ export const resolvers = {
     getUnreadMessageCount: async (parent, { friendId }, context) => {
       // Ensure user is authenticated
       if (!context.user) {
-        throw new AuthenticationError('You need to be logged in!');
+        throw new GraphQLError('You need to be logged in!');
       }
 
       // Count unread messages from a specific friend if provided, otherwise all unread
@@ -629,7 +628,7 @@ export const resolvers = {
     sendMessage: async (parent, { receiverId, content }, context) => {
       // Ensure user is authenticated
       if (!context.user) {
-        throw new AuthenticationError('You need to be logged in!');
+        throw new GraphQLError('You need to be logged in!');
       }
 
       try {
@@ -689,7 +688,7 @@ export const resolvers = {
     markMessagesAsRead: async (parent, { senderId }, context) => {
       // Ensure user is authenticated
       if (!context.user) {
-        throw new AuthenticationError('You need to be logged in!');
+        throw new GraphQLError('You need to be logged in!');
       }
 
       // Mark all unread messages from the specified sender as read
