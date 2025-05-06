@@ -43,10 +43,8 @@ export default function SearchForm() {
             }
             // Display the search results
             setDisplay(<GameCard games={results} />);
-            console.log("Form submitted:", searchForm);
-            console.log("Search results:", results);
         } catch (error) {
-            console.error("Error searching games:", error);
+            setDisplay(displayError("Error searching games"));
         }
         setLoading(false); // Set loading to false after displaying the search results
         setSearchForm({ search: '' });

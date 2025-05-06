@@ -94,12 +94,10 @@ export default function GameCard({ games }) {
         event.stopPropagation();
         try {
             if (!Auth.loggedIn()) {
-                console.log('User not logged in, cannot save game');
                 return;
             }
             
             if (isGameAlreadySaved(game)) {
-                console.log('Game already saved:', game.name);
                 setSavedGames(prev => ({
                     ...prev,
                     [game.id]: 'already-saved'

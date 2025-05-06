@@ -46,7 +46,6 @@ export default function Register() {
           password: registerForm.password,
         },
       });
-      console.log("Registration response:", data);
       Auth.login(data.addUser.token);
     } catch (err) {
       console.error("Registration failed:", err);

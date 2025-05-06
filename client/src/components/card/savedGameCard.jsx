@@ -15,26 +15,13 @@ export default function SavedGameCard() {
     const { loading, error, data, refetch } = useQuery(GET_ME);
     const [removeGame] = useMutation(REMOVE_GAME);
 
-    // Debug log for initial data load
-    useEffect(() => {
-        console.log('SavedGameCard - Initial Data:', {
-            loading,
-            error,
-            hasData: !!data,
-            savedGamesCount: data?.me?.savedGames?.length || 0
-        });
-    }, [loading, error, data]);
-
     const handleImageError = useCallback((gameId) => {
-        console.log('Image Error for game:', gameId);
         setImageError(prev => ({ ...prev, [gameId]: true }));
     }, []);
 
     // Process image URL to get the best quality version
     const getOptimizedImageUrl = useCallback((url) => {
-        console.log('Processing image URL:', url);
         if (!url) {
-            console.log('No URL provided, using NoImage');
             return NoImage;
         }
         
@@ -43,18 +30,15 @@ export default function SavedGameCard() {
             const optimizedUrl = url.replace('t_thumb', 't_1080p')
                                   .replace('t_cover_small', 't_1080p')
                                   .replace('t_729p', 't_1080p');
-            console.log('Optimized URL:', optimizedUrl);
             return optimizedUrl;
         }
         
         // If it's a direct image ID, construct the full URL
         if (url.startsWith('co') || url.startsWith('tm')) {
             const optimizedUrl = `https://images.igdb.com/igdb/image/upload/t_1080p/${url}`;
-            console.log('Constructed URL:', optimizedUrl);
             return optimizedUrl;
         }
         
-        console.log('Using direct URL:', url);
         return url;
     }, []);
 
@@ -69,41 +53,31 @@ export default function SavedGameCard() {
     }, []);
 
     const handleGameClick = useCallback((game) => {
-        console.log('Opening modal for game:', {
-            id: game._id,
-            name: game.name,
-            cover: game.cover
-        });
         setSelectedGame(game);
         setShowModal(true);
     }, []);
 
     const handleCloseModal = useCallback(() => {
-        console.log('Closing modal');
         setShowModal(false);
         setSelectedGame(null);
     }, []);
 
     const handleDeleteGame = useCallback(async (gameId) => {
-        console.log('Attempting to delete game:', gameId);
         try {
             await removeGame({
                 variables: { gameId },
             });
-            console.log('Game deleted successfully');
             await refetch();
         } catch (err) {
-            console.error('Error removing game:', err);
+            // Handle error silently
         }
     }, [removeGame, refetch]);
 
     if (loading) {
-        console.log('Loading state active');
         return <div className="text-center text-light mt-20">Loading saved games...</div>;
     }
 
     if (error) {
-        console.error('Error state:', error);
         return (
             <div className="text-center text-red-500 mt-20">
                 Failed to load saved games. Please try again later.
@@ -112,77 +86,67 @@ export default function SavedGameCard() {
     }
 
     const savedGames = data?.me?.savedGames || [];
-    console.log('Rendering saved games:', savedGames.length);
 
     return (
         <div className="flex flex-col gap-4 py-5">
-            {savedGames.map((game) => {
-                console.log('Rendering game:', {
-                    id: game._id,
-                    name: game.name,
-                    cover: game.cover,
-                    hasImageError: imageError[game._id]
-                });
-                
-                return (
-                    <div
-                        key={game._id}
-                        className="flex flex-col p-4 my-5 mx-3 bg-surface-800 rounded-lg border border-tonal-400 hover:outline-2 hover:outline-light max-w-[440px] sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl h-auto shadow-md hover:shadow-2xl transition duration-300 ease-in-out transform hover:-translate-y-1"
-                    >
-                        <div className="flex flex-col w-full mb-4">
-                            <div className="flex items-center justify-between border-b border-tonal-400 pb-2">
-                                <button
-                                    type="button"
-                                    onClick={() => handleDeleteGame(game._id)}
-                                    className="p-1 text-tonal-500 hover:text-tonal-800 focus:text-tonal-800 bg-error hover:bg-dark-error rounded-lg focus:outline-2 focus:outline-offset-1 focus:outline-light"
-                                    aria-label="Delete game"
-                                >
-                                    <LuX />
-                                </button>
-                                <h2 className={`text-primary-500 ${game.name.length > 15 ? 'text-xl' : 'text-3xl'} font-medium text-center`}>
-                                    {game.name}
-                                </h2>
-                                <button
-                                    type="button"
-                                    onClick={() => handleGameClick(game)}
-                                    className="p-1 text-tonal-500 hover:text-tonal-800 focus:text-tonal-800 bg-primary-500 hover:bg-primary-700 rounded-lg focus:outline-2 focus:outline-offset-1 focus:outline-light"
-                                    aria-label="View game details"
-                                >
-                                    <span className="text-light text-sm font-medium">View Details</span>
-                                </button>
-                            </div>
-                            <div className="flex flex-wrap justify-center gap-4 text-tonal-400 text-sm mt-2">
-                                <p>
-                                    <span className="text-primary-400 font-medium">Genres: </span>
-                                    {Array.isArray(game.genres) ? game.genres.join(', ') : 'N/A'}
-                                </p>
-                                <p>
-                                    <span className="text-primary-400 font-medium">POV: </span>
-                                    {Array.isArray(game.playerPerspectives)
-                                        ? game.playerPerspectives.join(', ')
-                                        : 'N/A'}
-                                </p>
-                            </div>
+            {savedGames.map((game) => (
+                <div
+                    key={game._id}
+                    className="flex flex-col p-4 my-5 mx-3 bg-surface-800 rounded-lg border border-tonal-400 hover:outline-2 hover:outline-light max-w-[440px] sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl h-auto shadow-md hover:shadow-2xl transition duration-300 ease-in-out transform hover:-translate-y-1"
+                >
+                    <div className="flex flex-col w-full mb-4">
+                        <div className="flex items-center justify-between border-b border-tonal-400 pb-2">
+                            <button
+                                type="button"
+                                onClick={() => handleDeleteGame(game._id)}
+                                className="p-1 text-tonal-500 hover:text-tonal-800 focus:text-tonal-800 bg-error hover:bg-dark-error rounded-lg focus:outline-2 focus:outline-offset-1 focus:outline-light"
+                                aria-label="Delete game"
+                            >
+                                <LuX />
+                            </button>
+                            <h2 className={`text-primary-500 ${game.name.length > 15 ? 'text-xl' : 'text-3xl'} font-medium text-center`}>
+                                {game.name}
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={() => handleGameClick(game)}
+                                className="p-1 text-tonal-500 hover:text-tonal-800 focus:text-tonal-800 bg-primary-500 hover:bg-primary-700 rounded-lg focus:outline-2 focus:outline-offset-1 focus:outline-light"
+                                aria-label="View game details"
+                            >
+                                <span className="text-light text-sm font-medium">View Details</span>
+                            </button>
                         </div>
-                        <div className="flex flex-row items-center gap-4">
-                            <img
-                                src={!imageError[game._id] && game.cover 
-                                    ? getOptimizedImageUrl(game.cover)
-                                    : NoImage}
-                                alt={`Cover for ${game.name}`}
-                                className="w-32 h-41 object-cover rounded-lg"
-                                onError={() => handleImageError(game._id)}
-                            />
-                            {game.summary 
-                                ? handleSummary(game.summary)
-                                : <p className="text-light bg-surface-700 rounded-lg h-41 w-full text-sm md:text-base p-2 ml-3">
-                                    No summary available.
-                                </p>
-                            }
+                        <div className="flex flex-wrap justify-center gap-4 text-tonal-400 text-sm mt-2">
+                            <p>
+                                <span className="text-primary-400 font-medium">Genres: </span>
+                                {Array.isArray(game.genres) ? game.genres.join(', ') : 'N/A'}
+                            </p>
+                            <p>
+                                <span className="text-primary-400 font-medium">POV: </span>
+                                {Array.isArray(game.playerPerspectives)
+                                    ? game.playerPerspectives.join(', ')
+                                    : 'N/A'}
+                            </p>
                         </div>
                     </div>
-                );
-            })}
+                    <div className="flex flex-row items-center gap-4">
+                        <img
+                            src={!imageError[game._id] && game.cover 
+                                ? getOptimizedImageUrl(game.cover)
+                                : NoImage}
+                            alt={`Cover for ${game.name}`}
+                            className="w-32 h-41 object-cover rounded-lg"
+                            onError={() => handleImageError(game._id)}
+                        />
+                        {game.summary 
+                            ? handleSummary(game.summary)
+                            : <p className="text-light bg-surface-700 rounded-lg h-41 w-full text-sm md:text-base p-2 ml-3">
+                                No summary available.
+                            </p>
+                        }
+                    </div>
+                </div>
+            ))}
             {showModal && selectedGame && (
                 <GameModal 
                     game={selectedGame} 
