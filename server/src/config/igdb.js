@@ -5,13 +5,16 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Get the IGDB credentials from environment variables
-const IGDB_CLIENT_ID = process.env.VITE_CLIENT_ID;
-const IGDB_ACCESS_TOKEN = process.env.VITE_ACCESS_TOKEN;
+// Don't use VITE_ prefix for server-side variables
+const IGDB_CLIENT_ID = process.env.IGDB_CLIENT_ID || process.env.VITE_CLIENT_ID;
+const IGDB_ACCESS_TOKEN = process.env.IGDB_ACCESS_TOKEN || process.env.VITE_ACCESS_TOKEN;
 
 // Log IGDB configuration (without revealing full tokens)
 console.log('IGDB Configuration:');
 console.log('Client ID available:', !!IGDB_CLIENT_ID);
 console.log('Access Token available:', !!IGDB_ACCESS_TOKEN);
+console.log('Client ID:', IGDB_CLIENT_ID ? IGDB_CLIENT_ID.substring(0, 5) + '...' : 'Not available');
+console.log('Access Token:', IGDB_ACCESS_TOKEN ? IGDB_ACCESS_TOKEN.substring(0, 5) + '...' : 'Not available');
 
 // Configure the axios instance for IGDB API
 export const igdbAPI = axios.create({
@@ -37,7 +40,7 @@ igdbAPI.interceptors.response.use(
   },
   error => {
     // Enhanced error logging
-    console.error('IGDB API request failed:');
+    console.error('IGDB API error:', error.response ? error.response.status : error.message);
     if (error.response) {
       // The request was made and the server responded with a status code
       // that falls out of the range of 2xx

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { LuSearch, LuSave, LuLayoutGrid, LuUsers, LuDoorOpen } from "react-icons/lu";
+import { LuSave, LuLayoutGrid, LuUsers, LuDoorOpen, LuCompass } from "react-icons/lu";
 import Auth from "../../utils/auth";
 
 export default function Aside({ asideOpen }) {
@@ -27,7 +27,7 @@ export default function Aside({ asideOpen }) {
                         <Link to="/" className="flex items-center p-2 rounded-lg hover:bg-surface-600"> <span className="px-2"><LuLayoutGrid /></span>Home</Link>
                     </li>
                     <li>
-                        <Link to="/search" className="flex items-center p-2 rounded-lg hover:bg-surface-600"> <span className="px-2"><LuSearch /></span>Search</Link>
+                        <Link to="/discover" className="flex items-center p-2 rounded-lg hover:bg-surface-600"> <span className="px-2"><LuCompass /></span>Discover</Link>
                     </li>
                     <li>
                         <Link to="/saved" className="flex items-center p-2 rounded-lg hover:bg-surface-600"> <span className="px-2"><LuSave /></span>Saved</Link>

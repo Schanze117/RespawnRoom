@@ -20,7 +20,7 @@ export default function HeroCarousel() {
   // Process image URL to get optimal size
   const getOptimizedImageUrl = (url) => {
     if (!url) return NoImage;
-    return url.replace('t_thumb', 't_1080p').replace('t_cover_small', 't_1080p');
+    return url.replace('t_thumb', 't_729p').replace('t_cover_small', 't_720p');
   };
 
   // Force re-render when respawnCount changes

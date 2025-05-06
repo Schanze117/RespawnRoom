@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import Aside from './headerComponents/Aside';
-import { LuMenu, LuX } from "react-icons/lu";
+import { LuMenu, LuX, LuSearch } from "react-icons/lu";
 import React, { useEffect, useState } from "react";
 import { useQuery } from "@apollo/client";
 import { GET_ME } from "../utils/queries";
@@ -29,6 +29,14 @@ export default function Header() {
         Auth.logout();
     };
 
+    if (loading) {
+        return <div className="text-center text-light mt-20">Loading...</div>;
+    }
+
+    if (error) {
+        console.error("Error fetching user data:", error);
+    }
+
     return (
         <div>
             <header>
@@ -43,7 +51,10 @@ export default function Header() {
                             <div className="flex items-center space-x-4">
                                 <Link to="/" className="text-xl font-bold text-primary-600">RespawnRoom</Link>
                             </div>
-                            <div className="flex items-center space-x-4"> 
+                            <div className="flex items-center space-x-4">
+                                <Link to="/search" className="text-2xl text-light hover:text-primary-600">
+                                    <LuSearch />
+                                </Link>
                                 {isLoggedIn && data?.me ? (
                                     <ProfileDropdown user={data.me} onLogout={handleLogout} />
                                 ) : (
