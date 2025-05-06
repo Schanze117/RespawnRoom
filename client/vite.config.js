@@ -10,6 +10,17 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [react(), tailwindcss()],
+    build: {
+      rollupOptions: {
+        external: ['react-youtube', 'date-fns'],
+        output: {
+          globals: {
+            'react-youtube': 'ReactYoutube',
+            'date-fns': 'dateFns'
+          }
+        }
+      }
+    },
     server: {
       proxy: {
         '/api2': {
