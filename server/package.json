@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "echo \"No build step required\"",
-    "start": "node dist/server.js --ignore client",
+    "start": "node src/server.js --ignore client",
     "dev": "nodemon src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "seed": "node src/seeds/index.js",
