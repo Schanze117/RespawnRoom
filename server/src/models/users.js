@@ -29,6 +29,38 @@ const userSchema = new Schema(
     },
     // Use the videoGameSchema for the savedGames array
     savedGames: [videoGameSchema],
+    // Add category tokens for personalized recommendations
+    categoryTokens: {
+      type: Map,
+      of: Number,
+      default: {},
+    },
+    // Track last token decay time
+    lastTokenDecay: {
+      type: Date,
+      default: Date.now,
+    },
+    // Add friends list - references to other users
+    friends: [{
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    }],
+    // Add friend requests - references to other users who sent requests
+    friendRequests: [{
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    }],
+    // User's online status
+    status: {
+      type: String,
+      enum: ['Online', 'Offline', 'Away', 'Do Not Disturb'],
+      default: 'Offline'
+    },
+    // Last time user was seen online
+    lastSeen: {
+      type: Date,
+      default: Date.now,
+    },
   },
   {
     toJSON: {
@@ -55,6 +87,64 @@ userSchema.methods.isCorrectPassword = async function (password) {
 userSchema.virtual('gameCount').get(function () {
   return this.savedGames.length;
 });
+
+// Method to update category tokens when game is saved
+userSchema.methods.updateCategoryTokens = async function(game) {
+  // Extract categories from the game with improved handling for different data formats
+  let categories = [];
+  
+  // Add genres if they exist
+  if (game.genres && Array.isArray(game.genres)) {
+    const genreNames = game.genres.map(genre => {
+      return typeof genre === 'string' ? genre : (genre && genre.name ? genre.name : null);
+    }).filter(Boolean); // Remove any null/undefined values
+    categories = categories.concat(genreNames);
+  }
+  
+  // Add player perspectives if they exist
+  if (game.playerPerspectives && Array.isArray(game.playerPerspectives)) {
+    const perspectiveNames = game.playerPerspectives.map(perspective => {
+      return typeof perspective === 'string' ? perspective : (perspective && perspective.name ? perspective.name : null);
+    }).filter(Boolean); // Remove any null/undefined values
+    categories = categories.concat(perspectiveNames);
+  }
+  
+  // Initialize tokens object if it doesn't exist
+  if (!this.categoryTokens) {
+    this.categoryTokens = new Map();
+  }
+  
+  // Update token counts
+  categories.forEach(category => {
+    if (category) {
+      const currentCount = this.categoryTokens.get(category) || 0;
+      this.categoryTokens.set(category, currentCount + 1);
+    }
+  });
+  
+  return this.save();
+};
+
+// Method to apply decay to category tokens
+userSchema.methods.decayTokens = async function() {
+  // Check if at least a day has passed since last decay
+  const now = new Date();
+  const daysSinceLastDecay = (now - this.lastTokenDecay) / (1000 * 60 * 60 * 24);
+  
+  if (daysSinceLastDecay >= 1) {
+    // Apply decay to all tokens
+    for (const [category, value] of this.categoryTokens.entries()) {
+      this.categoryTokens.set(category, value * 0.9);
+    }
+    
+    // Update last decay time
+    this.lastTokenDecay = now;
+    
+    return this.save();
+  }
+  
+  return this;
+};
 
 // Create the User model
 const User = model('User', userSchema);

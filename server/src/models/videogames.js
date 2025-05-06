@@ -6,23 +6,24 @@ const videoGameSchema = new Schema(
   {
     cover: {
       type: String,
-      required: false,
+      required: false, // Make cover optional to allow saving games without covers
+      default: '' // Provide a default empty value
     },
     name: {
       type: String,
-      required: false,
+      required: true,
     },
     genres: {
       type: [String], // Array of strings for genres
-      required: false,
+      required: true,
     },
     playerPerspectives: {
       type: [String], // Array of strings for player perspectives
-      required: false,
+      required: true,
     },
     summary: {
       type: String,
-      required: false,
+      required: true,
     },
     userId: {
       type: Schema.Types.ObjectId, // Reference to a User document

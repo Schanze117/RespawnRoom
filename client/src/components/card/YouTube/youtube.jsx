@@ -2,30 +2,27 @@
 import React from "react";
 import YouTube from "react-youtube";
 
-class MovieClip extends React.Component {
-    render() {
-        const { videoId } = this.props; // Accept videoId as a prop
-        const options = {
-            height: '100%',
-            width: '100%',
-            playerVars: {
-                autoplay: 1,
-                controls: 1,
-            },
-        };
+export default function MovieClip({ videoId }) {
+  const opts = {
+    height: "100%",
+    width: "100%",
+    playerVars: {
+      autoplay: 0,
+      modestbranding: 1,
+      rel: 0,
+      origin: window.location.origin,
+    },
+  };
 
-        return <YouTube videoId={videoId} opts={options} onReady={this._onReady} style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-          }} />;
-    }
-
-    _onReady(event) {
-        event.target.pauseVideo();
-    }
+  return (
+    <div className="absolute inset-0">
+      <YouTube
+        videoId={videoId}
+        opts={opts}
+        className="w-full h-full"
+        iframeClassName="w-full h-full rounded-lg"
+        onError={(e) => console.error('YouTube Player Error:', e)}
+      />
+    </div>
+  );
 }
-
-export default MovieClip;
