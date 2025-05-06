@@ -179,7 +179,7 @@ export default function GameCard({ games }) {
                         </div>
                         <div className="flex flex-row w-full justify-between space-x-4">
                             <img
-                                src={game.cover ? game.cover.url : NoImage}
+                                src={game.cover ? game.cover.url.replace('t_thumb', 't_720p') : NoImage}
                                 alt={game.name}
                                 className="w-32 h-32 object-cover rounded-lg"
                             />
@@ -225,7 +225,7 @@ export default function GameCard({ games }) {
                     </div>
                 );
             })}
-            {showModal && <GameModal game={selectedGame} onClose={handleCloseModal} />}
+            {showModal && <GameModal game={selectedGame} onClose={handleCloseModal} location={'other'}/>}
         </div>
     );
 }

@@ -3,12 +3,23 @@ import NoImage from '../../assets/noImage.jpg';
 import { getGameVideo, getGameById } from '../../utils/api';
 import MovieClip from './YouTube/youtube';
 
-export default function GameModal({ game, onClose }) {
+export default function GameModal({ game, onClose, location}) {
     if (!game) return null;
 
     const [hasVideo, setHasVideo] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const hdCover = game.cover ? game.cover.url.replace('t_thumb', 't_720p') : NoImage;
+
+    function handleImage(location) {
+        let hdCover;
+        if (location == "saved") {
+            hdCover = game.cover ? game.cover.replace('t_thumb', 't_720p') : NoImage;
+        } else {
+            hdCover = game.cover ? game.cover.url.replace('t_thumb', 't_720p'): NoImage;
+        }
+        return hdCover;
+    }
+
+    const hdCover = handleImage(location);
 
     useEffect(() => {
         const handleKeyDown = (event) => {
@@ -82,7 +93,7 @@ export default function GameModal({ game, onClose }) {
             className="fixed inset-0 flex items-center justify-center z-50 modalBackground" 
             onClick={(e) => e.target.classList.contains('modalBackground') && onClose()}
         >
-            <div className="bg-surface-800 p-6 w-full max-w-small sm:max-w-md md:max-w-xl lg:max-w-2xl xl:max-w-6xl h-auto max-h-[90vh] shadow-2xl relative overflow-y-auto border-collapse border border-tonal-400 rounded-lg">
+            <div className="bg-surface-700 p-6 w-full max-w-small sm:max-w-md md:max-w-xl lg:max-w-2xl xl:max-w-6xl h-auto max-h-[90vh] shadow-2xl relative overflow-y-auto border-collapse border border-tonal-400 rounded-lg">
                 <button 
                     onClick={onClose} 
                     className="absolute top-2 right-2 text-tonal-600 hover:text-tonal-800 focus:outline-none"
