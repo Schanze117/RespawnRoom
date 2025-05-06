@@ -40,7 +40,6 @@ export default function HeroCarousel() {
 
   // Force re-render when respawnCount changes
   useEffect(() => {
-    console.log(`[HeroCarousel] Respawn count changed to ${respawnCount}`);
     
     // Get the game to display (either loaded or default)
     const gameToDisplay = featuredGame ? { 
@@ -72,16 +71,13 @@ export default function HeroCarousel() {
     setBackdropImage(newBackdropImage);
     
     // Debug log
-    console.log(`[HeroCarousel] Updated featured game after respawn`);
   }, [featuredGame, respawnCount]);
 
   const handleViewDetails = () => {
-    console.log('Opening modal for game:', displayGame);
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
-    console.log('Closing modal');
     setShowModal(false);
   };
 
@@ -140,7 +136,6 @@ export default function HeroCarousel() {
                         alt={displayGame?.name} 
                         className="h-full max-h-64 object-contain rounded-lg shadow-lg"
                         onError={(e) => {
-                          console.log('Image failed to load:', coverImage);
                           e.target.src = NoImage;
                         }}
                       />

@@ -10,20 +10,12 @@ export const getPubNub = async () => {
   }
 
   try {
-    console.log('Initializing PubNub SDK...');
-    
     // Get Publish and Subscribe keys (try env vars first, then fallback to hardcoded)
- const publishKey = import.meta.env.VITE_PUBNUB_PUBLISH_KEY;
-const subscribeKey = import.meta.env.VITE_PUBNUB_SUBSCRIBE_KEY;
-if (!publishKey || !subscribeKey) {
-  console.error('ERROR: PubNub keys are not defined in environment variables');
-  return null;
-}
-    
-    // Log masked keys for debugging
-    const maskedPublishKey = publishKey.substring(0, 5) + '...' + publishKey.substring(publishKey.length - 5);
-    const maskedSubscribeKey = subscribeKey.substring(0, 5) + '...' + subscribeKey.substring(subscribeKey.length - 5);
-    console.log(`Using PubNub Keys - Publish: ${maskedPublishKey}, Subscribe: ${maskedSubscribeKey}`);
+    const publishKey = import.meta.env.VITE_PUBNUB_PUBLISH_KEY;
+    const subscribeKey = import.meta.env.VITE_PUBNUB_SUBSCRIBE_KEY;
+    if (!publishKey || !subscribeKey) {
+      return null;
+    }
     
     // Create PubNub connection
     pubnubConnection = new PubNub({
@@ -34,7 +26,6 @@ if (!publishKey || !subscribeKey) {
     
     return pubnubConnection;
   } catch (error) {
-    console.error('Error initializing PubNub:', error);
     pubnubConnection = null;
     throw error;
   }
@@ -43,8 +34,6 @@ if (!publishKey || !subscribeKey) {
 // Connect to PubNub with user credentials
 export const connectPubNub = async (userId) => {
   try {
-    console.log('Connecting to PubNub with user ID:', userId);
-    
     if (!userId) {
       throw new Error('User ID is required to connect to PubNub');
     }
@@ -60,14 +49,11 @@ export const connectPubNub = async (userId) => {
     
     // If we're already connected with this user ID, return the connection
     if (pubnub.getUUID() === userId) {
-      console.log('Already connected to PubNub as:', userId);
       return pubnub;
     }
     
-    console.log('PubNub connected successfully as user:', userId);
     return pubnub;
   } catch (error) {
-    console.error('Error connecting to PubNub:', error);
     throw error;
   }
 };
@@ -80,8 +66,7 @@ export const closePubNub = async () => {
       pubnubConnection.unsubscribeAll();
       pubnubConnection = null;
       return true;
-    } catch (error) {
-      console.error('Error closing PubNub connection:', error);
+    } catch {
       pubnubConnection = null;
     }
   }
@@ -98,7 +83,6 @@ export const getPrivateChannel = (userId1, userId2) => {
 // Add message listener for a specific channel
 export const addMessageListener = (channel, callback) => {
   if (!pubnubConnection) {
-    console.error('Cannot add message listener: No active connection');
     return false;
   }
   
@@ -111,20 +95,13 @@ export const addMessageListener = (channel, callback) => {
     // Add listener for messages
     const listener = {
       message: (messageEvent) => {
-        console.log('Received message:', messageEvent);
         callback(messageEvent.message);
       },
-      presence: (presenceEvent) => {
-        console.log('Presence event:', presenceEvent);
+      presence: () => {
+        // Handle presence events silently
       },
       status: (statusEvent) => {
-        if (statusEvent.category === 'PNConnectedCategory') {
-          console.log('Connected to PubNub channel:', channel);
-        } else if (statusEvent.category === 'PNNetworkDownCategory') {
-          console.error('Network down for PubNub');
-        } else if (statusEvent.category === 'PNNetworkUpCategory') {
-          console.log('Network restored for PubNub');
-        }
+        // Handle status events silently
       }
     };
     
@@ -134,8 +111,7 @@ export const addMessageListener = (channel, callback) => {
     pubnubConnection._customListener = listener;
     
     return true;
-  } catch (error) {
-    console.error('Error adding message listener:', error);
+  } catch {
     return false;
   }
 };
@@ -159,8 +135,7 @@ export const removeMessageListener = (channel) => {
     }
     
     return true;
-  } catch (error) {
-    console.error('Error removing message listener:', error);
+  } catch {
     return false;
   }
 };
@@ -185,10 +160,8 @@ export const sendChatMessage = async (channel, message, metadata = {}) => {
       }
     });
     
-    console.log('PubNub message sent successfully', result);
     return result;
   } catch (error) {
-    console.error('Error sending PubNub message:', error);
     throw error;
   }
 };
@@ -200,16 +173,11 @@ export const testPubNubConnection = async () => {
     const testUserId = "testUser123";
     const testChannel = "test-channel";
     
-    console.log("⚠️ RUNNING TEST CONNECTION with test user ID ⚠️");
-    console.log(`Test User ID: ${testUserId}`);
-    console.log(`Test Channel: ${testChannel}`);
-    
     // Create a fresh connection
     pubnubConnection = null;
     const pubnub = await getPubNub();
     
     if (!pubnub) {
-      console.error('Failed to initialize PubNub');
       return false;
     }
     
@@ -220,16 +188,13 @@ export const testPubNubConnection = async () => {
     return new Promise((resolve) => {
       pubnub.time((status) => {
         if (!status.error) {
-          console.log('✅ TEST CONNECTION: PubNub connection successful!');
           resolve(true);
         } else {
-          console.error('❌ TEST CONNECTION: Failed!', status);
           resolve(false);
         }
       });
     });
-  } catch (error) {
-    console.error('TEST CONNECTION: Exception occurred', error);
+  } catch {
     return false;
   }
 };

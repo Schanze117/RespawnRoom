@@ -5,7 +5,7 @@ import { SEND_MESSAGE, MARK_MESSAGES_AS_READ } from '../../../utils/mutations';
 import UserAvatar from './UserUtils';
 import { format } from 'date-fns';
 import { getPubNub, connectPubNub, addMessageListener, removeMessageListener, sendChatMessage, testPubNubConnection, getPrivateChannel } from '../../../utils/pubnubChat';
-import Auth from '../../../utils/auth'; // Import Auth to get current user details
+import Auth from '../../../utils/auth';
 
 // Helper function to validate dates before formatting
 const isValidDate = (dateString) => {
@@ -24,7 +24,7 @@ const ChatPopup = ({ friend, onClose }) => {
   const chatContainerRef = useRef(null);
   const messageEndRef = useRef(null);
   const chatInitialized = useRef(false);
-  const currentUser = Auth.getProfile(); // Get current user info
+  const currentUser = Auth.getProfile();
   const [showDebug, setShowDebug] = useState(false);
   const channelRef = useRef(null);
 
@@ -40,7 +40,6 @@ const ChatPopup = ({ friend, onClose }) => {
         setChatError('PubNub test connection failed. Check console for details.');
       }
     } catch (error) {
-      console.error('Test connection error:', error);
       setChatError(`PubNub test failed: ${error.message || 'Unknown error'}`);
     }
   };
@@ -57,15 +56,12 @@ const ChatPopup = ({ friend, onClose }) => {
     onCompleted: (data) => {
       try {
         if (!data || !data.getMessages) {
-          console.log('No messages data returned from query');
           setMessages([]);
           return;
         }
         
         // Ensure we have an array of messages
         const messageList = Array.isArray(data.getMessages) ? data.getMessages : [];
-        
-        console.log('Messages loaded:', messageList.length);
         setMessages(messageList);
         
         // Mark messages as read when we load them - only if there are any
@@ -73,20 +69,18 @@ const ChatPopup = ({ friend, onClose }) => {
           try {
             markAsRead({ 
               variables: { senderId: friend._id }
-            }).catch(error => {
-              console.error("Error marking messages as read:", error);
+            }).catch(() => {
+              // Handle error silently
             });
-          } catch (error) {
-            console.error("Error marking messages as read:", error);
+          } catch {
+            // Handle error silently
           }
         }
-      } catch (error) {
-        console.error("Error processing messages:", error);
+      } catch {
         setMessages([]);
       }
     },
-    onError: (error) => {
-      console.error("Error loading messages:", error);
+    onError: () => {
       // Handle the error gracefully and don't alarm the user unnecessarily
       setMessages([]);
     }
@@ -94,8 +88,6 @@ const ChatPopup = ({ friend, onClose }) => {
 
   // Message listener function to handle incoming real-time messages
   const handleNewMessage = (message) => {
-    console.log("PubNub real-time message received:", message);
-    
     // Check if message is from the current chat partner (using the senderId field)
     if (message.senderId === friend._id) {
       // Ensure we have a valid timestamp
@@ -121,11 +113,11 @@ const ChatPopup = ({ friend, onClose }) => {
       try {
         markAsRead({ 
           variables: { senderId: friend._id }
-        }).catch(error => {
-          console.error("Error marking messages as read:", error);
+        }).catch(() => {
+          // Handle error silently
         });
-      } catch (error) {
-        console.error("Error marking messages as read:", error);
+      } catch {
+        // Handle error silently
       }
     }
   };
@@ -140,17 +132,13 @@ const ChatPopup = ({ friend, onClose }) => {
       try {
         // Make sure we have the current user information
         if (!currentUser || !currentUser._id) {
-          console.error("Cannot initialize PubNub: Current user information not available");
           return false;
         }
-        
-        console.log(`Initializing PubNub for user ${currentUser._id}`);
         
         // Get PubNub connection
         const pubnub = await getPubNub();
         
         if (!pubnub) {
-          console.error("Failed to get PubNub connection");
           return false;
         }
         
@@ -159,7 +147,6 @@ const ChatPopup = ({ friend, onClose }) => {
         
         // Create a channel for this private chat
         channelRef.current = getPrivateChannel(currentUser._id, friend._id);
-        console.log(`Using PubNub channel: ${channelRef.current}`);
         
         // Add message listener for this channel
         const listenerAdded = addMessageListener(channelRef.current, handleNewMessage);
@@ -167,14 +154,11 @@ const ChatPopup = ({ friend, onClose }) => {
         if (listenerAdded) {
           chatInitialized.current = true;
           chatConnected = true;
-          console.log("PubNub chat initialized and connected successfully");
           return true;
         } else {
-          console.error("Failed to add message listener");
           return false;
         }
       } catch (error) {
-        console.error("PubNub chat initialization error:", error);
         chatInitialized.current = false;
         setChatError('Chat initialization failed. Messages will be sent via server only.');
         return false;
@@ -184,11 +168,9 @@ const ChatPopup = ({ friend, onClose }) => {
     // Try to initialize PubNub chat
     initPubNub().then(success => {
       if (!success) {
-        console.log("Failed to initialize PubNub Chat, using GraphQL only");
         chatInitialized.current = false;
       }
-    }).catch(error => {
-      console.error("Exception during PubNub chat initialization:", error);
+    }).catch(() => {
       chatInitialized.current = false;
     });
     
@@ -206,12 +188,11 @@ const ChatPopup = ({ friend, onClose }) => {
                 }
               }
             })
-            .catch(error => {
-              console.error("Error polling messages:", error);
-              // No need to set error state here as polling is a background operation
+            .catch(() => {
+              // Handle error silently
             });
-        } catch (error) {
-          console.error("Exception during message polling:", error);
+        } catch {
+          // Handle error silently
         }
       }
     }, 10000); // Poll every 10 seconds
@@ -297,17 +278,14 @@ const ChatPopup = ({ friend, onClose }) => {
                 id: serverMessage._id
               }
             );
-            console.log("Message sent via PubNub real-time chat");
-          } catch (error) {
-            console.error("Error sending via PubNub:", error);
-            // No need to notify user since message was already saved via GraphQL
+          } catch {
+            // Handle error silently
           }
         }
       } else {
         throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error("Error sending message:", error);
       setChatError('Failed to send message. Please try again.');
       
       // Remove pending message

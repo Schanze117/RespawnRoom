@@ -58,8 +58,6 @@ export default function DiscoverForm() {
             }
             // Display the search results
             setDisplay(<GameCard games={results} />);
-            console.log("Form submitted:", discoverForm);
-            console.log("Search results:", results);
         } catch (error) {
             console.error("Error filtering games:", error);
         }
