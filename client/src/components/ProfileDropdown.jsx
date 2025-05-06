@@ -1,10 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FaUserCircle, FaMedal, FaKey, FaSignOutAlt } from 'react-icons/fa';
-import BadgeMenu from './BadgeMenu';
-import badge10 from '../assets/10-search-badge.png';
-import badge50 from '../assets/50-search-badge.png';
-import badge100 from '../assets/100-search-badge.png';
-import badge250 from '../assets/250-search-badge.png';
+import { FaUserCircle, FaKey, FaSignOutAlt } from 'react-icons/fa';
 
 /**
  * ProfileDropdown - Shows a profile/account icon with a dropdown menu for user actions.
@@ -21,14 +16,6 @@ export default function ProfileDropdown({ user, onLogout }) {
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
-
-  // Example badge data; replace with user.badges if available
-  const badges = [
-    { src: badge10, name: '10 Searches' },
-    { src: badge50, name: '50 Searches' },
-    { src: badge100, name: '100 Searches' },
-    { src: badge250, name: '250 Searches' },
-  ];
 
   // Close dropdown if clicked outside
   useEffect(() => {
@@ -100,11 +87,6 @@ export default function ProfileDropdown({ user, onLogout }) {
                 <FaKey className="mr-2" />
                 Change Password
               </button>
-            </li>
-            <li>
-              <div className="flex items-center justify-start px-4 py-2 text-light">
-                <BadgeMenu badges={badges} />
-              </div>
             </li>
             <li>
               <button

@@ -67,7 +67,7 @@ export default function HeroCarousel() {
         className="relative overflow-hidden rounded-lg h-80 bg-surface-800 border border-surface-600" 
         key={`hero-${respawnCount}`}
       >
-        {/* Backdrop Image */}
+        {/* Backdrop img */}
         {backdropImage && (
           <div 
             className="absolute inset-0 bg-center bg-cover opacity-20"
