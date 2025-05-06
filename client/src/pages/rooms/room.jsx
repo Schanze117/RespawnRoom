@@ -118,34 +118,39 @@ export default function Room() {
 
   // Ensure the Agora client is initialized correctly
   useEffect(() => {
-    if (!clientRef.current) {
-      console.log('Creating new Agora RTC client');
-      try {
-        // Configure client with better parameters for challenging networks
-        clientRef.current = AgoraRTC.createClient({ 
-          mode: 'rtc', 
-          codec: 'vp8',
-          // Add parameters to help with network issues
-          clientRoleType: 1, // 1 for host, 2 for audience
-          enableCloudProxy: false, // Enable if network conditions are difficult
-          proxyServer: null, // Set to URL if custom proxy is needed
-          turnServer: {
-            forceTurn: false, // Set to true if direct connection fails
-            turnServerURL: null, // Custom TURN server URL
-            username: null,
-            password: null,
-            udpport: null,
-            tcpport: null,
-            forcetcp: false
-          },
-          iceTransportPolicy: "all" // "all" (default) or "relay" for networks with strict firewalls
-        });
-        console.log('Agora RTC client created successfully');
-      } catch (err) {
-        console.error('Failed to create Agora client:', err);
-        setConnectionError('Failed to initialize video call system. Please try again later.');
+    let initAttempts = 0;
+    const maxInitAttempts = 3;
+    
+    const initializeClient = () => {
+      if (!clientRef.current && initAttempts < maxInitAttempts) {
+        console.log(`Creating new Agora RTC client (attempt ${initAttempts + 1}/${maxInitAttempts})`);
+        try {
+          // Configure client with better parameters for challenging networks
+          clientRef.current = AgoraRTC.createClient({ 
+            mode: 'rtc', 
+            codec: 'vp8',
+            // Add parameters to help with network issues
+            clientRoleType: 1, // 1 for host, 2 for audience
+            enableCloudProxy: false // Enable if network conditions are difficult
+            // No proxyServer parameter to avoid INVALID_PARAMS error
+          });
+          console.log('Agora RTC client created successfully');
+        } catch (err) {
+          console.error('Failed to create Agora client:', err);
+          setConnectionError('Failed to initialize video call system. Please try again later.');
+          
+          // Retry initialization after delay
+          initAttempts++;
+          if (initAttempts < maxInitAttempts) {
+            console.log(`Retrying client initialization in ${initAttempts} seconds...`);
+            setTimeout(initializeClient, initAttempts * 1000);
+          }
+        }
       }
-    }
+    };
+    
+    // Initialize the client
+    initializeClient();
     
     // Cleanup function
     return () => {
@@ -209,6 +214,12 @@ export default function Room() {
   useEffect(() => {
     // Set up event listeners for Agora
     const setupEventListeners = () => {
+      // Check if client is initialized before attaching event listeners
+      if (!clientRef.current) {
+        console.error('Cannot set up event listeners: Agora client is not initialized');
+        return;
+      }
+      
       clientRef.current.on('user-published', handleUserPublished);
       clientRef.current.on('user-unpublished', handleUserUnpublished);
       clientRef.current.on('user-left', handleUserLeft);
@@ -275,17 +286,22 @@ export default function Room() {
         setLocalTracks([]);
       }
       
-      // Remove all event listeners
-      console.log('Removing event listeners');
-      clientRef.current.removeAllListeners();
-      
-      // Leave the channel
-      try {
-        console.log('Leaving Agora channel');
-        await clientRef.current.leave();
-        console.log('Successfully left channel');
-      } catch (err) {
-        console.error('Error leaving channel:', err);
+      // Check if client exists before cleanup
+      if (clientRef.current) {
+        // Remove all event listeners
+        console.log('Removing event listeners');
+        clientRef.current.removeAllListeners();
+        
+        // Leave the channel
+        try {
+          console.log('Leaving Agora channel');
+          await clientRef.current.leave();
+          console.log('Successfully left channel');
+        } catch (err) {
+          console.error('Error leaving channel:', err);
+        }
+      } else {
+        console.log('No Agora client to clean up');
       }
       
       // Notify context that we're exiting the room
@@ -304,11 +320,18 @@ export default function Room() {
           return;
         }
         
+        // Check if client is initialized before proceeding
+        if (!clientRef.current) {
+          console.error('Cannot join: Agora client is not initialized');
+          setConnectionError('Failed to initialize video call system. Please refresh and try again.');
+          return;
+        }
+        
         // Set up event listeners first
         setupEventListeners();
         
         // Check if we have a valid App ID
-        const appId = import.meta.env.VITE_AGORA_APP_ID;
+        const appId = import.meta.env.AGORA_APP_ID;
         if (!appId) {
           console.error('Missing Agora App ID - check your environment variables');
           setConnectionError('Agora App ID not configured properly. Please check your environment variables.');
@@ -358,7 +381,8 @@ export default function Room() {
               
               while (!joinSuccess && retryCount <= maxRetries) {
                 try {
-                  await clientRef.current.join(tokenData.appId, roomId, tokenData.token, tokenData.uid || uid.current);
+                  // Use hardcoded ID as fallback
+                  await clientRef.current.join(tokenData.appId || import.meta.env.AGORA_APP_ID, roomId, tokenData.token, tokenData.uid || uid.current);
                   console.log('Successfully joined with token');
                   joinSuccess = true;
                 } catch (tokenJoinError) {
@@ -376,7 +400,7 @@ export default function Room() {
                   if (retryCount > maxRetries) {
                     console.log('Max retries reached, attempting direct join');
                     // Fallback to direct join as last resort
-                    await clientRef.current.join(appId, roomId, null, uid.current);
+                    await clientRef.current.join(import.meta.env.AGORA_APP_ID, roomId, null, uid.current);
                     console.log('Successfully joined with direct join');
                     joinSuccess = true;
                   } else {
@@ -388,7 +412,7 @@ export default function Room() {
             } else {
               // Direct join without token
               console.log('No token available, using direct join');
-              await clientRef.current.join(appId, roomId, null, uid.current);
+              await clientRef.current.join(import.meta.env.AGORA_APP_ID, roomId, null, uid.current);
               console.log('Successfully joined with direct join');
             }
           } catch (joinError) {
@@ -653,8 +677,25 @@ export default function Room() {
   };
 
   const leaveRoom = async () => {
-    localTracks.forEach(track => track.close());
-    await clientRef.current.leave();
+    if (localTracks.length > 0) {
+      localTracks.forEach(track => {
+        try {
+          track.stop();
+          track.close();
+        } catch (err) {
+          console.error('Error closing track:', err);
+        }
+      });
+    }
+    
+    if (clientRef.current) {
+      try {
+        await clientRef.current.leave();
+      } catch (err) {
+        console.error('Error leaving channel:', err);
+      }
+    }
+    
     exitRoom();
     navigate('/rooms');
   };

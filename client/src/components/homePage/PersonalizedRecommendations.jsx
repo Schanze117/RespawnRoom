@@ -484,12 +484,18 @@ export default function PersonalizedRecommendations() {
           <h2 className="text-2xl font-bold text-primary-500">For You</h2>
         </div>
         <div className="flex flex-col items-center justify-center h-64 text-center bg-surface-800 rounded-lg p-6 border border-surface-700">
-          <h3 className="text-xl font-semibold text-gray-700 mb-4">Save a Game!</h3>
+          <h3 className="text-xl font-semibold text-gray-700 mb-4">
+            Save a Game!
+          </h3>
           <p className="text-gray-500 mb-6">
-            Save games to your profile to get personalized recommendations based on your preferences.
+            Save games to your profile to get personalized recommendations based
+            on your preferences.
           </p>
-          <Link to="/profile" className="bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg">
-            Go to Profile
+          <Link
+            to="/Discover"
+            className="bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg"
+          >
+            Go Discover
           </Link>
         </div>
       </section>
