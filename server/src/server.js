@@ -28,13 +28,16 @@ const PORT = process.env.PORT || 3001;
 // Apply CORS middleware globally
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? process.env.CLIENT_URL || 'https://respawn-room.herokuapp.com' 
+    ? [process.env.CLIENT_URL, 'https://respawn-room.onrender.com']
     : 'http://localhost:3000',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
-app.use(express.static('../client/dist'));
+// Remove static file serving since we're running client and server separately
+// app.use(express.static('../client/dist'));
 app.use(routes); // Mount API routes from routes/index.js
 
 passport.use(new GoogleStrategy({
@@ -661,15 +664,6 @@ app.post("/api/game_videos", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-// Serve static files from the React app
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../../client/dist')));
-
-  app.get('*', (_req, res) => {
-    res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
-  });
-}
 
 // Start the server
 app.listen(PORT, () => {
