@@ -37,11 +37,11 @@ RespawnRoom offers a seamless, user-friendly platform for all your gaming needs.
 
 ## SCREENSHOT 
 
-![Image](https://github.com/user-attachments/assets/dee434fb-5803-40a4-a5e3-78f50c85b226)
-![RespawnRoom Screenshot][(https://postimg.cc/PPJpD0Rd](https://private-user-images.githubusercontent.com/185113154/422647738-10e101ae-cd8d-447a-9779-1f798d6a07b6.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDE5Mjk0MDcsIm5iZiI6MTc0MTkyOTEwNywicGF0aCI6Ii8xODUxMTMxNTQvNDIyNjQ3NzM4LTEwZTEwMWFlLWNkOGQtNDQ3YS05Nzc5LTFmNzk4ZDZhMDdiNi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjUwMzE0JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI1MDMxNFQwNTExNDdaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0xNmM5ZjM0MzIzZDA3NmYyY2RjMzE5MWE5OTM5Njk2YzFhMDk3NWE5NjA5MzljYWM4ZjNkMmQ5MjU4M2RkOGJlJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.yrfQYfjBpLzOJplCBqblIVknK5nWBTRdkewQNBPD5Yk))
+<img width="951" alt="image" src="https://github.com/user-attachments/assets/1de82e68-2dd5-4cd6-8aa1-ac0cfe2e4e78" />
+
 
 ## LINK TO PROJECT
-![RespawnRoom](https://respawnroom.onrender.com/)
+https://respawnroom-client.onrender.com/
 
 ## Key Features
 
