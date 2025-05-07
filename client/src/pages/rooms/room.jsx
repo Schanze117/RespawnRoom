@@ -345,7 +345,7 @@ export default function Room() {
         setupEventListeners();
         
         // Check if we have a valid App ID
-        const appId = import.meta.env.AGORA_APP_ID;
+        const appId = import.meta.env.VITE_AGORA_APP_ID;
         if (!appId) {
           setConnectionError('Agora App ID not configured properly. Please check your environment variables.');
           return;
@@ -374,55 +374,19 @@ export default function Room() {
           // Try to get token first
           const tokenData = await fetchToken(roomId);
           
-          try {
-            if (tokenData && tokenData.token) {
-              setTokenDetails(tokenData);
-              
-              // Join with token - with retries for network issues
-              let joinSuccess = false;
-              let retryCount = 0;
-              const maxRetries = 2;
-              
-              while (!joinSuccess && retryCount <= maxRetries) {
-                try {
-                  // Use hardcoded ID as fallback
-                  await clientRef.current.join(tokenData.appId || import.meta.env.AGORA_APP_ID, roomId, tokenData.token, tokenData.uid || uid.current);
-                  joinSuccess = true;
-                } catch (tokenJoinError) {
-                  retryCount++;
-                  
-                  // Check for token access error
-                  if (tokenJoinError.message && (
-                      tokenJoinError.message.includes('token access room forbidden') ||
-                      tokenJoinError.message.includes('CAN_NOT_JOIN_CHANNEL')
-                    )) {
-                    throw new Error('Authentication failed: Invalid or expired token. Please try again.');
-                  }
-                  
-                  if (retryCount > maxRetries) {
-                    // Fallback to direct join as last resort
-                    await clientRef.current.join(import.meta.env.AGORA_APP_ID, roomId, null, uid.current);
-                    joinSuccess = true;
-                  } else {
-                    await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
-                  }
-                }
-              }
-            } else {
-              // Direct join without token
-              await clientRef.current.join(import.meta.env.AGORA_APP_ID, roomId, null, uid.current);
-            }
-          } catch (joinError) {
-            if (joinError.message && (
-                joinError.message.includes('token access room forbidden') ||
-                joinError.message.includes('CAN_NOT_JOIN_CHANNEL')
-              )) {
-              setConnectionError('Cannot join room: Access denied. Please try again later.');
-            } else {
-              setConnectionError(`Failed to join room: ${joinError.message}`);
-            }
-            throw joinError;
+          if (!tokenData || !tokenData.token) {
+            throw new Error('Failed to get room access token');
           }
+          
+          setTokenDetails(tokenData);
+          
+          // Join with token
+          await clientRef.current.join(
+            tokenData.appId || appId,
+            roomId,
+            tokenData.token,
+            tokenData.uid || uid.current
+          );
           
           // Create and publish tracks based on mode
           let tracks = [];
@@ -431,6 +395,7 @@ export default function Room() {
             const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
             tracks.push(audioTrack);
           } catch (audioError) {
+            console.error('Failed to create audio track:', audioError);
             setConnectionError('Could not access microphone. Please check permissions.');
           }
           
@@ -448,6 +413,7 @@ export default function Room() {
               tracks.push(videoTrack);
               setIsVideoOff(false);
             } catch (videoError) {
+              console.error('Failed to create video track:', videoError);
               setIsVideoOff(true);
             }
           }
@@ -467,10 +433,12 @@ export default function Room() {
           // Joining complete
           setJoining(false);
         } catch (joinError) {
+          console.error('Failed to join room:', joinError);
           setConnectionError(`Failed to join room: ${joinError.message}`);
           cleanup();
         }
       } catch (outerError) {
+        console.error('Connection error:', outerError);
         setConnectionError(`Connection error: ${outerError.message}`);
         cleanup();
       }

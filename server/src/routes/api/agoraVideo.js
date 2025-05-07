@@ -24,13 +24,13 @@ const validateCredentials = () => {
   
   // Validate APP_ID format (should be a 32-character hex string)
   if (!/^[0-9a-f]{32}$/i.test(APP_ID)) {
-    console.error('Invalid AGORA_APP_ID format');
+    console.error('Invalid AGORA_APP_ID format:', APP_ID);
     return false;
   }
   
   // Validate APP_CERTIFICATE format (should be a 32-character hex string)
   if (!/^[0-9a-f]{32}$/i.test(APP_CERTIFICATE)) {
-    console.error('Invalid AGORA_APP_CERTIFICATE format');
+    console.error('Invalid AGORA_APP_CERTIFICATE format:', APP_CERTIFICATE);
     return false;
   }
   
@@ -80,7 +80,9 @@ router.get('/token', (req, res) => {
       uid: tokenUid,
       hasToken: !!token,
       appIdLength: APP_ID?.length,
-      tokenLength: token?.length
+      tokenLength: token?.length,
+      appId: APP_ID,
+      certificateLength: APP_CERTIFICATE?.length
     });
     
     // Return the token to the client
@@ -99,7 +101,9 @@ router.get('/token', (req, res) => {
       appIdPresent: !!APP_ID,
       certificatePresent: !!APP_CERTIFICATE,
       errorMessage: error.message,
-      errorStack: error.stack
+      errorStack: error.stack,
+      appId: APP_ID,
+      certificateLength: APP_CERTIFICATE?.length
     });
     return res.status(500).json({ success: false, message: 'Failed to generate token' });
   }
