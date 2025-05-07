@@ -11,6 +11,32 @@ const router = express.Router();
 const APP_ID = process.env.AGORA_APP_ID;
 const APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE;
 
+// Validate Agora credentials
+const validateCredentials = () => {
+  if (!APP_ID || !APP_CERTIFICATE) {
+    console.error('Agora credentials missing:', { 
+      hasAppId: !!APP_ID, 
+      hasAppCertificate: !!APP_CERTIFICATE,
+      envKeys: Object.keys(process.env)
+    });
+    return false;
+  }
+  
+  // Validate APP_ID format (should be a 32-character hex string)
+  if (!/^[0-9a-f]{32}$/i.test(APP_ID)) {
+    console.error('Invalid AGORA_APP_ID format');
+    return false;
+  }
+  
+  // Validate APP_CERTIFICATE format (should be a 32-character hex string)
+  if (!/^[0-9a-f]{32}$/i.test(APP_CERTIFICATE)) {
+    console.error('Invalid AGORA_APP_CERTIFICATE format');
+    return false;
+  }
+  
+  return true;
+};
+
 // Generate a token for Agora RTC (voice/video)
 router.get('/token', (req, res) => {
   const { channel, uid } = req.query;
@@ -20,14 +46,14 @@ router.get('/token', (req, res) => {
     return res.status(400).json({ success: false, message: 'Channel name is required' });
   }
   
-  // Check if Agora credentials are configured
-  if (!APP_ID || !APP_CERTIFICATE) {
-    console.error('Agora credentials missing:', { 
-      hasAppId: !!APP_ID, 
-      hasAppCertificate: !!APP_CERTIFICATE,
-      envKeys: Object.keys(process.env)
-    });
-    return res.status(500).json({ success: false, message: 'Agora video credentials not configured on server' });
+  // Validate channel name format
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(channel)) {
+    return res.status(400).json({ success: false, message: 'Invalid channel name format' });
+  }
+  
+  // Check if Agora credentials are configured and valid
+  if (!validateCredentials()) {
+    return res.status(500).json({ success: false, message: 'Agora video credentials not configured properly on server' });
   }
   
   try {
@@ -53,7 +79,8 @@ router.get('/token', (req, res) => {
       channel,
       uid: tokenUid,
       hasToken: !!token,
-      appIdLength: APP_ID?.length
+      appIdLength: APP_ID?.length,
+      tokenLength: token?.length
     });
     
     // Return the token to the client
@@ -70,7 +97,9 @@ router.get('/token', (req, res) => {
       channel,
       uid,
       appIdPresent: !!APP_ID,
-      certificatePresent: !!APP_CERTIFICATE
+      certificatePresent: !!APP_CERTIFICATE,
+      errorMessage: error.message,
+      errorStack: error.stack
     });
     return res.status(500).json({ success: false, message: 'Failed to generate token' });
   }

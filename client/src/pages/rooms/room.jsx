@@ -191,19 +191,46 @@ export default function Room() {
   // Fetch token from server
   const fetchToken = async (channelName) => {
     try {
-      const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/api/agora/token`;
-      const response = await fetch(`${apiUrl}?channel=${channelName}`);
-      if (!response.ok) {
-        console.error('Token fetch failed:', await response.text());
-        throw new Error('Failed to fetch token from server');
+      // Ensure we have a valid base URL
+      const baseUrl = import.meta.env.VITE_API_BASE_URL;
+      if (!baseUrl) {
+        console.error('VITE_API_BASE_URL is not configured');
+        throw new Error('API base URL not configured');
       }
-      const data = await response.json();
+
+      // Construct the full URL
+      const apiUrl = `${baseUrl}/api/agora/token`;
+      console.log('Fetching token from:', apiUrl);
+
+      const response = await fetch(`${apiUrl}?channel=${channelName}`);
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        console.error('Token fetch failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          response: responseText
+        });
+        throw new Error(`Failed to fetch token: ${response.statusText}`);
+      }
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse token response:', responseText);
+        throw new Error('Invalid token response format');
+      }
+
       if (!data.success) {
         throw new Error(data.message || 'Token generation failed');
       }
+
+      console.log('Token received successfully');
       return data;
     } catch (error) {
       console.error('Token fetch error:', error);
+      setConnectionError(`Failed to get room access: ${error.message}`);
       return null;
     }
   };
@@ -223,14 +250,15 @@ export default function Room() {
       
       // Add connection state change listener
       clientRef.current.on('connection-state-change', (curState, prevState) => {
+        console.log('Connection state changed:', { curState, prevState });
         if (curState === 'DISCONNECTED') {
           setConnectionError('Connection to the room was lost. Please check your network connection.');
         } else if (curState === 'CONNECTING') {
-          // Connection attempt in progress
+          setConnectionError('Connecting to room...');
         } else if (curState === 'CONNECTED') {
           setConnectionError('');
         } else if (curState === 'RECONNECTING') {
-          // Reconnection attempt in progress
+          setConnectionError('Reconnecting to room...');
         } else if (curState === 'FAILED') {
           setConnectionError('Failed to connect to the room. Please try again later.');
         }
@@ -238,9 +266,16 @@ export default function Room() {
 
       // Add specific error handling for token issues
       clientRef.current.on('token-privilege-did-expire', async function() {
+        console.log('Token expired, attempting to renew...');
         const newTokenData = await fetchToken(roomId);
         if (newTokenData && newTokenData.token) {
-          await clientRef.current.renewToken(newTokenData.token);
+          try {
+            await clientRef.current.renewToken(newTokenData.token);
+            console.log('Token renewed successfully');
+          } catch (e) {
+            console.error('Failed to renew token:', e);
+            setConnectionError('Session expired. Please rejoin the room.');
+          }
         } else {
           setConnectionError('Your session has expired. Please rejoin the room.');
         }
@@ -248,6 +283,7 @@ export default function Room() {
 
       // Add error event listener
       clientRef.current.on('exception', (event) => {
+        console.error('Agora exception:', event);
         if (event.code === 'CAN_NOT_JOIN_CHANNEL' || (event.message && event.message.includes('token access room forbidden'))) {
           setConnectionError('Cannot join room: Access denied. This may be due to an expired token or insufficient permissions.');
         }
