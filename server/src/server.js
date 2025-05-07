@@ -29,7 +29,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? [process.env.CLIENT_URL, 'https://respawn-room.onrender.com']
-    : 'http://localhost:3000',
+    : [process.env.CLIENT_URL],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -43,7 +43,7 @@ app.use(routes); // Mount API routes from routes/index.js
 passport.use(new GoogleStrategy({
   clientID:     process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL:  process.env.GOOGLE_CALLBACK_URL || `http://localhost:${PORT}/auth/google/callback`
+  callbackURL:  process.env.GOOGLE_CALLBACK_URL 
 },
 async (accessToken, refreshToken, profile, done) => {
   try {
