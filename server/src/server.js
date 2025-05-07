@@ -28,8 +28,8 @@ const PORT = process.env.PORT || 3001;
 // Apply CORS middleware globally
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.CLIENT_URL, 'https://respawn-room.onrender.com']
-    : [process.env.CLIENT_URL],
+    ? [process.env.CLIENT_URL, 'https://respawn-room.onrender.com', 'https://respawnroom-client.onrender.com']
+    : [process.env.CLIENT_URL, 'http://localhost:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'cache-control']

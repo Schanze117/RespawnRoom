@@ -22,6 +22,7 @@ router.get('/token', (req, res) => {
   
   // Check if Agora credentials are configured
   if (!APP_ID || !APP_CERTIFICATE) {
+    console.error('Agora credentials missing:', { APP_ID: !!APP_ID, APP_CERTIFICATE: !!APP_CERTIFICATE });
     return res.status(500).json({ success: false, message: 'Agora video credentials not configured on server' });
   }
   
