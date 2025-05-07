@@ -22,19 +22,22 @@ router.get('/token', (req, res) => {
   
   // Check if Agora credentials are configured
   if (!APP_ID || !APP_CERTIFICATE) {
-    console.error('Agora credentials missing:', { APP_ID: !!APP_ID, APP_CERTIFICATE: !!APP_CERTIFICATE });
+    console.error('Agora credentials missing:', { 
+      hasAppId: !!APP_ID, 
+      hasAppCertificate: !!APP_CERTIFICATE,
+      envKeys: Object.keys(process.env)
+    });
     return res.status(500).json({ success: false, message: 'Agora video credentials not configured on server' });
   }
   
   try {
     // Set expiration time (in seconds)
-    // Default to 3600 seconds (1 hour)
     const expirationTimeInSeconds = 3600;
     const currentTimestamp = Math.floor(Date.now() / 1000);
     const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
     
     // Use the provided UID or generate a random one
-    const tokenUid = uid || Math.floor(Math.random() * 100000);
+    const tokenUid = parseInt(uid) || Math.floor(Math.random() * 100000);
     
     // Build the token with RTC publisher privileges
     const token = RtcTokenBuilder.buildTokenWithUid(
@@ -46,6 +49,13 @@ router.get('/token', (req, res) => {
       privilegeExpiredTs
     );
     
+    console.log('Token generated successfully:', {
+      channel,
+      uid: tokenUid,
+      hasToken: !!token,
+      appIdLength: APP_ID?.length
+    });
+    
     // Return the token to the client
     return res.json({
       success: true,
@@ -56,7 +66,12 @@ router.get('/token', (req, res) => {
       expiresIn: expirationTimeInSeconds
     });
   } catch (error) {
-    console.error('Error generating Agora video token:', error);
+    console.error('Error generating Agora video token:', error, {
+      channel,
+      uid,
+      appIdPresent: !!APP_ID,
+      certificatePresent: !!APP_CERTIFICATE
+    });
     return res.status(500).json({ success: false, message: 'Failed to generate token' });
   }
 });
