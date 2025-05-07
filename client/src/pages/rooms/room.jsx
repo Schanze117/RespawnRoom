@@ -191,7 +191,7 @@ export default function Room() {
   // Fetch token from server
   const fetchToken = async (channelName) => {
     try {
-      const response = await fetch(`/api/agora/token?channel=${channelName}`);
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/agora/token?channel=${channelName}`);
       if (!response.ok) {
         throw new Error('Failed to fetch token from server');
       }
