@@ -67,7 +67,7 @@ export default function Register() {
           {/* Google Login Button */}
           <div className="text-center">
             <a
-              href="http://localhost:3001/auth/google"
+              href="https://respawnroom-server.onrender.com/auth/google"
               className="w-full text-center mb-4 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg text-sm px-5 py-2.5 flex items-center justify-center"
             >
               <svg
