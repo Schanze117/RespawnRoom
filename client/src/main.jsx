@@ -17,7 +17,7 @@ import { GameProvider } from './utils/GameContext.jsx';
 
 // Create an HTTP link
 const httpLink = createHttpLink({
-  uri: 'http://localhost:3001/graphql',
+  uri: 'https://respawnroom-server.onrender.com/graphql',
   credentials: 'include',
 });
 
