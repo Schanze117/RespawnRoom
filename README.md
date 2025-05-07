@@ -29,11 +29,11 @@
 
 ## Overview
 
-RespawnRoom is your all-in-one gaming hub, designed to streamline the way you discover, organize, and manage your gaming collection. Whether you're looking for your next favorite title, curating a personalized wishlist, or tracking your backlog, RespawnRoom makes it easy to stay on top of it all.
+RespawnRoom is your all-in-one gaming hub, designed to streamline the way you discover, organize, and manage your gaming collection. Whether you're looking for your next favorite title, curating a personalized wishlist, tracking your backlog, staying connected with friends, or tracking friends progress on what type of games they have played. RespawnRoom makes it easy to stay on top of it all.
 
 ## Description
 
-RespawnRoom offers a seamless, user-friendly platform for all your gaming needs. With features like game discovery, wishlist management, it’s the ultimate tool for gamers who want to keep their gaming journey organized and connected. Whether you're an avid gamer exploring new titles or managing your growing backlog, RespawnRoom enhances your entire gaming experience beyond just playing games.
+RespawnRoom offers a seamless, user-friendly platform for all your gaming needs. With features like game discovery, wishlist management, it’s the ultimate tool for gamers who want to keep their gaming journey organized and connected. Whether you're an avid gamer exploring new titles or managing your growing backlog, RespawnRoom enhances your entire gaming experience beyond just playing games. Respawn rooms allows you to stay connected with other avid gamers on the socail network platform. 
 
 ## SCREENSHOT 
 
@@ -102,6 +102,7 @@ During the development of RespawnRoom, I gained valuable insights into:
 3. **UI/UX Enhancements** - Focused on improving user experience with clean design principles.
 4. **Version Control & Collaboration** - Strengthened my skills in using Git for managing project versions and collaborating with others.
 5. **Feature Development** - Worked on adding interactive features that enhance user engagement.
+6. Read Docs more thoroughly.
 
 ## Roadmap
 
@@ -171,19 +172,19 @@ Project Team
    UX/UI Designer: Leads the design of visual elements, ensuring a seamless user experience with React and Tailwind. Testing/QA
 
 - Saleh Farah - https://github.com/sfar93
-   Frontend Developer: Manages token authentication and API integrations. Testing/QA
+   Backend/Front End Developer: Handled token authentication, API integrations, and social network integrations. Testing/QA
 
 - James Boulden - https://github.com/JamixB97
-   Backend Developer: Oversees backend architecture and API integrations. Testing/QA
+   Backend/Front End Developer: Created Search and Discover API integrations. Converted database from PostgreSQL to MongoDB and API Routes to Graphql. Testing/QA
 
 - Aaron Schanzenbach - https://github.com/Schanze117
-   Backend Engineer: Handles authentication, task allocation, and team coordination. Testing/QA
+   Backend/Front End Engineer: Managed authentication, task allocation, and team coordination. Created Badges for profiles. Testing/QA
 
-- Timothy McGrath - https://github.com/treeewzrd
-   Documentation: Readme and slideshow creation. Also contributed to presentation design. testing/QA
+- Mahdi Ghaleb - https://github.com/Mahdi-196
+   Backend/Front End Developer: Handled Login authentication through Google, social network database integration using video and audio communication. Created and designed home page. Testing/QA
 
 With help from:
-- PostgreSQL - https://www.postgresql.org/
 - Tailwind - https://tailwindcss.com/
 - Twitch API - https://dev.twitch.tv/docs/api/
+- Google API - https://developers.google.com/identity/sign-in/web/sign-in
 - IGDB - https://www.igdb.com/
