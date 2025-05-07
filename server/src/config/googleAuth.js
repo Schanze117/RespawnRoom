@@ -70,9 +70,8 @@
 //     let q = url.parse(req.url, true).query;
 
 //     if (q.error) { // An error response e.g. error=access_denied
-//       console.log('Error:' + q.error);
+//       // Handle error
 //     } else if (q.state !== req.session.state) { //check state value
-//       console.log('State mismatch. Possible CSRF attack');
 //       res.end('State mismatch. Possible CSRF attack');
 //     } else { // Get access and refresh tokens (if access_type is offline)
 //       let { tokens } = await oauth2Client.getToken(q.code);
@@ -94,15 +93,12 @@
 //           pageSize: 10,
 //           fields: 'nextPageToken, files(id, name)',
 //         }, (err1, res1) => {
-//           if (err1) return console.log('The API returned an error: ' + err1);
+//           if (err1) return; // Handle error silently
 //           const files = res1.data.files;
 //           if (files.length) {
-//             console.log('Files:');
-//             files.map((file) => {
-//               console.log(`${file.name} (${file.id})`);
-//             });
+//             // Process files
 //           } else {
-//             console.log('No files found.');
+//             // Handle no files case
 //           }
 //         });
 //       }
@@ -147,12 +143,12 @@
 //     const postReq = https.request(postOptions, function (res) {
 //       res.setEncoding('utf8');
 //       res.on('data', d => {
-//         console.log('Response: ' + d);
+//         // Handle response silently
 //       });
 //     });
 
 //     postReq.on('error', error => {
-//       console.log(error)
+//       // Handle error silently
 //     });
 
 //     // Post the request with data
@@ -164,4 +160,6 @@
 //   const server = http.createServer(app);
 //   server.listen(8080);
 // }
-// main().catch(console.error);
+// main().catch(() => {
+//   // Handle error silently
+// });
