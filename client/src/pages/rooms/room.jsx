@@ -191,8 +191,10 @@ export default function Room() {
   // Fetch token from server
   const fetchToken = async (channelName) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/agora/token?channel=${channelName}`);
+      const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/api/agora/token`;
+      const response = await fetch(`${apiUrl}?channel=${channelName}`);
       if (!response.ok) {
+        console.error('Token fetch failed:', await response.text());
         throw new Error('Failed to fetch token from server');
       }
       const data = await response.json();
@@ -201,6 +203,7 @@ export default function Room() {
       }
       return data;
     } catch (error) {
+      console.error('Token fetch error:', error);
       return null;
     }
   };
