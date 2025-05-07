@@ -25,20 +25,24 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api2': {
-          target: 'http://localhost:3001',
+          target: 'https://respawnroom-server.onrender.com',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api2/, '/api2'),
         },
         '/api': {
-          target: 'http://localhost:3001',
+          target: 'https://respawnroom-server.onrender.com',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, '/api'),
         },
         '/auth': {
-          target: 'http://localhost:3001', // Proxy to your server
+          target: 'https://respawnroom-server.onrender.com',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/auth/, '/auth'),
         },
+        '/graphql': {
+          target: 'https://respawnroom-server.onrender.com',
+          changeOrigin: true,
+        }
       },
       port: 3000,
       open: true
