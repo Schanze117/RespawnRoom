@@ -4,6 +4,8 @@ import { getPersonalizedGames, getTrendingGames } from '../../utils/api';
 import { UserProfileManager } from '../../utils/userProfile';
 import { Link } from 'react-router-dom';
 import { useGameContext } from '../../utils/GameContext';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 
 export default function PersonalizedRecommendations() {
   const { respawnCount, featuredGames } = useGameContext();
@@ -26,13 +28,25 @@ export default function PersonalizedRecommendations() {
 
   // Function to get random items from an array
   const getRandomItems = (array, count) => {
+    if (!array || array.length === 0) return [];
     const shuffled = [...array].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
+    return shuffled.slice(0, Math.min(count, array.length));
   };
 
   // Function to mix trending games with personalized recommendations
   const mixRecommendations = (personalizedGames, trendingGames) => {
-    // Get 3 random trending games
+    if (!personalizedGames || personalizedGames.length === 0) {
+      return [];
+    }
+    
+    if (!trendingGames || trendingGames.length === 0) {
+      return personalizedGames.map(game => ({
+        ...game,
+        _respawnId: respawnCount
+      }));
+    }
+    
+    // Get up to 3 random trending games
     const randomTrending = getRandomItems(trendingGames, 3);
     
     // Mark them as trending recommendations and add respawnId
@@ -41,7 +55,7 @@ export default function PersonalizedRecommendations() {
       isTrending: true,
       _respawnId: respawnCount, // Add respawn ID to force a reference change
       matchScore: Math.floor(Math.random() * 25) + 70, // Random score between 70-95 (0-100 scale)
-      ratingCount: game.rating_count || Math.floor(Math.random() * 5000) + 500 // Add a random review count
+      ratingCount: game.rating_count || game.ratingCount || 0 // Use existing rating count
     }));
     
     // Take the top 12 personalized games and add respawnId
@@ -76,7 +90,6 @@ export default function PersonalizedRecommendations() {
           console.error('Error getting tokens:', tokenError);
         }
         
-        
         // Update state with token info
         const hasAnyTokens = Object.keys(tokens).filter(k => k !== '_source').length > 0;
         setHasTokens(hasAnyTokens);
@@ -89,7 +102,7 @@ export default function PersonalizedRecommendations() {
         });
         
         if (!hasAnyTokens) {
-          // Show empty state instead of hardcoded games
+          // Show empty state instead of fallback games
           setLoading(false);
           setDebugInfo(prev => ({ ...prev, apiStatus: 'no tokens' }));
           return;
@@ -121,10 +134,7 @@ export default function PersonalizedRecommendations() {
           if (personalizedGames && personalizedGames.length > 0) {
             
             // Mix personalized games with trending games
-            const mixedRecommendations = mixRecommendations(
-              personalizedGames,
-              trendingGamesForMixing.length > 0 ? trendingGamesForMixing : getFallbackGames()
-            );
+            const mixedRecommendations = mixRecommendations(personalizedGames, trendingGamesForMixing);
             
             setRecommendations(mixedRecommendations);
             setDebugInfo(prev => ({ 
@@ -151,7 +161,6 @@ export default function PersonalizedRecommendations() {
         
         // STEP 3: Fallback - Get trending games and score them locally
         try {
-          
           // Get trending games from API if we don't already have them
           const trendingGames = trendingGamesForMixing.length > 0 
             ? trendingGamesForMixing 
@@ -178,7 +187,7 @@ export default function PersonalizedRecommendations() {
             return {
               ...game,
               matchScore: score > 0 ? Math.min(Math.round((score / 3) * 100), 95) : 70, // Convert to rating-style value (0-100)
-              ratingCount: game.rating_count || Math.floor(Math.random() * 5000) + 500 // Add a random review count if none exists
+              ratingCount: game.rating_count || game.ratingCount || 0 // Use existing rating count
             };
           });
           
@@ -197,7 +206,7 @@ export default function PersonalizedRecommendations() {
             isTrending: true,
             _respawnId: respawnCount, // Add respawn ID to force a reference change
             matchScore: Math.floor(Math.random() * 25) + 70, // Random score between 70-95 (0-100 scale)
-            ratingCount: game.rating_count || Math.floor(Math.random() * 5000) + 500 // Add a random review count
+            ratingCount: game.rating_count || game.ratingCount || 0 // Use existing rating count
           }));
           
           // Combine and shuffle a bit
@@ -213,247 +222,28 @@ export default function PersonalizedRecommendations() {
             personalized: finalMix.filter(g => !g.isTrending).map(g => g.name)
           }));
           setInitialLoadComplete(true);
+          setLoading(false);
           
         } catch (trendingError) {
           console.error('Error processing trending games:', trendingError);
           setDebugInfo(prev => ({ 
             ...prev, 
-            apiStatus: 'trending API error, using fallback games',
+            apiStatus: 'trending API error, no recommendations available',
             trendingError: trendingError.message 
           }));
-          
-          // Final fallback - use hardcoded games
-          const fallbackGameData = getFallbackGames();
-          
-          // Score the games using our tokens
-          const scoredGames = fallbackGameData.map(game => {
-            // Calculate score based on token matches
-            let score = 0;
-            const gameGenres = game.genres.map(g => g.name);
-            const gamePerspectives = game.player_perspectives?.map(p => p.name) || [];
-            
-            // Calculate match score based on user's tokens
-            [...gameGenres, ...gamePerspectives].forEach(category => {
-              if (tokens[category]) {
-                score += tokens[category];
-              }
-            });
-            
-            return {
-              ...game,
-              matchScore: score > 0 ? Math.min(Math.round((score / 3) * 100), 95) : 80, // Convert to rating-style value (0-100)
-              ratingCount: game.rating_count || Math.floor(Math.random() * 5000) + 500 // Add a random review count if none exists
-            };
-          });
-          
-          // Create a mix of personalized and trending games
-          const sortedGames = [...scoredGames]
-            .sort((a, b) => b.matchScore - a.matchScore)
-            .slice(0, 12);
-            
-          // Add 3 random games marked as trending
-          const trendingGames = [...scoredGames]
-            .sort(() => 0.5 - Math.random())
-            .slice(0, 3)
-            .map(game => ({
-              ...game,
-              isTrending: true,
-              matchScore: Math.floor(Math.random() * 25) + 70, // Random score between 70-95 (0-100 scale)
-              ratingCount: game.rating_count || Math.floor(Math.random() * 5000) + 500 // Add a random review count
-            }));
-            
-          // Mix them together
-          const mixedGames = [...sortedGames, ...trendingGames].sort(() => 0.3 - Math.random());
-          
-          // Map rating_count to ratingCount for UI compatibility
-          const formattedGames = mixedGames.map(game => ({
-            ...game,
-            ratingCount: game.rating_count || game.ratingCount || 0
-          }));
-          
-          setRecommendations(formattedGames);
-          setDebugInfo(prev => ({ 
-            ...prev, 
-            apiStatus: 'using fallback games with token scoring + random mix',
-            recommendationSource: 'local fallback data',
-            trending: mixedGames.filter(g => g.isTrending).map(g => g.name),
-            personalized: mixedGames.filter(g => !g.isTrending).map(g => g.name)
-          }));
-          setInitialLoadComplete(true);
+          setError('Unable to load recommendations. Please try again later.');
+          setLoading(false);
         }
-        
-        setLoading(false);
       } catch (error) {
         console.error('Fatal error fetching personalized recommendations:', error);
         setError('Failed to load personalized recommendations');
         setLoading(false);
         setDebugInfo(prev => ({ ...prev, apiStatus: 'fatal error', error: error.message }));
-        
-        // Always fallback to mock data
-        const fallbackGames = getFallbackGames();
-        // Take 12 as personalized and 3 as trending
-        const personalizedFallback = fallbackGames.slice(0, 12);
-        const trendingFallback = fallbackGames.slice(0, 3).map(game => ({
-          ...game,
-          isTrending: true,
-          matchScore: Math.floor(Math.random() * 25) + 70, // Random score between 70-95 (0-100 scale)
-          ratingCount: game.rating_count || Math.floor(Math.random() * 5000) + 500 // Add a random review count
-        }));
-        
-        // Map rating_count to ratingCount for UI compatibility
-        const allFallbackGames = [...personalizedFallback, ...trendingFallback].map(game => ({
-          ...game,
-          ratingCount: game.rating_count || game.ratingCount || 0
-        }));
-        
-        setRecommendations(allFallbackGames);
-        setInitialLoadComplete(true);
       }
     }
 
     fetchPersonalizedGames();
   }, [initialLoadComplete, recommendations.length, respawnCount, featuredGames]);
-
-  // Fallback games function to avoid code duplication
-  const getFallbackGames = () => {
-    return [
-      { 
-        id: 1, 
-        name: "The Witcher 3", 
-        genres: [{ name: "RPG" }],
-        player_perspectives: [{ name: "Third Person" }],
-        summary: "The Witcher 3: Wild Hunt is a story-driven, next-generation open world role-playing game set in a visually stunning fantasy universe full of meaningful choices and impactful consequences.",
-        rating: 93.5,
-        rating_count: 12487
-      },
-      { 
-        id: 2, 
-        name: "God of War", 
-        genres: [{ name: "Action Adventure" }],
-        player_perspectives: [{ name: "Third Person" }],
-        summary: "His vengeance against the Gods of Olympus years behind him, Kratos now lives as a man in the realm of Norse Gods and monsters. It is in this harsh, unforgiving world that he must fight to survive... and teach his son to do the same.",
-        rating: 94.2,
-        rating_count: 8752
-      },
-      { 
-        id: 3, 
-        name: "Hollow Knight", 
-        genres: [{ name: "Metroidvania" }, { name: "Platformer" }],
-        player_perspectives: [{ name: "Side View" }],
-        summary: "Forge your own path in Hollow Knight! An epic action adventure through a vast ruined kingdom of insects and heroes. Explore twisting caverns, battle tainted creatures and befriend bizarre bugs.",
-        rating: 89.7,
-        rating_count: 4328
-      },
-      { 
-        id: 4, 
-        name: "Stardew Valley", 
-        genres: [{ name: "Simulation" }, { name: "RPG" }],
-        player_perspectives: [{ name: "Top-Down" }],
-        summary: "You've inherited your grandfather's old farm plot in Stardew Valley. Armed with hand-me-down tools and a few coins, you set out to begin your new life. Can you learn to live off the land and turn these overgrown fields into a thriving home?",
-        rating: 90.3, 
-        rating_count: 10254
-      },
-      { 
-        id: 5, 
-        name: "Cyberpunk 2077", 
-        genres: [{ name: "RPG" }, { name: "Open World" }],
-        player_perspectives: [{ name: "First Person" }],
-        summary: "Cyberpunk 2077 is an open-world, action-adventure story set in Night City, a megalopolis obsessed with power, glamour and body modification.",
-        rating: 84.6,
-        rating_count: 9421
-      },
-      { 
-        id: 6, 
-        name: "Elden Ring", 
-        genres: [{ name: "Action RPG" }],
-        player_perspectives: [{ name: "Third Person" }],
-        summary: "THE NEW FANTASY ACTION RPG. Rise, Tarnished, and be guided by grace to brandish the power of the Elden Ring and become an Elden Lord in the Lands Between.",
-        rating: 95.8,
-        rating_count: 15284
-      },
-      { 
-        id: 7, 
-        name: "Baldur's Gate 3", 
-        genres: [{ name: "RPG" }],
-        player_perspectives: [{ name: "Isometric" }],
-        summary: "Gather your party and return to the Forgotten Realms in a tale of fellowship and betrayal, sacrifice and survival, and the lure of absolute power.",
-        rating: 96.2,
-        rating_count: 14762
-      },
-      { 
-        id: 8, 
-        name: "The Legend of Zelda: Breath of the Wild", 
-        genres: [{ name: "Action Adventure" }],
-        player_perspectives: [{ name: "Third Person" }],
-        summary: "Step into a world of discovery, exploration, and adventure in The Legend of Zelda: Breath of the Wild.",
-        rating: 97.3,
-        rating_count: 18452
-      },
-      { 
-        id: 9, 
-        name: "Hades", 
-        genres: [{ name: "Roguelike" }, { name: "Action" }],
-        player_perspectives: [{ name: "Isometric" }],
-        summary: "Hades is a god-like rogue-like dungeon crawler that combines the best aspects of Supergiant's critically acclaimed titles.",
-        rating: 93.2,
-        rating_count: 7854
-      },
-      { 
-        id: 10, 
-        name: "Red Dead Redemption 2", 
-        genres: [{ name: "Action Adventure" }],
-        player_perspectives: [{ name: "Third Person" }],
-        summary: "America, 1899. The end of the Wild West era has begun. After a robbery goes badly wrong, Arthur Morgan and the Van der Linde gang are forced to flee.",
-        rating: 95.5,
-        rating_count: 13879
-      },
-      { 
-        id: 11, 
-        name: "Disco Elysium", 
-        genres: [{ name: "RPG" }],
-        player_perspectives: [{ name: "Isometric" }],
-        summary: "Disco Elysium is a groundbreaking open world role playing game. You're a detective with a unique skill system at your disposal and a whole city block to carve your path across.",
-        rating: 91.4,
-        rating_count: 5218
-      },
-      { 
-        id: 12, 
-        name: "Persona 5 Royal", 
-        genres: [{ name: "JRPG" }],
-        player_perspectives: [{ name: "Third Person" }],
-        summary: "Wear the mask. Reveal your truth. Prepare for an all-new RPG experience in Persona 5 Royal.",
-        rating: 94.8,
-        rating_count: 8623
-      },
-      { 
-        id: 13, 
-        name: "Mass Effect Legendary Edition", 
-        genres: [{ name: "Action RPG" }],
-        player_perspectives: [{ name: "Third Person" }],
-        summary: "The Mass Effect Legendary Edition includes single-player base content and over 40 DLC from Mass Effect, Mass Effect 2, and Mass Effect 3 games.",
-        rating: 92.1,
-        rating_count: 6748
-      },
-      { 
-        id: 14, 
-        name: "Bloodborne", 
-        genres: [{ name: "Action RPG" }],
-        player_perspectives: [{ name: "Third Person" }],
-        summary: "Bloodborne is an action RPG in which you hunt for answers in the ancient city of Yharnam, now cursed with a strange endemic illness spreading through the streets.",
-        rating: 93.7,
-        rating_count: 9547
-      },
-      { 
-        id: 15, 
-        name: "Ghost of Tsushima", 
-        genres: [{ name: "Action Adventure" }],
-        player_perspectives: [{ name: "Third Person" }],
-        summary: "In the late 13th century, the Mongol empire has laid waste to entire nations. Tsushima Island is all that stands between mainland Japan and a massive Mongol invasion fleet.",
-        rating: 91.9,
-        rating_count: 7326
-      }
-    ];
-  };
 
   if (loading) {
     return (
@@ -461,8 +251,20 @@ export default function PersonalizedRecommendations() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-primary-500">For You</h2>
         </div>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+        <div className="flex space-x-4 overflow-hidden pb-4">
+          {[...Array(5)].map((_, index) => (
+            <div key={index} className="flex-shrink-0 bg-surface-800 rounded-lg overflow-hidden border border-surface-700 w-[280px]">
+              <Skeleton width="100%" height={160} baseColor="#202020" highlightColor="#2a2a2a" />
+              <div className="p-4">
+                <Skeleton width="80%" height={24} baseColor="#202020" highlightColor="#2a2a2a" />
+                <Skeleton width="60%" height={16} baseColor="#202020" highlightColor="#2a2a2a" style={{ marginTop: 8 }} />
+                <div className="mt-4 flex justify-between">
+                  <Skeleton width="40%" height={16} baseColor="#202020" highlightColor="#2a2a2a" />
+                  <Skeleton width="30%" height={16} baseColor="#202020" highlightColor="#2a2a2a" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     );

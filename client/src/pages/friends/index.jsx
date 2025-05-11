@@ -15,7 +15,7 @@ import FriendsList from './components/FriendsList';
 import SearchUsers from './components/SearchUsers';
 import SearchTabs from './components/SearchTabs';
 
-const Friends = () => {
+export default function Friends() {
   // State variables
   const [searchQuery, setSearchQuery] = useState('');
   const [searchMode, setSearchMode] = useState('friends'); // 'friends' or 'findPlayers'
@@ -332,88 +332,93 @@ const Friends = () => {
   const displayRequests = friendRequests.length > 0 ? friendRequests : [];
 
   return (
-    <div className="w-11/12 lg:w-[calc(100%-14rem)] mx-auto md:mr-6 md:ml-auto mt-28 p-6 text-white bg-surface-950 min-h-[calc(100vh-120px)] flex flex-col rounded-lg">
-      {/* Header with Friend Requests */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Friends</h1>
-        
-        {/* Friend Requests Icon with Badge */}
-        <div className="relative" ref={requestsDropdownRef}>
-          <button 
-            className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${showRequests ? 'bg-primary-600 text-white' : 'bg-transparent text-gray-400 hover:bg-surface-800'}`}
-            onClick={toggleRequestsDropdown}
-            title="Friend Requests"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="8.5" cy="7" r="4"></circle>
-              <line x1="20" y1="8" x2="20" y2="14"></line>
-              <line x1="23" y1="11" x2="17" y2="11"></line>
-            </svg>
-            {displayRequests.length > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold border-2 border-surface-950">
-                {displayRequests.length}
-              </span>
-            )}
-          </button>
-          
-          {/* Friend Requests Dropdown */}
-          <FriendRequestDropdown
-            isOpen={showRequests}
-            loading={requestsLoading}
-            requests={displayRequests}
-            handleAccept={handleAccept}
-            handleDecline={handleDecline}
-          />
-        </div>
-      </div>
-      
-      {/* Toggle and Search */}
-      <SearchTabs
-        searchMode={searchMode}
-        toggleSearchMode={toggleSearchMode}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        handleSearch={handleSearch}
-      />
-      
-      {/* Content */}
-      <div className="flex-1">
-        {/* My Friends */}
-        {searchMode === 'friends' && (
-          <FriendsList
-            pinnedFriends={pinnedFriends}
-            unpinnedFriends={currentUnpinnedFriends}
-            searchQuery={searchQuery}
-            toggleSearchMode={toggleSearchMode}
-            activeDropdown={activeDropdown}
-            setActiveDropdown={setActiveDropdown}
-            togglePinFriend={togglePinFriend}
-            handleRemoveFriend={handleRemoveFriend}
-            dropdownRefs={dropdownRefs}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            handlePageChange={setCurrentPage}
-            handlePrevPage={prevPage}
-            handleNextPage={nextPage}
-            unreadCounts={unreadCounts}
-            onMessageClick={handleMessageClick}
-          />
-        )}
+    <div className="min-h-screen bg-surface-900">
+      <div className="flex">
+        {/* Main content */}
+        <div className="flex-1 md:ml-64">
+          <div className="pt-20 px-4">
+            {/* Header with Friend Requests */}
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-bold text-white">Friends</h1>
+              
+              {/* Friend Requests Icon with Badge */}
+              <div className="relative" ref={requestsDropdownRef}>
+                <button 
+                  className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${showRequests ? 'bg-primary-600 text-white' : 'bg-transparent text-gray-400 hover:bg-surface-800'}`}
+                  onClick={toggleRequestsDropdown}
+                  title="Friend Requests"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="8.5" cy="7" r="4"></circle>
+                    <line x1="20" y1="8" x2="20" y2="14"></line>
+                    <line x1="23" y1="11" x2="17" y2="11"></line>
+                  </svg>
+                  {displayRequests.length > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold border-2 border-surface-950">
+                      {displayRequests.length}
+                    </span>
+                  )}
+                </button>
+                
+                {/* Friend Requests Dropdown */}
+                <FriendRequestDropdown
+                  isOpen={showRequests}
+                  loading={requestsLoading}
+                  requests={displayRequests}
+                  handleAccept={handleAccept}
+                  handleDecline={handleDecline}
+                />
+              </div>
+            </div>
+            
+            {/* Toggle and Search */}
+            <SearchTabs
+              searchMode={searchMode}
+              toggleSearchMode={toggleSearchMode}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              handleSearch={handleSearch}
+            />
+            
+            {/* Content */}
+            <div className="flex-1">
+              {/* My Friends */}
+              {searchMode === 'friends' && (
+                <FriendsList
+                  pinnedFriends={pinnedFriends}
+                  unpinnedFriends={currentUnpinnedFriends}
+                  searchQuery={searchQuery}
+                  toggleSearchMode={toggleSearchMode}
+                  activeDropdown={activeDropdown}
+                  setActiveDropdown={setActiveDropdown}
+                  togglePinFriend={togglePinFriend}
+                  handleRemoveFriend={handleRemoveFriend}
+                  dropdownRefs={dropdownRefs}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  handlePageChange={setCurrentPage}
+                  handlePrevPage={prevPage}
+                  handleNextPage={nextPage}
+                  unreadCounts={unreadCounts}
+                  onMessageClick={handleMessageClick}
+                />
+              )}
 
-        {/* Find Players */}
-        {searchMode === 'findPlayers' && (
-          <SearchUsers
-            searchLoading={searchLoading}
-            searchQuery={searchQuery}
-            searchResults={displaySearchResults}
-            requestSent={requestSent}
-            handleSendRequest={handleSendRequest}
-          />
-        )}
+              {/* Find Players */}
+              {searchMode === 'findPlayers' && (
+                <SearchUsers
+                  searchLoading={searchLoading}
+                  searchQuery={searchQuery}
+                  searchResults={displaySearchResults}
+                  requestSent={requestSent}
+                  handleSendRequest={handleSendRequest}
+                />
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
-};
-
-export default Friends; 
+} 
