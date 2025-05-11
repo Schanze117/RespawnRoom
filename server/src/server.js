@@ -27,13 +27,25 @@ const PORT = process.env.PORT || 3001;
 
 // Apply CORS middleware globally
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.CLIENT_URL, 'https://respawn-room.onrender.com', 'https://respawnroom-client.onrender.com']
-    : [process.env.CLIENT_URL, 'http://localhost:5173'],
+  origin: ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'cache-control']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'cache-control', 'x-requested-with', 'apollo-require-preflight'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // 24 hours
 }));
+
+// Ensure preflight requests are handled for all routes
+app.options('*', cors());
+
+// Add CORS headers to all responses
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, cache-control, x-requested-with, apollo-require-preflight');
+  next();
+});
 
 app.use(express.json());
 // Remove static file serving since we're running client and server separately

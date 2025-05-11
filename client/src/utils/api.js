@@ -1,5 +1,5 @@
 export const API_BASE_URL = "https://api.igdb.com/v4"; 
-export const SERVER_URL = "https://respawnroom-server.onrender.com";
+export const SERVER_URL = "http://localhost:3001";
 
 // Search for games by name
 export const searchGames = async (game) => {

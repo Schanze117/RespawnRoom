@@ -25,22 +25,22 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api2': {
-          target: 'https://respawnroom-server.onrender.com',
+          target: 'http://localhost:3001',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api2/, '/api2'),
         },
         '/api': {
-          target: 'https://respawnroom-server.onrender.com',
+          target: 'http://localhost:3001',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, '/api'),
         },
         '/auth': {
-          target: 'https://respawnroom-server.onrender.com',
+          target: 'http://localhost:3001',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/auth/, '/auth'),
         },
         '/graphql': {
-          target: 'https://respawnroom-server.onrender.com',
+          target: 'http://localhost:3001',
           changeOrigin: true,
         }
       },
@@ -48,8 +48,6 @@ export default defineConfig(({ mode }) => {
       open: true
     },
     define: {
-      // Make all environment variables available to the client
-      // This exposes env variables without the need for VITE_ prefix
       'import.meta.env.AGORA_APP_ID': JSON.stringify(env.AGORA_APP_ID)
     }
   }

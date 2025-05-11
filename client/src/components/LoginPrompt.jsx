@@ -28,7 +28,7 @@ const LoginPrompt = () => {
           </div>
           
           <a 
-            href="https://respawnroom-server.onrender.com/auth/google" 
+            href="http://localhost:3001/auth/google" 
             className="w-full block text-center text-white bg-red-600 hover:bg-red-700 py-3 px-4 rounded-lg font-medium transition-colors items-center justify-center"
           >
             <svg className="w-5 h-5 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 19">
