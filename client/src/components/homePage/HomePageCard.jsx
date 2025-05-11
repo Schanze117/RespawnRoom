@@ -186,9 +186,16 @@ export default function HomePageCard({ games, type }) {
                 {saveState === 'saved' || saveState === 'already-saved' ? <LuCheck className="text-sm" /> : <LuSave className="text-sm" />}
               </button>
               
-              <div className="h-40 bg-surface-700 flex items-center justify-center relative">
+              <div className="h-40 bg-surface-700 flex items-center justify-center relative overflow-hidden">
                 {game.cover ? (
-                  <img src={game.cover.url || NoImage} alt={game.name} className="w-full h-full object-cover" />
+                  <div 
+                    className="absolute inset-0 w-full h-full bg-center bg-no-repeat bg-cover"
+                    style={{
+                      backgroundImage: `url(${game.cover.url || NoImage})`,
+                      filter: 'blur(12px)',
+                      transform: 'scale(1.1)',
+                    }}
+                  />
                 ) : (
                   <div className="text-2xl text-primary-400 opacity-30">Game Cover</div>
                 )}
