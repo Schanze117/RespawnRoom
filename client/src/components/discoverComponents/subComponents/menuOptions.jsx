@@ -1,14 +1,10 @@
-
 export default function MenuOptions({ selected, handleChange, options, isHidden, name }) {
-
-   
     return (
-        
-        <div className={`flex items-center w-full ps-2  genres mt-5 ${isHidden ? 'hidden' : ''}`}>
-            <ul className='flex flex-wrap auto-cols-max grid-flow-col gap-4'>
+        <div className={`p-4 w-full ${isHidden ? 'hidden' : ''}`}>
+            <ul className='flex flex-wrap gap-3'>
                 {options.sort((a, b) => a.name > b.name ? 1 : -1).map((option) => (
                 <li key={option.id}>
-                    <div className='flex items-center ps-2'>
+                    <div className='flex items-center'>
                         <input
                             type="checkbox"
                             name={name}
@@ -18,12 +14,16 @@ export default function MenuOptions({ selected, handleChange, options, isHidden,
                             id={option.slug}
                             className='hidden peer'
                         />
-                        <label className="text-light peer-checked:bg-primary-500 py-1 px-2 rounded-md bg-surface-500 select-none cursor-pointer mb-2" htmlFor={option.slug}>{option.name}</label>
+                        <label 
+                            className="text-light peer-checked:bg-primary-600 peer-checked:text-white py-1.5 px-3 rounded-md bg-surface-700 select-none cursor-pointer transition-colors duration-200 hover:bg-surface-600" 
+                            htmlFor={option.slug}
+                        >
+                            {option.name}
+                        </label>
                     </div>
                 </li>
                 ))}
             </ul> 
         </div>
-        
     )
 }

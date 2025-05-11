@@ -40,7 +40,7 @@ export default function Header() {
     return (
         <div>
             <header>
-                <div className="fixed top-0 z-20 w-full bg-surface-900 border-b border-surface-600 py-2">
+                <div className="fixed top-0 z-50 w-full bg-surface-900 border-b border-surface-600 py-2">
                     <div className="px-3 py-3">
                         <div className="flex items-center justify-between">
                             <div className="flex md:hidden items-center space-x-4">
