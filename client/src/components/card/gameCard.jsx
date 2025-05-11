@@ -217,21 +217,25 @@ export default function GameCard({ games }) {
                         <div className="h-[160px] bg-surface-900 flex items-center justify-center relative overflow-hidden">
                             {game.cover ? (
                                 <div className="w-full h-full relative flex items-center justify-center">
+                                    {/* Blurred background */}
                                     <div 
-                                        className="absolute inset-0 z-0 bg-center bg-no-repeat bg-cover blur-sm opacity-40 scale-110"
-                                        style={{ 
+                                        className="absolute inset-0 w-full h-full"
+                                        style={{
                                             backgroundImage: `url(${getOptimizedImageUrl(game.cover.url)})`,
-                                            backgroundPosition: 'center center'
+                                            backgroundSize: 'cover',
+                                            backgroundPosition: 'center',
+                                            filter: 'blur(12px)',
+                                            transform: 'scale(1.1)',
+                                            opacity: '0.7'
                                         }}
-                                    ></div>
-                                    <div className="absolute inset-0 bg-surface-900/30 z-1"></div>
+                                    />
+                                    {/* Clear main image */}
                                     <img 
                                         src={getOptimizedImageUrl(game.cover.url)}
                                         alt={game.name} 
-                                        className="h-full object-contain z-2 relative"
+                                        className="h-full object-contain relative z-10"
                                         loading="lazy"
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-surface-800/80 z-3"></div>
                                 </div>
                             ) : (
                                 <div className="flex items-center justify-center h-full w-full">
@@ -267,23 +271,18 @@ export default function GameCard({ games }) {
                                 {game.genres?.slice(0, 4).map((genre, gIndex) => (
                                     <span key={`${game.id}-genre-${gIndex}`} className="text-xs bg-primary-600/40 text-primary-100 px-1.5 py-0.5 rounded-md border border-primary-600/20">
                                         {genre.name}
-                                        </span>
+                                    </span>
                                 ))}
                             </div>
 
-                            {/* Summary */}
-                            <p className="text-light text-sm line-clamp-3 mb-4">
-                            {game.summary || 'No summary available.'}
-                        </p>
-                            
                             {/* View Details button */}
                             <div className="mt-auto pt-2 flex justify-end">
-                        <button 
-                            onClick={() => handleGameClick(game)} 
+                                <button 
+                                    onClick={() => handleGameClick(game)}
                                     className="bg-primary-600 hover:bg-primary-700 text-white text-sm py-1 px-3 rounded transition duration-300"
-                        >
-                            View Details
-                        </button>
+                                >
+                                    View Details
+                                </button>
                             </div>
                         </div>
                     </div>

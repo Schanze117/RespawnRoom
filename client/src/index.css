@@ -34,6 +34,7 @@
 }
 
 :root {
+    color-scheme: dark;
     --color-dark: #020817;
     --color-light: #ffffff;
     --color-dark-error: #800000;
@@ -62,7 +63,7 @@
 
 /* Changed actual page background to surface-900 (#020817) */
 body {
-    background-color: var(--color-surface-900);
+    background-color: #020817 !important;
 }
 
 .modalBackground {

@@ -91,11 +91,15 @@ export default function HeroCarousel() {
         {/* Backdrop img */}
         {backdropImage && (
           <div 
-            className="absolute inset-0 bg-center bg-cover opacity-20"
-            style={{ backgroundImage: `url(${backdropImage})` }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-surface-900 via-surface-900/90 to-surface-900/70"></div>
-          </div>
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `url(${backdropImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              filter: 'blur(12px)',
+              transform: 'scale(1.1)',
+            }}
+          />
         )}
         
         {isLoading && !featuredGame ? (
@@ -131,14 +135,29 @@ export default function HeroCarousel() {
                   </div>
                   <div className="md:w-1/2 rounded-lg overflow-hidden flex items-center justify-center p-4">
                     {coverImage ? (
-                      <img 
-                        src={coverImage} 
-                        alt={displayGame?.name} 
-                        className="h-full max-h-64 object-contain rounded-lg shadow-lg"
-                        onError={(e) => {
-                          e.target.src = NoImage;
-                        }}
-                      />
+                      <div className="w-full h-full relative flex items-center justify-center">
+                        {/* Blurred background */}
+                        <div 
+                          className="absolute inset-0 w-full h-full"
+                          style={{
+                            backgroundImage: `url(${coverImage})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            filter: 'blur(12px)',
+                            transform: 'scale(1.1)',
+                            opacity: '0.7'
+                          }}
+                        />
+                        {/* Clear main image */}
+                        <img 
+                          src={coverImage}
+                          alt={displayGame?.name}
+                          className="h-full max-h-64 object-contain relative z-10 rounded-lg shadow-lg"
+                          onError={(e) => {
+                            e.target.src = NoImage;
+                          }}
+                        />
+                      </div>
                     ) : (
                       <div className="h-full w-full bg-gradient-to-r from-surface-800 to-surface-700 flex items-center justify-center">
                         <div className="text-6xl text-primary-400 opacity-30">Game Cover</div>
