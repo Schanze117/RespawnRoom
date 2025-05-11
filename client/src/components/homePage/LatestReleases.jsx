@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import ScrollableGameCards from './ScrollableGameCards';
 import { useGameContext } from '../../utils/GameContext';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 
 export default function LatestReleases() {
   const { latestGames, isLoading, respawnCount } = useGameContext();
@@ -27,7 +29,20 @@ export default function LatestReleases() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-primary-500">Latest Releases</h2>
         </div>
-        <div className="text-center py-8">Loading latest releases...</div>
+        <div className="flex space-x-4 overflow-hidden pb-4">
+          {[...Array(5)].map((_, index) => (
+            <div key={index} className="flex-shrink-0 bg-surface-800 rounded-lg overflow-hidden border border-surface-700 w-[280px]">
+              <Skeleton width="100%" height={160} baseColor="#202020" highlightColor="#2a2a2a" />
+              <div className="p-4">
+                <Skeleton width="80%" height={24} baseColor="#202020" highlightColor="#2a2a2a" />
+                <Skeleton width="60%" height={16} baseColor="#202020" highlightColor="#2a2a2a" style={{ marginTop: 8 }} />
+                <div className="mt-4">
+                  <Skeleton width="40%" height={16} baseColor="#202020" highlightColor="#2a2a2a" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
     );
   }

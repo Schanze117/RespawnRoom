@@ -38,6 +38,7 @@
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "pubnub": "^7.6.2",
+    "react-loading-skeleton": "^3.5.0",
     "react-youtube": "^10.1.0"
   }
 }
