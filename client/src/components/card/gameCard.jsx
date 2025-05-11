@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import NoImage from '../../assets/noImage.jpg';
-import { LuSave, LuCheck } from 'react-icons/lu';
+import { LuSave, LuCheck, LuChevronDown, LuChevronUp } from 'react-icons/lu';
 import { useMutation, useQuery } from '@apollo/client';
 import { SAVE_GAME } from '../../utils/mutations';
 import { GET_ME } from '../../utils/queries';
@@ -25,6 +25,33 @@ const cssStyles = `
   
   .line-clamp-none {
     -webkit-line-clamp: unset;
+  }
+  
+  .game-card {
+    display: flex;
+    flex-direction: column;
+    height: 320px;
+    width: 280px;
+    transition: all 0.3s ease;
+  }
+  
+  .game-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+  
+  .game-image {
+    height: 160px;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .game-content {
+    height: 160px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 10px;
   }
 `;
 
@@ -86,8 +113,14 @@ export default function GameCard({ games }) {
     // Process image URL to get the best quality version
     const getOptimizedImageUrl = (url) => {
         if (!url) return NoImage;
-        return url.replace('t_thumb', 't_cover_big')
-                  .replace('t_cover_small', 't_cover_big');
+        
+        // Handle both direct URLs and URLs with size parameters
+        if (url.includes('t_thumb') || url.includes('t_cover_small')) {
+            return url.replace('t_thumb', 't_720p')
+                    .replace('t_cover_small', 't_720p');
+        }
+        
+        return url;
     };
 
     const saveGame = async (event, game) => {
@@ -188,19 +221,20 @@ export default function GameCard({ games }) {
                 return (
                     <div
                         key={game.id}
-                        className="w-[280px] h-[350px] flex-shrink-0 flex-grow-0 bg-surface-800 rounded-lg overflow-hidden border border-surface-700 hover:border-primary-600 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 flex flex-col relative"
+                        className="game-card flex-shrink-0 bg-surface-800 rounded-lg overflow-hidden border border-surface-700 hover:border-primary-600 transition-colors duration-300 relative"
                     >
                         {/* Save Button */}
+                        {Auth.loggedIn() && (
                             <button
                                 type="button"
                                 onClick={(e) => saveGame(e, game)}
                                 disabled={saveState === 'saving' || saveState === 'saved' || saveState === 'already-saved'}
-                            className={`absolute top-2 right-2 p-1.5 z-10 text-white rounded-full shadow-md transition-all duration-300 ${
-                                saveState === 'default' ? 'bg-primary-600 hover:bg-primary-700' :
-                                saveState === 'saving' ? 'bg-amber-500 cursor-wait' : 
-                                saveState === 'saved' ? 'bg-green-600' :
-                                saveState === 'already-saved' ? 'bg-green-600 opacity-75' :
-                                'bg-red-600'
+                                className={`absolute top-2 right-2 p-1.5 z-10 text-white rounded-full shadow-md transition-all duration-300 ${
+                                    saveState === 'default' ? 'bg-primary-600 hover:bg-primary-700' :
+                                    saveState === 'saving' ? 'bg-amber-500 cursor-wait' : 
+                                    saveState === 'saved' ? 'bg-green-600' :
+                                    saveState === 'already-saved' ? 'bg-green-600 opacity-75' :
+                                    'bg-red-600'
                                 }`}
                                 title={
                                     saveState === 'default' ? 'Save Game' :
@@ -210,76 +244,90 @@ export default function GameCard({ games }) {
                                     'Error saving'
                                 }
                             >
-                            {saveState === 'saved' || saveState === 'already-saved' ? <LuCheck className="text-sm" /> : <LuSave className="text-sm" />}
+                                {saveState === 'saved' || saveState === 'already-saved' ? <LuCheck className="text-sm" /> : <LuSave className="text-sm" />}
                             </button>
+                        )}
 
-                        {/* Game Cover Image */}
-                        <div className="h-[160px] bg-surface-900 flex items-center justify-center relative overflow-hidden">
-                            {game.cover ? (
-                                <div className="w-full h-full relative flex items-center justify-center">
-                                    {/* Blurred background */}
-                                    <div 
-                                        className="absolute inset-0 w-full h-full"
-                                        style={{
-                                            backgroundImage: `url(${getOptimizedImageUrl(game.cover.url)})`,
-                                            backgroundSize: 'cover',
-                                            backgroundPosition: 'center',
-                                            filter: 'blur(12px)',
-                                            transform: 'scale(1.1)',
-                                            opacity: '0.7'
-                                        }}
-                                    />
-                                    {/* Clear main image */}
-                                    <img 
-                                        src={getOptimizedImageUrl(game.cover.url)}
-                                        alt={game.name} 
-                                        className="h-full object-contain relative z-10"
-                                        loading="lazy"
-                                    />
+                        {/* Game Image */}
+                        <div className="game-image bg-surface-900">
+                            <div className="w-full h-full relative">
+                                {/* Blurred background */}
+                                <div 
+                                    className="absolute inset-0"
+                                    style={{
+                                        backgroundImage: `url(${game.cover ? getOptimizedImageUrl(game.cover.url) : NoImage})`,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                        filter: 'blur(10px) brightness(0.7)',
+                                        transform: 'scale(1.1)',
+                                    }}
+                                />
+                                
+                                {/* Actual image centered */}
+                                <div className="absolute inset-0 flex items-center justify-center p-2">
+                                    {game.cover ? (
+                                        <img 
+                                            src={getOptimizedImageUrl(game.cover.url)} 
+                                            alt={game.name}
+                                            className="h-full max-w-full object-contain z-10 drop-shadow-md"
+                                            loading="lazy"
+                                        />
+                                    ) : (
+                                        <div className="flex items-center justify-center h-full w-full z-10">
+                                            <img 
+                                                src={NoImage} 
+                                                alt="No image available"
+                                                className="w-3/4 h-3/4 object-contain opacity-80"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
-                            ) : (
-                                <div className="flex items-center justify-center h-full w-full">
-                                    <div className="text-2xl text-primary-400 opacity-30">Game Cover</div>
-                                </div>
-                            )}
+                            </div>
                         </div>
                         
-                        {/* Game Info */}
-                        <div className="p-5 flex flex-col flex-grow">
-                            {/* Title */}
-                            <div className="relative">
-                                <h3 
-                                    onClick={() => toggleTitleExpansion(game.id)}
-                                    className={`text-xl font-semibold text-light mb-2 cursor-pointer hover:text-primary-400 transition-all duration-200 ${isExpanded ? 'line-clamp-none' : 'line-clamp-2'}`}
-                                    title={game.name}
-                                >
-                                    {game.name}
-                                </h3>
-                                
-                                {game.name && game.name.length > 40 && (
+                        {/* Game Content */}
+                        <div className="game-content bg-surface-800 p-3 flex flex-col">
+                            {/* Game Title with expand/collapse option */}
+                            <div className="mb-1">
+                                <div className="flex items-start justify-between gap-1">
+                                    <h3 
+                                        className={`text-primary-400 font-medium text-base ${isExpanded ? '' : 'line-clamp-2'}`}
+                                    >
+                                        {game.name}
+                                    </h3>
                                     <button 
                                         onClick={() => toggleTitleExpansion(game.id)}
-                                        className="absolute right-0 top-0 text-xs text-primary-400 hover:text-primary-300"
+                                        className="flex-shrink-0 text-tonal-400 hover:text-primary-400 transition-colors duration-200 p-1"
+                                        title={isExpanded ? "Collapse title" : "Expand title"}
                                     >
-                                        {isExpanded ? 'Less' : 'More'}
+                                        {isExpanded ? <LuChevronUp size={14} /> : <LuChevronDown size={14} />}
                                     </button>
+                                </div>
+                            </div>
+                            
+                            <div className="mb-0.5 text-xs">
+                                {/* Rating if available */}
+                                {game.rating && (
+                                    <div className="text-primary-400 font-medium">
+                                        Rating: {Math.round(game.rating)}/100
+                                    </div>
                                 )}
                             </div>
-
+                            
                             {/* Game genres */}
-                            <div className="flex flex-wrap gap-1 mb-3">
-                                {game.genres?.slice(0, 4).map((genre, gIndex) => (
-                                    <span key={`${game.id}-genre-${gIndex}`} className="text-xs bg-primary-600/40 text-primary-100 px-1.5 py-0.5 rounded-md border border-primary-600/20">
+                            <div className="flex flex-wrap gap-1 mb-1">
+                                {game.genres?.slice(0, 3).map((genre, gIndex) => (
+                                    <span key={`${game.id}-genre-${gIndex}`} className="text-xs bg-primary-600/20 text-primary-100 px-1.5 py-0.5 rounded-md">
                                         {genre.name}
                                     </span>
                                 ))}
                             </div>
-
+                            
                             {/* View Details button */}
-                            <div className="mt-auto pt-2 flex justify-end">
+                            <div className="mt-auto pt-1">
                                 <button 
                                     onClick={() => handleGameClick(game)}
-                                    className="bg-primary-600 hover:bg-primary-700 text-white text-sm py-1 px-3 rounded transition duration-300"
+                                    className="bg-primary-600 hover:bg-primary-700 text-white text-xs py-1 px-3 rounded w-full transition duration-300"
                                 >
                                     View Details
                                 </button>
@@ -288,7 +336,9 @@ export default function GameCard({ games }) {
                     </div>
                 );
             })}
-            {showModal && <GameModal game={selectedGame} onClose={handleCloseModal} location="other" />}
+            
+            {/* Game Modal */}
+            {showModal && <GameModal game={selectedGame} onClose={handleCloseModal} />}
         </div>
     );
-}
+} 

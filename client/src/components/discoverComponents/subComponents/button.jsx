@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { LuChevronDown, LuChevronUp } from "react-icons/lu";
 
 export default function DiscoverButton({ openMenu, menuName, currentMenu }) {
-
     const [isOpenMenu, setisOpenMenu] = useState(false);
 
     useEffect(() => {
@@ -14,24 +13,24 @@ export default function DiscoverButton({ openMenu, menuName, currentMenu }) {
     function toggleOpen() {
         if (!isOpenMenu){
             openMenu(menuName);
-        }else {
+        } else {
             openMenu(null);
         }
-        
         setisOpenMenu(!isOpenMenu);
     }
 
     return (
-      
-        <div className="block">
-            <button type="button" className="mx-2 sm:mx-3 rounded-lg py-1 px-1.5 bg-primary-500 hover:bg-primary-700 focus:ring-3 focus:outline-none focus:ring-primary-800 relative" onClick={toggleOpen}>
-                <h2 className="text-light text- sm:text-lg font-bold flex pr-3 sm:pr-5">{menuName}
-                    {!isOpenMenu ? <LuChevronUp className={`absolute end-0.5 bottom-2`} /> :
-                    <LuChevronDown className={`absolute end-0.5 bottom-2`}/> }
-                </h2>
-            </button>
-        </div>
-      
-        
+        <button 
+            type="button" 
+            className={`flex items-center justify-between rounded-lg py-2 px-4 transition-colors duration-200 font-medium ${
+                isOpenMenu 
+                    ? 'bg-primary-600 text-white shadow-md' 
+                    : 'bg-surface-800 text-light hover:bg-surface-700'
+            }`} 
+            onClick={toggleOpen}
+        >
+            <span className="mr-2">{menuName}</span>
+            {isOpenMenu ? <LuChevronUp size={16} /> : <LuChevronDown size={16} />}
+        </button>
     )
 }

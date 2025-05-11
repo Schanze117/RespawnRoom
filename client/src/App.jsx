@@ -44,12 +44,14 @@ function AppContent() {
   }, [navigate, location]);
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen bg-surface-900">
       <Header />
-      <main>
-        {showLoginPrompt ? <LoginPrompt /> : <Outlet />}
-      </main>
-    </>
+      <div className="flex flex-1 relative">
+        <main className="flex-1 w-full z-10 relative">
+          {showLoginPrompt ? <LoginPrompt /> : <Outlet />}
+        </main>
+      </div>
+    </div>
   );
 }
 

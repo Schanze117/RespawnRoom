@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import NoImage from '../../assets/noImage.jpg';
 import GameModal from '../card/gameModal';
-import { LuSave, LuCheck } from 'react-icons/lu';
+import { LuSave, LuCheck, LuChevronDown, LuChevronUp } from 'react-icons/lu';
 import { useMutation, useQuery } from '@apollo/client';
 import { SAVE_GAME } from '../../utils/mutations';
 import { GET_ME } from '../../utils/queries';
@@ -34,17 +34,57 @@ const cssStyles = `
   .line-clamp-none {
     -webkit-line-clamp: unset;
   }
+  
+  .game-card {
+    display: flex;
+    flex-direction: column;
+    height: 320px;
+    width: 280px;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  
+  .game-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+  
+  .game-image {
+    height: 160px;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .game-content {
+    height: 160px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 10px;
+  }
 `;
 
-export default function ScrollableGameCards({ games, type }) {
+export default function ScrollableGameCards({ games, type, onToggleExpand, fixedHeight }) {
   const scrollContainerRef = useRef(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const [expandedTitles, setExpandedTitles] = useState({});
+  const [expandedContent, setExpandedContent] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
   const [savedGames, setSavedGames] = useState({});
   const [alreadySavedGames, setAlreadySavedGames] = useState([]);
   const [saveGameMutation] = useMutation(SAVE_GAME);
+  
+  // Add CSS styles to the document
+  useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = cssStyles;
+    document.head.appendChild(styleElement);
+    
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
   
   // Fetch user's saved games
   const { loading, data } = useQuery(GET_ME, {
@@ -68,10 +108,8 @@ export default function ScrollableGameCards({ games, type }) {
   // Create a looping array by duplicating the games
   const loopedGames = [...games, ...games, ...games];
 
-  // Card dimensions
-  const cardWidth = 280; // Original card width
-  const cardHeight = 350; // Original card height
-  const imageHeight = 160; // Image height
+  // Card dimensions - only used for scroll calculations
+  const cardWidth = 280;
   const gap = 16; // Gap between cards (4 in Tailwind = 16px)
   const scrollAmount = cardWidth + gap;
 
@@ -82,17 +120,44 @@ export default function ScrollableGameCards({ games, type }) {
       ...prev,
       [key]: !prev[key]
     }));
+    
+    // If there's an external handler, call it as well
+    if (onToggleExpand) {
+      onToggleExpand(gameId);
+    }
+  };
+  
+  // Toggle content expansion (for game description)
+  const toggleContentExpansion = (gameId, index) => {
+    const key = `${gameId}-${index}`;
+    setExpandedContent(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
 
-  // Handle scroll navigation with more precise control
+  // Process image URL to get the best quality version
+  const getOptimizedImageUrl = (url) => {
+    if (!url) return NoImage;
+    
+    // Handle both direct URLs and URLs with size parameters
+    if (url.includes('t_thumb') || url.includes('t_cover_small')) {
+      return url.replace('t_thumb', 't_720p')
+                .replace('t_cover_small', 't_720p');
+    }
+    
+    return url;
+  };
+
+  // Scroll functions
   const scrollLeft = () => {
     if (scrollContainerRef.current && !isScrolling) {
       setIsScrolling(true);
       const container = scrollContainerRef.current;
-      const { scrollLeft } = container;
-
-      // If we're near the beginning, jump to the middle set without animation
-      if (scrollLeft < scrollAmount * 2) {
+      const { scrollLeft, scrollWidth } = container;
+      
+      // If we're at the start, jump to the middle set without animation
+      if (scrollLeft < 100) {
         container.style.scrollBehavior = 'auto';
         container.scrollLeft = scrollLeft + (games.length * scrollAmount);
         
@@ -151,22 +216,20 @@ export default function ScrollableGameCards({ games, type }) {
 
   // Handle save game functionality
   const saveGame = async (event, game) => {
-    event.stopPropagation(); // Prevent the card click from triggering
+    event.stopPropagation();
+    
     try {
       if (!Auth.loggedIn()) {
-        // Instead of alert, redirect to login or show a more subtle notification        // Optional: redirect to login page
-        // window.location.href = '/login';
         return;
       }
       
-      // Check if game is already saved
+      // Check if game is already saved (this will apply to all duplicate instances in the carousel)
       if (isGameAlreadySaved(game)) {
         setSavedGames(prev => ({
           ...prev,
           [game.id]: 'already-saved'
         }));
         
-        // Reset status after 2 seconds
         setTimeout(() => {
           setSavedGames(prev => {
             const newState = {...prev};
@@ -187,7 +250,6 @@ export default function ScrollableGameCards({ games, type }) {
         summary: game.summary ? game.summary : 'No summary available.',
       };
 
-      // Set the game as being saved (for UI feedback)
       setSavedGames(prev => ({
         ...prev,
         [game.id]: 'saving'
@@ -197,17 +259,13 @@ export default function ScrollableGameCards({ games, type }) {
         variables: { game: gameInput },
       });
 
-      
-      // Add to already saved games list
       setAlreadySavedGames(prev => [...prev, game.name.toLowerCase().trim()]);
       
-      // Visual feedback - mark as saved
       setSavedGames(prev => ({
         ...prev,
         [game.id]: 'saved'
       }));
       
-      // Reset status after 2 seconds
       setTimeout(() => {
         setSavedGames(prev => {
           const newState = {...prev};
@@ -217,13 +275,11 @@ export default function ScrollableGameCards({ games, type }) {
       }, 2000);
     } catch (error) {
       console.error('Error saving game:', error);
-      // Set the game as having an error when saving
       setSavedGames(prev => ({
         ...prev,
         [game.id]: 'error'
       }));
       
-      // Reset error status after 2 seconds
       setTimeout(() => {
         setSavedGames(prev => {
           const newState = {...prev};
@@ -234,7 +290,6 @@ export default function ScrollableGameCards({ games, type }) {
     }
   };
 
-  // Get the save button state for a game
   const getSaveButtonState = (gameId, game) => {
     // First check if the game has an active save state
     if (savedGames[gameId]) {
@@ -250,218 +305,161 @@ export default function ScrollableGameCards({ games, type }) {
     return 'default';
   };
 
-  // Initialize scroll position to the middle set of items
-  useEffect(() => {
-    if (scrollContainerRef.current && games.length > 0) {
-      const container = scrollContainerRef.current;
-      // Jump to the middle set without animation
-      container.scrollLeft = games.length * scrollAmount;
-    }
-  }, [games.length]);
-
-  // Auto-scroll animation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isScrolling && document.hasFocus()) {
-        scrollRight();
-      }
-    }, 7000); // Auto-scroll every 7 seconds
-    
-    return () => clearInterval(interval);
-  }, [isScrolling]);
-
-  // Add CSS styles to the document
-  useEffect(() => {
-    // Create style element
-    const styleElement = document.createElement('style');
-    styleElement.innerHTML = cssStyles;
-    document.head.appendChild(styleElement);
-    
-    // Clean up
-    return () => {
-      document.head.removeChild(styleElement);
-    };
-  }, []);
-
-  // Process image URL to get the best quality version
-  const getOptimizedImageUrl = (url) => {
-    if (!url) return NoImage;
-    
-    // IGDB images use t_thumb, t_cover_small, t_cover_big, etc.
-    // Replace with t_cover_big for better quality
-    return url.replace('t_thumb', 't_cover_big')
-              .replace('t_cover_small', 't_cover_big');
-  };
-
   return (
-    <div className="relative group">
-      {/* Navigation buttons - always visible on hover */}
+    <div className="relative">
+      {/* Left scroll button */}
       <button 
-        onClick={scrollLeft} 
-        className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-black bg-opacity-60 hover:bg-opacity-80 text-white p-2 rounded-r focus:outline-none transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+        onClick={scrollLeft}
+        className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-surface-800/80 text-primary-400 hover:text-primary-600 p-2 rounded-r-lg shadow-lg backdrop-blur transition-all"
         aria-label="Scroll left"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
       </button>
       
+      {/* Right scroll button */}
       <button 
-        onClick={scrollRight} 
-        className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-black bg-opacity-60 hover:bg-opacity-80 text-white p-2 rounded-l focus:outline-none transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+        onClick={scrollRight}
+        className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-surface-800/80 text-primary-400 hover:text-primary-600 p-2 rounded-l-lg shadow-lg backdrop-blur transition-all"
         aria-label="Scroll right"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
         </svg>
       </button>
-
-      {/* Scrollable game cards container */}
+      
+      {/* Scrollable container */}
       <div 
         ref={scrollContainerRef}
-        className="flex overflow-x-auto hide-scrollbar gap-4 pb-4 pt-2 snap-x snap-mandatory"
-        onMouseEnter={() => setIsScrolling(true)}
-        onMouseLeave={() => setIsScrolling(false)}
-        style={{ scrollbarWidth: 'none' }} /* Firefox */
+        className="flex gap-4 overflow-x-auto py-4 px-2 hide-scrollbar scroll-smooth snap-x"
+        style={{ scrollBehavior: 'smooth' }}
       >
         {loopedGames.map((game, index) => {
-          const cardKey = `${game.id}-${index}`;
-          const isExpanded = expandedTitles[cardKey] || false;
+          const uniqueIndex = index % games.length;
+          const titleKey = `${game.id}-${uniqueIndex}`;
+          const contentKey = `${game.id}-${uniqueIndex}`;
+          const isTitleExpanded = expandedTitles[titleKey] || false;
+          const isContentExpanded = expandedContent[contentKey] || false;
           const saveState = getSaveButtonState(game.id, game);
           
           return (
-            <div 
-              key={cardKey} 
-              style={{ 
-                width: `${cardWidth}px`, 
-                height: `${cardHeight}px`,
-                minWidth: `${cardWidth}px`, 
-                maxWidth: `${cardWidth}px` 
-              }}
-              className="flex-shrink-0 flex-grow-0 snap-start bg-surface-800 rounded-lg overflow-hidden border border-surface-700 hover:border-primary-600 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 flex flex-col relative"
+            <div
+              key={`${game.id}-${index}`}
+              className="game-card flex-shrink-0 snap-start bg-surface-800 rounded-lg overflow-hidden border border-surface-700 hover:border-primary-600 transition-colors duration-300"
             >
-              {/* Save Button - with different states */}
-              <button
-                type="button"
-                onClick={(e) => saveGame(e, game)}
-                disabled={saveState === 'saving' || saveState === 'saved' || saveState === 'already-saved'}
-                className={`absolute top-2 right-2 p-1.5 z-10 text-white rounded-full shadow-md transition-all duration-300 ${
-                  saveState === 'default' ? 'bg-primary-600 hover:bg-primary-700' :
-                  saveState === 'saving' ? 'bg-amber-500 cursor-wait' : 
-                  saveState === 'saved' ? 'bg-green-600' :
-                  saveState === 'already-saved' ? 'bg-green-600 opacity-75' :
-                  'bg-red-600'
-                }`}
-                title={
-                  saveState === 'default' ? 'Save Game' :
-                  saveState === 'saving' ? 'Saving...' : 
-                  saveState === 'saved' ? 'Saved!' :
-                  saveState === 'already-saved' ? 'Already Saved' :
-                  'Error saving'
-                }
-              >
-                {saveState === 'saved' || saveState === 'already-saved' ? <LuCheck className="text-sm" /> : <LuSave className="text-sm" />}
-              </button>
+              {/* Save Button */}
+              {Auth.loggedIn() && (
+                <button
+                  type="button"
+                  onClick={(e) => saveGame(e, game)}
+                  disabled={saveState === 'saving' || saveState === 'saved' || saveState === 'already-saved'}
+                  className={`absolute top-2 right-2 p-1.5 z-10 text-white rounded-full shadow-md transition-all duration-300 ${
+                    saveState === 'default' ? 'bg-primary-600 hover:bg-primary-700' :
+                    saveState === 'saving' ? 'bg-amber-500 cursor-wait' : 
+                    saveState === 'saved' ? 'bg-green-600' :
+                    saveState === 'already-saved' ? 'bg-green-600 opacity-75' :
+                    'bg-red-600'
+                  }`}
+                  title={
+                    saveState === 'default' ? 'Save Game' :
+                    saveState === 'saving' ? 'Saving...' : 
+                    saveState === 'saved' ? 'Saved!' :
+                    saveState === 'already-saved' ? 'Already Saved' :
+                    'Error saving'
+                  }
+                >
+                  {saveState === 'saved' || saveState === 'already-saved' ? <LuCheck className="text-sm" /> : <LuSave className="text-sm" />}
+                </button>
+              )}
 
-              <div 
-                style={{ height: `${imageHeight}px` }} 
-                className="bg-surface-900 flex items-center justify-center relative overflow-hidden"
-              >
-                {game.cover ? (
-                  <div className="w-full h-full relative flex items-center justify-center">
-                    {/* Blurred background */}
-                    <div 
-                      className="absolute inset-0 w-full h-full"
-                      style={{
-                        backgroundImage: `url(${getOptimizedImageUrl(game.cover.url)})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        filter: 'blur(12px)',
-                        transform: 'scale(1.1)',
-                        opacity: '0.7'
-                      }}
-                    />
-                    {/* Clear main image */}
-                    <img 
-                      src={getOptimizedImageUrl(game.cover.url)}
-                      alt={game.name} 
-                      className="h-full object-contain relative z-10"
-                      loading="lazy"
-                    />
+              {/* Game Image */}
+              <div className="game-image bg-surface-900 relative">
+                <div className="w-full h-full relative">
+                  {/* Blurred background for better image presentation */}
+                  <div 
+                    className="absolute inset-0"
+                    style={{
+                      backgroundImage: `url(${game.cover ? getOptimizedImageUrl(game.cover.url) : NoImage})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      filter: 'blur(10px) brightness(0.7)',
+                      transform: 'scale(1.1)',
+                    }}
+                  />
+                  
+                  {/* Actual image centered */}
+                  <div className="absolute inset-0 flex items-center justify-center p-2">
+                    {game.cover ? (
+                      <img 
+                        src={getOptimizedImageUrl(game.cover.url)} 
+                        alt={game.name}
+                        className="h-full max-w-full object-contain z-10 drop-shadow-md"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full w-full z-10">
+                        <img 
+                          src={NoImage} 
+                          alt="No image available"
+                          className="w-3/4 h-3/4 object-contain opacity-80"
+                        />
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full w-full">
-                    <div className="text-2xl text-primary-400 opacity-30">Game Cover</div>
-                  </div>
-                )}
+                </div>
               </div>
               
-              <div className="p-5 flex flex-col flex-grow">
-                {/* Interactive title that expands on click */}
-                <div className="relative">
-                  <h3 
-                    onClick={() => toggleTitleExpansion(game.id, index)}
-                    className={`text-xl font-semibold text-light mb-2 cursor-pointer hover:text-primary-400 transition-all duration-200 ${isExpanded ? 'line-clamp-none' : 'line-clamp-2'}`}
-                    title={game.name}
-                  >
-                    {game.name}
-                  </h3>
-                  
-                  {/* Expand/collapse indicator */}
-                  {game.name && game.name.length > 40 && (
+              {/* Game Content */}
+              <div className="game-content bg-surface-800 p-3 flex flex-col">
+                {/* Game Title with expand/collapse option */}
+                <div className="mb-1">
+                  <div className="flex items-start justify-between gap-1">
+                    <h3 
+                      className={`text-primary-400 font-medium text-base ${isTitleExpanded ? '' : 'line-clamp-2'}`}
+                    >
+                      {game.name}
+                    </h3>
                     <button 
                       onClick={() => toggleTitleExpansion(game.id, index)}
-                      className="absolute right-0 top-0 text-xs text-primary-400 hover:text-primary-300"
+                      className="flex-shrink-0 text-tonal-400 hover:text-primary-400 transition-colors duration-200 p-1"
+                      title={isTitleExpanded ? "Collapse title" : "Expand title"}
                     >
-                      {isExpanded ? 'Less' : 'More'}
+                      {isTitleExpanded ? <LuChevronUp size={14} /> : <LuChevronDown size={14} />}
                     </button>
+                  </div>
+                </div>
+                
+                <div className="mb-0.5 text-xs">
+                  {/* Rating and review information for all games */}
+                  {game.rating && (game.ratingCount || game.rating_count) && (
+                    <div className="text-primary-400 font-medium">
+                      Rating: {Math.round(game.rating)}/100
+                    </div>
+                  )}
+                  
+                  {/* Release date for latest or upcoming games */}
+                  {(type === 'latest' || type === 'upcoming') && game.releaseDate && (
+                    <div className="text-primary-500 font-medium">
+                      {type === 'latest' ? 'Released: ' : 'Expected: '}{game.releaseDate}
+                    </div>
                   )}
                 </div>
                 
-                {/* Rating and review information for all games */}
-                {game.rating && (game.ratingCount || game.rating_count) && type !== 'recommended' && (
-                  <div className="text-xs text-primary-400 font-medium mb-2">
-                    Rating: {Math.round(game.rating)}/100 ({game.ratingCount || game.rating_count} reviews)
-                  </div>
-                )}
-                
-                {/* Match score for recommended games */}
-                {type === 'recommended' && game.matchScore && (
-                  <div className="text-xs text-green-500 font-medium mb-2">
-                    {game.rating 
-                      ? `Rating: ${Math.round(game.rating)}/100 (${game.ratingCount || game.rating_count} reviews)` 
-                      : "Highly Recommended"}
-                  </div>
-                )}
-                
-                {/* Release date for latest games */}
-                {type === 'latest' && game.releaseDate && (
-                  <div className="text-xs text-primary-500 font-medium mb-2">
-                    Released: {game.releaseDate}
-                  </div>
-                )}
-                
-                {/* Release date for upcoming games */}
-                {type === 'upcoming' && game.releaseDate && (
-                  <div className="text-xs text-blue-500 font-medium mb-2">
-                    Expected: {game.releaseDate}
-                  </div>
-                )}
-                
                 {/* Game genres */}
-                <div className="flex flex-wrap gap-1 mb-3">
-                  {game.genres?.slice(0, 4).map((genre, gIndex) => (
-                    <span key={`${game.id}-genre-${gIndex}`} className="text-xs bg-primary-600/40 text-primary-100 px-1.5 py-0.5 rounded-md border border-primary-600/20">
+                <div className="flex flex-wrap gap-1 mb-1">
+                  {game.genres?.slice(0, 3).map((genre, gIndex) => (
+                    <span key={`${game.id}-genre-${gIndex}`} className="text-xs bg-primary-600/20 text-primary-100 px-1.5 py-0.5 rounded-md">
                       {genre.name}
                     </span>
                   ))}
                 </div>
                 
                 {/* View Details button */}
-                <div className="mt-auto pt-2 flex justify-end">
+                <div className="mt-auto pt-1">
                   <button 
                     onClick={() => handleGameClick(game)}
-                    className="bg-primary-600 hover:bg-primary-700 text-white text-sm py-1 px-3 rounded transition duration-300"
+                    className="bg-primary-600 hover:bg-primary-700 text-white text-xs py-1 px-3 rounded w-full transition duration-300"
                   >
                     View Details
                   </button>
