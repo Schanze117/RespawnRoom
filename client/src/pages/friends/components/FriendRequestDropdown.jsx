@@ -10,6 +10,29 @@ const FriendRequestDropdown = ({
 }) => {
   if (!isOpen) return null;
 
+  // Add safe click handlers with debugging
+  const onAcceptClick = (e, id) => {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
+    console.log('Accept button clicked for:', id);
+    if (handleAccept && typeof handleAccept === 'function') {
+      handleAccept(id);
+    } else {
+      console.error('handleAccept is not available or not a function');
+    }
+  };
+
+  const onDeclineClick = (e, id) => {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
+    console.log('Decline button clicked for:', id);
+    if (handleDecline && typeof handleDecline === 'function') {
+      handleDecline(id);
+    } else {
+      console.error('handleDecline is not available or not a function');
+    }
+  };
+
   return (
     <div className="absolute top-12 right-0 w-72 bg-surface-800 rounded-lg shadow-lg border border-surface-700 z-10 overflow-hidden">
       <div className="flex justify-between items-center p-3 border-b border-surface-700">
@@ -40,8 +63,10 @@ const FriendRequestDropdown = ({
                   <div className="flex gap-2">
                     <button 
                       className="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors"
-                      onClick={() => handleAccept(request._id)}
+                      onClick={(e) => onAcceptClick(e, request._id)}
                       title="Accept"
+                      type="button"
+                      aria-label={`Accept friend request from ${request.userName}`}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12"></polyline>
@@ -49,8 +74,10 @@ const FriendRequestDropdown = ({
                     </button>
                     <button 
                       className="w-8 h-8 rounded-full bg-surface-700 text-gray-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
-                      onClick={() => handleDecline(request._id)}
+                      onClick={(e) => onDeclineClick(e, request._id)}
                       title="Decline"
+                      type="button"
+                      aria-label={`Decline friend request from ${request.userName}`}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>

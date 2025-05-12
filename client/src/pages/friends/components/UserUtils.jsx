@@ -34,45 +34,125 @@ export const getStatusClass = (status) => {
   return 'bg-gray-500';
 };
 
-// User Avatar Component
-const UserAvatar = ({ username, status, size = "md", showPin = false, isPinned = false }) => {
-  // Size classes
-  const sizeClasses = {
-    sm: "w-9 h-9", 
-    md: "w-12 h-12",
-    lg: "w-16 h-16"
-  };
-  
-  const statusSizeClasses = {
-    sm: "w-2.5 h-2.5",
-    md: "w-3 h-3",
-    lg: "w-4 h-4"
-  };
+// Helper to get initials from a username (first letter of each word)
+export const getInitials = (username) => {
+  if (!username) return '?';
+  return username
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase())
+    .join('')
+    .substring(0, 2);
+};
 
+// Helper to get status color class based on status
+export const getStatusColorClass = (status) => {
+  switch (status?.toLowerCase()) {
+    case 'online':
+      return 'bg-green-500';
+    case 'away':
+      return 'bg-amber-500';
+    case 'busy':
+      return 'bg-red-500';
+    case 'in-game':
+      return 'bg-primary-500';
+    default:
+      return 'bg-gray-500';
+  }
+};
+
+// Get size classes for avatar
+export const getAvatarSizeClass = (size) => {
+  switch (size) {
+    case 'xs':
+      return 'w-6 h-6 text-xs';
+    case 'sm':
+      return 'w-8 h-8 text-sm';
+    case 'md':
+      return 'w-10 h-10 text-sm';
+    case 'lg':
+      return 'w-12 h-12 text-base';
+    case 'xl':
+      return 'w-16 h-16 text-lg';
+    case '2xl':
+      return 'w-20 h-20 text-xl';
+    default:
+      return 'w-10 h-10 text-sm';
+  }
+};
+
+// Get status indicator size based on avatar size
+export const getStatusSizeClass = (size) => {
+  switch (size) {
+    case 'xs':
+      return 'w-1.5 h-1.5';
+    case 'sm':
+      return 'w-2 h-2';
+    case 'md':
+      return 'w-2.5 h-2.5';
+    case 'lg':
+      return 'w-3 h-3';
+    case 'xl':
+      return 'w-4 h-4';
+    case '2xl':
+      return 'w-5 h-5';
+    default:
+      return 'w-2.5 h-2.5';
+  }
+};
+
+// Avatar component with status indicator
+const UserAvatar = ({ 
+  username, 
+  status = '', 
+  size = 'md',
+  className = '',
+  showStatus = true,
+}) => {
+  const initials = getInitials(username);
+  const avatarSizeClass = getAvatarSizeClass(size);
+  const statusColorClass = getStatusColorClass(status);
+  const statusSizeClass = getStatusSizeClass(size);
+  
+  // Generate a simple hash from the username to get a consistent color
+  const hashCode = (username || '').split('').reduce(
+    (acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0
+  );
+  const colorIndex = Math.abs(hashCode) % avatarColors.length;
+  const bgColorClass = avatarColors[colorIndex];
+  
   return (
-    <div className="relative">
-      <div 
-        className={`${sizeClasses[size]} rounded-full flex items-center justify-center text-white font-bold`}
-        style={{ backgroundColor: getAvatarColor(username) }}
-      >
-        {getInitialAvatar(username)}
+    <div className={`relative flex-shrink-0 ${className}`}>
+      <div className={`${avatarSizeClass} ${bgColorClass} rounded-full flex items-center justify-center font-medium text-white`}>
+        {initials}
       </div>
-      {status && (
-        <div className={`absolute bottom-0 right-0 ${statusSizeClasses[size]} rounded-full border-2 border-surface-800 ${getStatusClass(status)}`}></div>
-      )}
-      {showPin && isPinned && (
-        <div className="absolute -top-1 -left-1 w-5 h-5 bg-primary-600 rounded-full flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 10L13 10" />
-            <path d="M21 6L13 6" />
-            <path d="M21 14L13 14" />
-            <path d="M21 18L13 18" />
-            <path d="M9 10.46V23a1 1 0 0 1-1.45.9L1 20M9 1v9.46" />
-          </svg>
-        </div>
+      
+      {showStatus && status && (
+        <div className={`absolute -bottom-0.5 -right-0.5 ${statusSizeClass} ${statusColorClass} rounded-full border-2 border-surface-800`}></div>
       )}
     </div>
   );
 };
+
+// Color array for avatar backgrounds
+const avatarColors = [
+  'bg-primary-600',
+  'bg-red-600',
+  'bg-green-600',
+  'bg-blue-600',
+  'bg-yellow-600',
+  'bg-pink-600',
+  'bg-purple-600',
+  'bg-indigo-600',
+  'bg-teal-600',
+  'bg-orange-600',
+  'bg-lime-600',
+  'bg-emerald-600',
+  'bg-cyan-600',
+  'bg-sky-600',
+  'bg-violet-600',
+  'bg-fuchsia-600',
+  'bg-rose-600',
+  'bg-amber-600',
+];
 
 export default UserAvatar; 

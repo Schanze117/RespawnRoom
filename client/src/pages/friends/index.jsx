@@ -29,17 +29,6 @@ export default function Friends() {
   const requestsDropdownRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(1);
   const friendsPerPage = 8;
-  const [pinnedFriends, setPinnedFriends] = useState(() => {
-    try {
-      const saved = localStorage.getItem('pinnedFriends');
-      const parsedData = saved ? JSON.parse(saved) : [];
-      console.log('[Friends] Loaded pinnedFriends from localStorage:', parsedData);
-      return Array.isArray(parsedData) ? parsedData : [];
-    } catch (error) {
-      console.error('[Friends] Error parsing pinnedFriends from localStorage:', error);
-      return [];
-    }
-  });
   const [activeDropdown, setActiveDropdown] = useState(null);
   const dropdownRefs = useRef({});
   const [unreadCounts, setUnreadCounts] = useState({});
@@ -48,6 +37,20 @@ export default function Friends() {
   const { data: unreadCountData, refetch: refetchUnreadCounts } = useQuery(GET_UNREAD_MESSAGE_COUNT, {
     fetchPolicy: 'network-only'
   });
+  
+  // Create a global function to refresh unread counts that can be called from any component
+  useEffect(() => {
+    window.refetchAllUnreadCounts = () => {
+      console.log('[Friends] Global refetch of unread counts triggered');
+      refetchUnreadCounts();
+    };
+    
+    return () => {
+      // Clean up when component unmounts
+      delete window.refetchAllUnreadCounts;
+    };
+  }, [refetchUnreadCounts]);
+  
   useEffect(() => {
     console.log('[Friends] unreadCountData:', unreadCountData);
   }, [unreadCountData]);
@@ -148,19 +151,27 @@ export default function Friends() {
         }
         console.log('[Friends] Update function called with data:', data.removeFriend);
         const existingData = cache.readQuery({ query: GET_FRIENDS });
-        if (!existingData || !existingData.getFriends) {
-          console.log('[Friends] No existing friends data in cache to update');
-          return;
+        console.log('[Friends] existingFriendsData in update:', existingData);
+        if (existingData) {
+          const removedFriendId = data.removeFriend._id;
+          const updatedFriends = existingData.getFriends.filter(
+            friend => friend._id !== removedFriendId
+          );
+          cache.writeQuery({
+            query: GET_FRIENDS,
+            data: { getFriends: updatedFriends }
+          });
+          console.log('[Friends] Wrote updated friends to cache:', updatedFriends);
         }
-        console.log('[Friends] Current friends in cache:', existingData.getFriends);
-        const removedFriendId = data.removeFriend._id;
-        const updatedFriends = existingData.getFriends.filter(friend => friend._id !== removedFriendId);
-        console.log('[Friends] Updated friends list:', updatedFriends);
-        cache.writeQuery({
-          query: GET_FRIENDS,
-          data: { getFriends: updatedFriends },
-        });
-        console.log('[Friends] Cache updated successfully');
+        if (isPinned(data.removeFriend._id)) {
+          const updatedFriends = friends.filter(friendId => friendId !== data.removeFriend._id);
+          console.log('[Friends] Updated friends list:', updatedFriends);
+          cache.writeQuery({
+            query: GET_FRIENDS,
+            data: { getFriends: updatedFriends },
+          });
+          console.log('[Friends] Cache updated successfully');
+        }
       } catch (err) {
         console.error('[Friends] Error updating cache after friend removal:', err);
       }
@@ -170,23 +181,28 @@ export default function Friends() {
 
   // Utility functions
   const isPinned = (friendId) => {
-    const result = Array.isArray(pinnedFriends) && pinnedFriends.includes(friendId);
+    const result = Array.isArray(friends) && friends.some(friend => friend._id === friendId);
     console.log('[Friends] isPinned check:', friendId, result);
     return result;
   };
-
-  useEffect(() => {
-    console.log('[Friends] Saving pinnedFriends to localStorage:', pinnedFriends);
-    localStorage.setItem('pinnedFriends', JSON.stringify(pinnedFriends));
-  }, [pinnedFriends]);
 
   useEffect(() => {
     function handleClickOutside(event) {
       // Add safeguard to ensure event has a target
       if (!event || !event.target) return;
     
-      // For requests dropdown
-      if (requestsDropdownRef.current && !requestsDropdownRef.current.contains(event.target)) {
+      // Check if click is on a button or inside a dropdown menu
+      const isButtonClick = event.target.tagName === 'BUTTON' || 
+        event.target.closest('button') || 
+        event.target.tagName === 'svg' || 
+        event.target.tagName === 'path' ||
+        event.target.tagName === 'line' ||
+        event.target.tagName === 'polyline' ||
+        event.target.tagName === 'A' ||
+        event.target.tagName === 'INPUT';
+        
+      // For requests dropdown - don't close if clicking on buttons inside the dropdown
+      if (requestsDropdownRef.current && !requestsDropdownRef.current.contains(event.target) && !isButtonClick) {
         setShowRequests(false);
         console.log('[Friends] Clicked outside requests dropdown');
       }
@@ -195,14 +211,8 @@ export default function Friends() {
       if (activeDropdown && dropdownRefs.current[activeDropdown]) {
         const dropdownEl = dropdownRefs.current[activeDropdown];
         
-        // Check if the click was on a button or other interactive element inside the dropdown
-        const isClickOnInteractiveElement = event.target.tagName === 'BUTTON' || 
-          event.target.closest('button') || 
-          event.target.tagName === 'A' ||
-          event.target.tagName === 'INPUT';
-        
         // Only close if the click is outside the dropdown AND not on an interactive element
-        if (!dropdownEl.contains(event.target) && !isClickOnInteractiveElement) {
+        if (!dropdownEl.contains(event.target) && !isButtonClick) {
           console.log('[Friends] Clicked outside friend action dropdown, closing');
           setActiveDropdown(null);
         }
@@ -225,21 +235,19 @@ export default function Friends() {
   const handleAccept = async (id) => {
     console.log('[Friends] handleAccept called for:', id);
     try {
-      if (window.confirm('Accept friend request?')) {
-        await acceptFriendRequest({ 
-          variables: { userId: id },
-          onCompleted: (data) => {
-            console.log('[Friends] Friend request accepted successfully', data);
-            refetchFriends();
-            refetchRequests();
-            setShowRequests(false);
-          },
-          onError: (err) => {
-            console.error('[Friends] Error accepting friend request:', err.message);
-            alert('Failed to accept friend request. Please try again.');
-          }
-        });
-      }
+      // Remove confirmation for better UX
+      await acceptFriendRequest({ 
+        variables: { userId: id },
+        onCompleted: (data) => {
+          console.log('[Friends] Friend request accepted successfully', data);
+          refetchFriends();
+          refetchRequests();
+        },
+        onError: (err) => {
+          console.error('[Friends] Error accepting friend request:', err.message);
+          alert('Failed to accept friend request. Please try again.');
+        }
+      });
     } catch (err) {
       console.error('[Friends] Error accepting friend request:', err);
       alert('An unexpected error occurred. Please try again.');
@@ -249,58 +257,27 @@ export default function Friends() {
   const handleDecline = async (id) => {
     console.log('[Friends] handleDecline called for:', id);
     try {
-      if (window.confirm('Decline friend request?')) {
-        await declineFriendRequest({ 
-          variables: { userId: id },
-          onCompleted: (data) => {
-            console.log('[Friends] Friend request declined successfully', data);
-            refetchRequests();
-            if (friendRequests.length <= 1) {
-              setShowRequests(false);
-            }
-          },
-          onError: (err) => {
-            console.error('[Friends] Error declining friend request:', err.message);
-            alert('Failed to decline friend request. Please try again.');
-          }
-        });
-      }
+      // Remove confirmation for better UX
+      await declineFriendRequest({ 
+        variables: { userId: id },
+        onCompleted: (data) => {
+          console.log('[Friends] Friend request declined successfully', data);
+          refetchRequests();
+        },
+        onError: (err) => {
+          console.error('[Friends] Error declining friend request:', err.message);
+          alert('Failed to decline friend request. Please try again.');
+        }
+      });
     } catch (err) {
       console.error('[Friends] Error declining friend request:', err);
       alert('An unexpected error occurred. Please try again.');
     }
   };
 
-  const togglePinFriend = (id) => {
-    console.log('[Friends] togglePinFriend called for:', id);
-    try {
-      const isCurrentlyPinned = pinnedFriends.includes(id);
-      console.log('[Friends] Friend is currently pinned:', isCurrentlyPinned);
-      let updatedPinnedFriends;
-      if (isCurrentlyPinned) {
-        updatedPinnedFriends = pinnedFriends.filter(friendId => friendId !== id);
-        console.log('[Friends] Unpinning friend');
-      } else {
-        updatedPinnedFriends = [...pinnedFriends, id];
-        console.log('[Friends] Pinning friend');
-      }
-      setPinnedFriends(updatedPinnedFriends);
-      console.log('[Friends] Updated pinnedFriends:', updatedPinnedFriends);
-      try {
-        localStorage.setItem('pinnedFriends', JSON.stringify(updatedPinnedFriends));
-        console.log('[Friends] Saved pinnedFriends to localStorage');
-      } catch (storageError) {
-        console.error('[Friends] Error saving to localStorage:', storageError);
-      }
-      setActiveDropdown(null);
-    } catch (error) {
-      console.error('[Friends] Error in togglePinFriend:', error);
-    }
-  };
-
-  const handleRemoveFriend = async (id) => {
-    console.log('[Friends] handleRemoveFriend called for:', id);
-    if (!id) {
+  const handleRemoveFriend = async (friendId) => {
+    console.log('[Friends] handleRemoveFriend called for:', friendId);
+    if (!friendId) {
       console.error('[Friends] Invalid friend ID provided to handleRemoveFriend');
       return;
     }
@@ -312,7 +289,7 @@ export default function Friends() {
           userName: 'CURRENT_USER', // Replace with actual user name if available
           email: 'CURRENT_USER_EMAIL', // Replace with actual user email if available
           friends: friendsData?.getFriends
-            .filter(friend => friend._id !== id)
+            .filter(friend => friend._id !== friendId)
             .map(friend => ({
               __typename: 'User',
               _id: friend._id,
@@ -324,7 +301,7 @@ export default function Friends() {
       };
       console.log('[Friends] optimisticResponse:', optimisticResponse);
       const result = await removeFriend({ 
-        variables: { userId: id },
+        variables: { userId: friendId },
         optimisticResponse,
         update: (cache, { data }) => {
           console.log('[Friends] update function called in handleRemoveFriend:', data);
@@ -333,7 +310,7 @@ export default function Friends() {
           console.log('[Friends] existingFriendsData in update:', existingFriendsData);
           if (existingFriendsData) {
             const updatedFriends = existingFriendsData.getFriends.filter(
-              friend => friend._id !== id
+              friend => friend._id !== friendId
             );
             cache.writeQuery({
               query: GET_FRIENDS,
@@ -341,11 +318,14 @@ export default function Friends() {
             });
             console.log('[Friends] Wrote updated friends to cache:', updatedFriends);
           }
-          if (isPinned(id)) {
-            const updatedPinnedFriends = pinnedFriends.filter(friendId => friendId !== id);
-            setPinnedFriends(updatedPinnedFriends);
-            localStorage.setItem('pinnedFriends', JSON.stringify(updatedPinnedFriends));
-            console.log('[Friends] Updated pinned friends after removal:', updatedPinnedFriends);
+          if (isPinned(friendId)) {
+            const updatedFriends = friends.filter(friend => friend._id !== friendId);
+            console.log('[Friends] Updated friends list:', updatedFriends);
+            cache.writeQuery({
+              query: GET_FRIENDS,
+              data: { getFriends: updatedFriends },
+            });
+            console.log('[Friends] Cache updated successfully');
           }
         }
       });
@@ -356,7 +336,7 @@ export default function Friends() {
     } catch (error) {
       console.error('[Friends] Error in handleRemoveFriend:', error);
       try {
-        const fallbackResult = await directRemoveFriend(id);
+        const fallbackResult = await directRemoveFriend(friendId);
         console.log('[Friends] Fallback directRemoveFriend result:', fallbackResult);
         return fallbackResult;
       } catch (directError) {
@@ -426,8 +406,8 @@ export default function Friends() {
     }
   }, [removeError]);
 
-  const directRemoveFriend = async (id) => {
-    console.log('[Friends] directRemoveFriend called for:', id);
+  const directRemoveFriend = async (friendId) => {
+    console.log('[Friends] directRemoveFriend called for:', friendId);
     try {
       const token = localStorage.getItem('jwtToken');
       if (!token) {
@@ -457,7 +437,7 @@ export default function Friends() {
             }
           `,
           variables: {
-            userId: id
+            userId: friendId
           }
         })
       });
@@ -472,19 +452,11 @@ export default function Friends() {
       if (!result.data?.removeFriend) {
         throw new Error('No data returned from server');
       }
-      if (isPinned(id)) {
-        const updatedPinnedFriends = pinnedFriends.filter(friendId => friendId !== id);
-        setPinnedFriends(updatedPinnedFriends);
-        localStorage.setItem('pinnedFriends', JSON.stringify(updatedPinnedFriends));
-        console.log('[Friends] Updated pinned friends after direct removal:', updatedPinnedFriends);
-      }
       await refetchFriends();
       console.log('[Friends] Refetched friends after direct removal');
       return result;
     } catch (error) {
       console.error('[Friends] Error in directRemoveFriend:', error);
-      await resetAndRefetch();
-      console.log('[Friends] Forced cache reset and refetch after directRemoveFriend failed');
       throw error;
     }
   };
@@ -499,16 +471,11 @@ export default function Friends() {
     : [];
   console.log('[Friends] filteredFriends:', filteredFriends);
 
-  const pinnedFilteredFriends = filteredFriends.filter(friend => friend && friend._id && isPinned(friend._id));
-  const unpinnedFilteredFriends = filteredFriends.filter(friend => friend && friend._id && !isPinned(friend._id));
-  console.log('[Friends] pinnedFilteredFriends:', pinnedFilteredFriends);
-  console.log('[Friends] unpinnedFilteredFriends:', unpinnedFilteredFriends);
-
   const indexOfLastFriend = currentPage * friendsPerPage;
   const indexOfFirstFriend = indexOfLastFriend - friendsPerPage;
-  const currentUnpinnedFriends = unpinnedFilteredFriends.slice(indexOfFirstFriend, indexOfLastFriend);
-  const totalPages = Math.ceil(unpinnedFilteredFriends.length / friendsPerPage);
-  console.log('[Friends] Pagination:', { currentPage, totalPages, indexOfFirstFriend, indexOfLastFriend, currentUnpinnedFriends });
+  const currentFriends = filteredFriends.slice(indexOfFirstFriend, indexOfLastFriend);
+  const totalPages = Math.ceil(filteredFriends.length / friendsPerPage);
+  console.log('[Friends] Pagination:', { currentPage, totalPages, indexOfFirstFriend, indexOfLastFriend, currentFriends });
 
   const paginate = (pageNumber) => {
     console.log('[Friends] paginate called:', pageNumber);
@@ -549,8 +516,8 @@ export default function Friends() {
   const displayRequests = friendRequests.length > 0 ? friendRequests : [];
 
   console.log('[Friends] Render return', {
-    pinnedFriends,
-    currentUnpinnedFriends,
+    friends,
+    currentFriends,
     searchQuery,
     searchMode,
     activeDropdown,
@@ -562,38 +529,41 @@ export default function Friends() {
   });
 
   return (
-    <div className="min-h-screen bg-surface-900">
-      <div className="flex">
-        {/* Main content */}
-        <div className="flex-1 md:ml-64">
-          <div className="pt-20 px-4">
-            {/* Header with Friend Requests */}
+    <div className="page-container flex-1 pt-20 md:pl-64">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-surface-900 border-2 rounded-lg border-tonal-800 shadow-lg overflow-hidden mb-6">
+          <h1 className="text-3xl font-bold text-light px-5 py-3 border-b border-tonal-800 z-10 relative">Your Friends</h1>
+          <div className="p-4">
+            {/* Friends Header with Requests Dropdown */}
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-white">Friends</h1>
-              {/* Friend Requests Icon with Badge */}
-              <div className="relative" ref={requestsDropdownRef}>
+              <div className="flex items-center">
+                <span className="ml-2 bg-primary-700 text-primary-100 text-xs font-medium px-2.5 py-1 rounded-full">
+                  {friends.length}
+                </span>
+              </div>
+              <div className="relative">
                 <button 
-                  className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${showRequests ? 'bg-primary-600 text-white' : 'bg-transparent text-gray-400 hover:bg-surface-800'}`}
+                  className="flex items-center gap-2 bg-surface-800 hover:bg-surface-700 transition-colors px-4 py-2 rounded-lg text-light relative"
                   onClick={toggleRequestsDropdown}
-                  title="Friend Requests"
+                  ref={requestsDropdownRef}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                     <circle cx="8.5" cy="7" r="4"></circle>
                     <line x1="20" y1="8" x2="20" y2="14"></line>
                     <line x1="23" y1="11" x2="17" y2="11"></line>
                   </svg>
-                  {displayRequests.length > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold border-2 border-surface-950">
-                      {displayRequests.length}
-                    </span>
-                  )}
+                  Friend Requests
+                  <span className="bg-primary-600 text-white text-xs rounded-full h-5 min-w-[20px] flex items-center justify-center px-1">
+                    {friendRequests.length}
+                  </span>
                 </button>
+                
                 {/* Friend Requests Dropdown */}
                 <FriendRequestDropdown
                   isOpen={showRequests}
                   loading={requestsLoading}
-                  requests={displayRequests}
+                  requests={friendRequests}
                   handleAccept={handleAccept}
                   handleDecline={handleDecline}
                 />
@@ -608,19 +578,17 @@ export default function Friends() {
               handleSearch={handleSearch}
             />
             {/* Content */}
-            <div className="flex-1">
+            <div className="mt-4">
               {/* My Friends */}
               {searchMode === 'friends' && (
                 <FriendsList
-                  pinnedFriends={pinnedFriends}
-                  unpinnedFriends={currentUnpinnedFriends}
+                  unpinnedFriends={currentFriends}
                   searchQuery={searchQuery}
                   toggleSearchMode={toggleSearchMode}
                   activeDropdown={activeDropdown}
                   setActiveDropdown={setActiveDropdown}
-                  togglePinFriend={togglePinFriend}
                   handleRemoveFriend={handleRemoveFriend}
-                  dropdownRefs={dropdownRefs}
+                  dropdownRefs={registerDropdownRef}
                   currentPage={currentPage}
                   totalPages={totalPages}
                   handlePageChange={setCurrentPage}
@@ -633,11 +601,13 @@ export default function Friends() {
               {/* Find Players */}
               {searchMode === 'findPlayers' && (
                 <SearchUsers
-                  searchLoading={searchLoading}
                   searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  onSearch={handleSearch}
+                  onSendRequest={handleSendRequest}
                   searchResults={displaySearchResults}
+                  loading={searchLoading}
                   requestSent={requestSent}
-                  handleSendRequest={handleSendRequest}
                 />
               )}
             </div>

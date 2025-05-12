@@ -21,7 +21,7 @@ export default function Saved() {
     const savedGames = data?.me?.savedGames || [];
 
     return (
-        <div className="flex-1 pt-20 md:pl-64 transition-all duration-300">
+        <div className="flex-1 pt-20 md:pl-64">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="bg-surface-900 border-2 rounded-lg border-tonal-800 shadow-lg overflow-hidden mb-6">
                     <h1 className="text-3xl font-bold text-light px-5 py-3 border-b border-tonal-800 z-10 relative">Saved Games</h1>
