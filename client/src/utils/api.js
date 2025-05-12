@@ -75,7 +75,7 @@ export const searchGames = async (game, page = 1, itemsPerPage = 25) => {
 
 export const getGameVideo = async (id) => {
   try {
-    const response = await fetch(`/api/game_videos`, {
+    const response = await fetch(`${SERVER_URL}/api/game_videos`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -341,13 +341,6 @@ export const getTokens = async () => {
 // Fallback tokens function to use when server is unavailable
 function getFallbackTokens() {
   return {
-    "RPG": 2,
-    "Action": 1,
-    "Adventure": 1,
-    "Third Person": 2,
-    "Puzzle": 1,
-    "Shooter": 1,
-    "Strategy": 1,
     "_source": "fallback" // Marker to indicate these are fallback tokens
   };
 }
@@ -414,7 +407,7 @@ export const getPersonalizedGames = async () => {
     // Add a default matchScore if not provided by the server
     return data.map(game => ({
       ...game,
-      matchScore: game.matchScore || game.matchPercentage || 85
+      matchScore: game.matchScore || game.matchPercentage || (game.rating ? Math.min(95, Math.round(game.rating)) : 75)
     }));
   } catch (error) {
     console.error('Error fetching personalized games:', error);

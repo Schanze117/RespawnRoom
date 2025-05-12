@@ -25,19 +25,20 @@ export default function TrendingGames() {
 
   if (isLoading && displayGames.length === 0) {
     return (
-      <section className="w-full mb-12">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-primary-500">Trending Now</h2>
+      <section className="w-full mb-8 sm:mb-12 overflow-hidden">
+        <div className="relative mb-6">
+          <div className="absolute left-0 top-0 w-1 h-full bg-primary-600"></div>
+          <h2 className="text-xl sm:text-2xl font-bold text-primary-500 pl-4">Trending Now</h2>
         </div>
-        <div className="flex space-x-4 overflow-hidden pb-4">
+        <div className="flex space-x-4 overflow-x-scroll pb-4 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
           {[...Array(5)].map((_, index) => (
-            <div key={index} className="flex-shrink-0 bg-surface-800 rounded-lg overflow-hidden border border-surface-700 w-[280px]">
+            <div key={index} className="flex-shrink-0 bg-surface-800 rounded-lg overflow-hidden border border-surface-700 w-[250px] sm:w-[280px]">
               <Skeleton width="100%" height={160} baseColor="#202020" highlightColor="#2a2a2a" />
               <div className="p-4">
-                <Skeleton width="80%" height={24} baseColor="#202020" highlightColor="#2a2a2a" />
-                <Skeleton width="60%" height={16} baseColor="#202020" highlightColor="#2a2a2a" style={{ marginTop: 8 }} />
+                <Skeleton width="80%" height={20} baseColor="#202020" highlightColor="#2a2a2a" />
+                <Skeleton width="60%" height={14} baseColor="#202020" highlightColor="#2a2a2a" style={{ marginTop: 8 }} />
                 <div className="mt-4">
-                  <Skeleton width="40%" height={16} baseColor="#202020" highlightColor="#2a2a2a" />
+                  <Skeleton width="40%" height={14} baseColor="#202020" highlightColor="#2a2a2a" />
                 </div>
               </div>
             </div>
@@ -52,9 +53,10 @@ export default function TrendingGames() {
   }
 
   return (
-    <section className="w-full mb-12">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-primary-500">Trending Now</h2>
+    <section className="w-full mb-8 sm:mb-12 overflow-hidden">
+      <div className="relative mb-6">
+        <div className="absolute left-0 top-0 w-1 h-full bg-primary-600"></div>
+        <h2 className="text-xl sm:text-2xl font-bold text-primary-500 pl-4">Trending Now</h2>
       </div>
       
       {/* Force re-render with a new component instance by using a unique key */}

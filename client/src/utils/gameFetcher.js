@@ -312,4 +312,97 @@ export async function getUpcomingReleases() {
   } catch (error) {
     return { primary: [], secondary: [] };
   }
+}
+
+// Process API response to ensure maximum diversity in games
+function processGamesForDiversity(games) {
+  if (!games || games.length === 0) return [];
+  
+  // Create a map of genres to games to ensure diversity
+  const genreMap = new Map();
+  
+  // First pass: categorize games by genres
+  games.forEach(game => {
+    if (game.genres) {
+      game.genres.forEach(genre => {
+        if (!genreMap.has(genre.name)) {
+          genreMap.set(genre.name, []);
+        }
+        genreMap.get(genre.name).push(game);
+      });
+    } else {
+      // Games with no genres go into a special category
+      if (!genreMap.has('uncategorized')) {
+        genreMap.set('uncategorized', []);
+      }
+      genreMap.get('uncategorized').push(game);
+    }
+  });
+  
+  // Second pass: select games prioritizing genre diversity
+  const selectedGames = [];
+  const genreKeys = Array.from(genreMap.keys());
+  
+  // Rotate through genres, taking one game from each until we have enough
+  while (selectedGames.length < games.length && genreKeys.some(key => genreMap.get(key).length > 0)) {
+    // Shuffle genres each round for more randomness
+    genreKeys.sort(() => 0.5 - Math.random());
+    
+    for (const genre of genreKeys) {
+      const gamesOfGenre = genreMap.get(genre);
+      if (gamesOfGenre.length > 0) {
+        // Take the first game and remove it from this genre's array
+        const game = gamesOfGenre.shift();
+        
+        // Only add if not already in selectedGames
+        if (!selectedGames.some(g => g.id === game.id)) {
+          selectedGames.push(game);
+        }
+        
+        // Break early if we've gotten enough games
+        if (selectedGames.length >= games.length) break;
+      }
+    }
+  }
+  
+  return selectedGames;
+}
+
+/**
+ * Gets trending games from IGDB API via backend proxy
+ */
+export async function processTrendingGames() {
+  try {
+    // Use the API function to get trending games
+    const games = await getTrendingGames();
+    
+    // Handle empty response from API
+    if (!games || games.length === 0) {
+      return { primary: [], secondary: [] };
+    }
+    
+    // Filter out games already displayed elsewhere
+    const availableGames = games.filter(game => !displayedGameIds.has(game.id));
+    
+    // Process for diversity
+    const processedGames = processGamesForDiversity(availableGames);
+    
+    // If we have fewer than 15 games after filtering, take what we can get
+    const maxPrimaryCount = 5;
+    const maxSecondaryCount = 10;
+    const useCount = Math.min(maxPrimaryCount + maxSecondaryCount, processedGames.length);
+    
+    // Take the first 5 games for primary section and next 10 for secondary section
+    const primary = processedGames.slice(0, maxPrimaryCount);
+    const secondary = processedGames.slice(maxPrimaryCount, useCount);
+    
+    // Add all selected games to the set of displayed games
+    [...primary, ...secondary].forEach(game => {
+      if (game && game.id) displayedGameIds.add(game.id);
+    });
+    
+    return { primary, secondary };
+  } catch (error) {
+    return { primary: [], secondary: [] };
+  }
 } 

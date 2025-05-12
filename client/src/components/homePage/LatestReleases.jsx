@@ -26,8 +26,9 @@ export default function LatestReleases() {
   if (isLoading && displayGames.length === 0) {
     return (
       <section className="w-full mb-12">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-primary-500">Latest Releases</h2>
+        <div className="relative mb-6">
+          <div className="absolute left-0 top-0 w-1 h-full bg-primary-600"></div>
+          <h2 className="text-2xl font-bold text-primary-500 pl-4">Latest Releases</h2>
         </div>
         <div className="flex space-x-4 overflow-hidden pb-4">
           {[...Array(5)].map((_, index) => (
@@ -53,8 +54,9 @@ export default function LatestReleases() {
 
   return (
     <section className="w-full mb-12" key={`latest-section-${respawnCount}`}>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-primary-500">Latest Releases</h2>
+      <div className="relative mb-6">
+        <div className="absolute left-0 top-0 w-1 h-full bg-primary-600"></div>
+        <h2 className="text-2xl font-bold text-primary-500 pl-4">Latest Releases</h2>
       </div>
       
       {/* Force re-render with a new component instance by using a unique key */}

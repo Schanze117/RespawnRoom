@@ -28,6 +28,7 @@ export const GET_FRIENDS = gql`
       userName
       status
       lastSeen
+      __typename
     }
   }
 `;

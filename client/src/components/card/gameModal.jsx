@@ -130,6 +130,70 @@ export default function GameModal({ game, onClose, location}) {
         fetchGameVideo();
     }, [game]);
 
+    // Helper function to render genres based on location
+    const renderGenres = () => {
+        if (location === "saved") {
+            // For saved games
+            if (game.genres && Array.isArray(game.genres)) {
+                if (typeof game.genres[0] === 'string') {
+                    // Handle string array directly from database
+                    return game.genres.map((genre, index) => (
+                        <span key={index} className="bg-primary-600/20 text-primary-400 px-3 py-1 rounded-md text-sm font-medium">
+                            {genre}
+                        </span>
+                    ));
+                } else {
+                    // Handle object array from API
+                    return game.genres.map((genre, index) => (
+                        <span key={index} className="bg-primary-600/20 text-primary-400 px-3 py-1 rounded-md text-sm font-medium">
+                            {genre.name}
+                        </span>
+                    ));
+                }
+            }
+            return null;
+        } else {
+            // For non-saved games
+            return game.genres && game.genres.map((genre, index) => (
+                <span key={index} className="bg-primary-600/20 text-primary-400 px-3 py-1 rounded-md text-sm font-medium">
+                    {genre.name}
+                </span>
+            ));
+        }
+    };
+
+    // Helper function to render player perspectives based on location
+    const renderPlayerPerspectives = () => {
+        if (location === "saved") {
+            // For saved games
+            if (game.playerPerspectives && Array.isArray(game.playerPerspectives)) {
+                if (typeof game.playerPerspectives[0] === 'string') {
+                    // Handle string array directly from database
+                    return game.playerPerspectives.map((perspective, index) => (
+                        <span key={`pov-${index}`} className="bg-tonal-800 text-tonal-400 px-3 py-1 rounded-md text-sm font-medium">
+                            {perspective}
+                        </span>
+                    ));
+                }
+            } else if (game.player_perspectives && Array.isArray(game.player_perspectives)) {
+                // Handle object array from API
+                return game.player_perspectives.map((perspective, index) => (
+                    <span key={`pov-${index}`} className="bg-tonal-800 text-tonal-400 px-3 py-1 rounded-md text-sm font-medium">
+                        {perspective.name}
+                    </span>
+                ));
+            }
+            return null;
+        } else {
+            // For non-saved games
+            return game.player_perspectives && game.player_perspectives.map((perspective, index) => (
+                <span key={`pov-${index}`} className="bg-tonal-800 text-tonal-400 px-3 py-1 rounded-md text-sm font-medium">
+                    {perspective.name}
+                </span>
+            ));
+        }
+    };
+
     return (
         <div 
             ref={modalRef}
@@ -186,17 +250,9 @@ export default function GameModal({ game, onClose, location}) {
                                     Genres & Perspectives
                                 </h3>
                                 <div className='flex flex-wrap gap-2 mt-2'>
-                                    {game.genres && game.genres.map((genre, index) => (
-                                        <span key={index} className="bg-primary-600/20 text-primary-400 px-3 py-1 rounded-md text-sm font-medium">
-                                            {genre.name}
-                                        </span>
-                                    ))}
-                                    {game.player_perspectives && game.player_perspectives.map((perspective, index) => (
-                                        <span key={`pov-${index}`} className="bg-tonal-800 text-tonal-400 px-3 py-1 rounded-md text-sm font-medium">
-                                            {perspective.name}
-                                        </span>
-                                    ))}
-                                    {(!game.genres || game.genres.length === 0) && (!game.player_perspectives || game.player_perspectives.length === 0) && (
+                                    {renderGenres()}
+                                    {renderPlayerPerspectives()}
+                                    {(!renderGenres() && !renderPlayerPerspectives()) && (
                                         <span className="text-tonal-400">No genre or perspective information available</span>
                                     )}
                                 </div>

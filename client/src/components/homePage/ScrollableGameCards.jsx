@@ -17,6 +17,20 @@ const cssStyles = `
     display: none;  /* Chrome, Safari, Opera */
   }
   
+  /* Remove any mobile scroll indicator dots */
+  .snap-x {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Hide scrollbar indicators on all browsers */
+  * {
+    scrollbar-width: none; /* Firefox */
+  }
+  *::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+  
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -39,9 +53,15 @@ const cssStyles = `
     display: flex;
     flex-direction: column;
     height: 320px;
-    width: 280px;
+    width: 250px;
     transition: all 0.3s ease;
     position: relative;
+  }
+  
+  @media (min-width: 640px) {
+    .game-card {
+      width: 280px;
+    }
   }
   
   .game-card:hover {
@@ -50,17 +70,28 @@ const cssStyles = `
   }
   
   .game-image {
-    height: 160px;
+    height: 150px;
     overflow: hidden;
     position: relative;
   }
   
+  @media (min-width: 640px) {
+    .game-image {
+      height: 160px;
+    }
+  }
+  
   .game-content {
-    height: 160px;
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     padding: 10px;
+  }
+  
+  .rating-container {
+    margin-top: 4px;
+    margin-bottom: 8px;
   }
 `;
 
@@ -307,45 +338,34 @@ export default function ScrollableGameCards({ games, type, onToggleExpand, fixed
 
   return (
     <div className="relative">
-      {/* Left scroll button */}
-      <button 
-        onClick={scrollLeft}
-        className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-surface-800/80 text-primary-400 hover:text-primary-600 p-2 rounded-r-lg shadow-lg backdrop-blur transition-all"
-        aria-label="Scroll left"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-      </button>
+      <div className="absolute -left-2 top-1/2 -translate-y-1/2 z-10 flex-col items-start hidden sm:flex">
+        <button 
+          onClick={scrollLeft}
+          disabled={isScrolling}
+          className="bg-surface-800/80 h-10 w-10 flex items-center justify-center rounded-full shadow-lg hover:bg-primary-600/70 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50"
+          aria-label="Scroll left"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="h-6 w-6 text-tonal-300">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+      </div>
       
-      {/* Right scroll button */}
-      <button 
-        onClick={scrollRight}
-        className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-surface-800/80 text-primary-400 hover:text-primary-600 p-2 rounded-l-lg shadow-lg backdrop-blur transition-all"
-        aria-label="Scroll right"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="9 18 15 12 9 6"></polyline>
-        </svg>
-      </button>
-      
-      {/* Scrollable container */}
+      {/* Main scrollable area - adjusted for better mobile view */}
       <div 
         ref={scrollContainerRef}
-        className="flex gap-4 overflow-x-auto py-4 px-2 hide-scrollbar scroll-smooth snap-x"
-        style={{ scrollBehavior: 'smooth' }}
+        className="flex space-x-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0"
+        style={{ scrollBehavior: 'smooth', scrollSnapType: 'x mandatory' }}
       >
-        {loopedGames.map((game, index) => {
-          const uniqueIndex = index % games.length;
-          const titleKey = `${game.id}-${uniqueIndex}`;
-          const contentKey = `${game.id}-${uniqueIndex}`;
-          const isTitleExpanded = expandedTitles[titleKey] || false;
-          const isContentExpanded = expandedContent[contentKey] || false;
+        {loopedGames.slice(0, 12).map((game, index) => { // Limit to 12 to prevent too many duplicates
+          const key = `${game.id}-${index}`;
+          const isTitleExpanded = expandedTitles[key] || false;
+          const isContentExpanded = expandedContent[key] || false;
           const saveState = getSaveButtonState(game.id, game);
           
           return (
-            <div
-              key={`${game.id}-${index}`}
+            <div 
+              key={key} 
               className="game-card flex-shrink-0 snap-start bg-surface-800 rounded-lg overflow-hidden border border-surface-700 hover:border-primary-600 transition-colors duration-300"
             >
               {/* Save Button */}
@@ -393,7 +413,7 @@ export default function ScrollableGameCards({ games, type, onToggleExpand, fixed
                     {game.cover ? (
                       <img 
                         src={getOptimizedImageUrl(game.cover.url)} 
-                        alt={game.name}
+                        alt={game.name} 
                         className="h-full max-w-full object-contain z-10 drop-shadow-md"
                         loading="lazy"
                       />
@@ -420,7 +440,7 @@ export default function ScrollableGameCards({ games, type, onToggleExpand, fixed
                     >
                       {game.name}
                     </h3>
-                    <button 
+                    <button
                       onClick={() => toggleTitleExpansion(game.id, index)}
                       className="flex-shrink-0 text-tonal-400 hover:text-primary-400 transition-colors duration-200 p-1"
                       title={isTitleExpanded ? "Collapse title" : "Expand title"}
@@ -438,10 +458,16 @@ export default function ScrollableGameCards({ games, type, onToggleExpand, fixed
                     </div>
                   )}
                   
-                  {/* Release date for latest or upcoming games */}
-                  {(type === 'latest' || type === 'upcoming') && game.releaseDate && (
-                    <div className="text-primary-500 font-medium">
-                      {type === 'latest' ? 'Released: ' : 'Expected: '}{game.releaseDate}
+                  {/* Match percentage for personalized recommendations */}
+                  {(game.matchScore || game.matchPercentage) && (
+                    <div className="flex items-center mt-1">
+                      <div className="w-16 h-1.5 bg-surface-700 rounded-full overflow-hidden mr-2">
+                        <div 
+                          className="h-full bg-primary-600" 
+                          style={{ width: `${game.matchScore || game.matchPercentage}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-primary-300">{game.matchScore || game.matchPercentage}% match</span>
                     </div>
                   )}
                 </div>
@@ -470,8 +496,25 @@ export default function ScrollableGameCards({ games, type, onToggleExpand, fixed
         })}
       </div>
       
-      {/* Game Modal */}
-      {showModal && <GameModal game={selectedGame} onClose={handleCloseModal} />}
+      <div className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 flex-col items-end hidden sm:flex">
+        <button 
+          onClick={scrollRight}
+          disabled={isScrolling}
+          className="bg-surface-800/80 h-10 w-10 flex items-center justify-center rounded-full shadow-lg hover:bg-primary-600/70 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50"
+          aria-label="Scroll right"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="h-6 w-6 text-tonal-300">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+      
+      {showModal && selectedGame && (
+        <GameModal 
+          game={selectedGame} 
+          onClose={handleCloseModal} 
+        />
+      )}
     </div>
   );
 } 

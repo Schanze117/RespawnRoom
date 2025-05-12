@@ -4,6 +4,8 @@ import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@ap
 import { setContext } from '@apollo/client/link/context';
 import { lazy, Suspense } from 'react';
 import './index.css';
+import { onError } from '@apollo/client/link/error';
+import { RetryLink } from '@apollo/client/link/retry';
 
 import App from './App.jsx';
 // Import Home normally as it's the initial page users see
@@ -22,6 +24,9 @@ import { GameProvider } from './utils/GameContext.jsx';
 const httpLink = createHttpLink({
   uri: 'http://localhost:3001/graphql',
   credentials: 'include',
+  fetchOptions: {
+    mode: 'cors',
+  },
 });
 
 // Create an auth link to include the token in the headers
@@ -38,10 +43,98 @@ const authLink = setContext((_, { headers }) => {
   };
 });
 
-// Create an Apollo Client instance with the auth link
+// Create an error handling link
+const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
+  if (graphQLErrors) {
+    graphQLErrors.forEach(({ message, locations, path }) => {
+      console.error(
+        `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}, Operation: ${operation.operationName}`
+      );
+    });
+  }
+  if (networkError) {
+    console.error(`[Network error]: ${networkError}`, operation);
+  }
+});
+
+// Add retry capability
+const retryLink = new RetryLink({
+  delay: {
+    initial: 300,
+    max: 3000,
+    jitter: true,
+  },
+  attempts: {
+    max: 3,
+    retryIf: (error, _operation) => !!error && error.networkError !== undefined,
+  },
+});
+
+// Create an Apollo Client instance with improved cache configuration
 const client = new ApolloClient({
-  link: authLink.concat(httpLink),
-  cache: new InMemoryCache(),
+  link: errorLink.concat(retryLink).concat(authLink.concat(httpLink)),
+  cache: new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          getFriends: {
+            merge(existing, incoming) {
+              return incoming;
+            },
+            keyArgs: []
+          },
+          getFriendRequests: {
+            merge(existing, incoming) {
+              return incoming;
+            },
+            keyArgs: []
+          },
+          searchUsers: {
+            merge(existing, incoming) {
+              return incoming;
+            },
+            keyArgs: ['username']
+          }
+        }
+      },
+      User: {
+        keyFields: ["_id"],
+        fields: {
+          friends: {
+            merge(existing, incoming) {
+              return incoming;
+            }
+          },
+          friendRequests: {
+            merge(existing, incoming) {
+              return incoming;
+            }
+          }
+        }
+      }
+    },
+    dataIdFromObject: (object) => {
+      if (object.__typename && object._id) {
+        return `${object.__typename}:${object._id}`;
+      }
+      return null;
+    }
+  }),
+  defaultOptions: {
+    watchQuery: {
+      fetchPolicy: 'network-only', // Always fetch from server first
+      nextFetchPolicy: 'cache-first',
+      errorPolicy: 'all',
+    },
+    query: {
+      fetchPolicy: 'network-only', // Always fetch from server first
+      errorPolicy: 'all',
+    },
+    mutate: {
+      fetchPolicy: 'no-cache',
+      errorPolicy: 'all',
+    },
+  },
 });
 
 // Loading component that maintains the app's appearance
