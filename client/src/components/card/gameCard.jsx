@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import NoImage from '../../assets/noImage.jpg';
 import { LuSave, LuCheck, LuChevronDown, LuChevronUp } from 'react-icons/lu';
 import { useMutation, useQuery } from '@apollo/client';
 import { SAVE_GAME } from '../../utils/mutations';
 import { GET_ME } from '../../utils/queries';
 import Auth from '../../utils/auth';
-import GameModal from './gameModal';
+
+// Lazy load the GameModal component since it's only needed when a user clicks on a game
+const GameModal = lazy(() => import('./gameModal'));
 
 // CSS styles for the component
 const cssStyles = `
@@ -30,7 +32,7 @@ const cssStyles = `
   .game-card {
     display: flex;
     flex-direction: column;
-    height: 320px;
+    height: 360px;
     width: 280px;
     transition: all 0.3s ease;
   }
@@ -47,11 +49,35 @@ const cssStyles = `
   }
   
   .game-content {
-    height: 160px;
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     padding: 10px;
+  }
+  
+  .view-details-btn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 8px 0;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    width: 100%;
+    text-align: center;
+    margin-top: auto;
+  }
+  
+  .view-details-btn:hover {
+    background-color: #3e8e41;
+  }
+  
+  .rating-container {
+    margin-top: 4px;
+    margin-bottom: 8px;
   }
 `;
 
@@ -213,132 +239,157 @@ export default function GameCard({ games }) {
     }
 
     return (
-        <div className="flex flex-wrap gap-4 justify-center py-5">
-            {games.map((game) => {
-                const saveState = getSaveButtonState(game.id, game);
-                const isExpanded = expandedTitles[game.id] || false;
-                
-                return (
-                    <div
-                        key={game.id}
-                        className="game-card flex-shrink-0 bg-surface-800 rounded-lg overflow-hidden border border-surface-700 hover:border-primary-600 transition-colors duration-300 relative"
-                    >
-                        {/* Save Button */}
-                        {Auth.loggedIn() && (
-                            <button
-                                type="button"
-                                onClick={(e) => saveGame(e, game)}
-                                disabled={saveState === 'saving' || saveState === 'saved' || saveState === 'already-saved'}
-                                className={`absolute top-2 right-2 p-1.5 z-10 text-white rounded-full shadow-md transition-all duration-300 ${
-                                    saveState === 'default' ? 'bg-primary-600 hover:bg-primary-700' :
-                                    saveState === 'saving' ? 'bg-amber-500 cursor-wait' : 
-                                    saveState === 'saved' ? 'bg-green-600' :
-                                    saveState === 'already-saved' ? 'bg-green-600 opacity-75' :
-                                    'bg-red-600'
-                                }`}
-                                title={
-                                    saveState === 'default' ? 'Save Game' :
-                                    saveState === 'saving' ? 'Saving...' : 
-                                    saveState === 'saved' ? 'Saved!' :
-                                    saveState === 'already-saved' ? 'Already Saved' :
-                                    'Error saving'
-                                }
-                            >
-                                {saveState === 'saved' || saveState === 'already-saved' ? <LuCheck className="text-sm" /> : <LuSave className="text-sm" />}
-                            </button>
-                        )}
-
-                        {/* Game Image */}
-                        <div className="game-image bg-surface-900">
-                            <div className="w-full h-full relative">
-                                {/* Blurred background */}
-                                <div 
-                                    className="absolute inset-0"
-                                    style={{
-                                        backgroundImage: `url(${game.cover ? getOptimizedImageUrl(game.cover.url) : NoImage})`,
-                                        backgroundSize: 'cover',
-                                        backgroundPosition: 'center',
-                                        filter: 'blur(10px) brightness(0.7)',
-                                        transform: 'scale(1.1)',
-                                    }}
-                                />
-                                
-                                {/* Actual image centered */}
-                                <div className="absolute inset-0 flex items-center justify-center p-2">
-                                    {game.cover ? (
-                                        <img 
-                                            src={getOptimizedImageUrl(game.cover.url)} 
-                                            alt={game.name}
-                                            className="h-full max-w-full object-contain z-10 drop-shadow-md"
-                                            loading="lazy"
-                                        />
-                                    ) : (
-                                        <div className="flex items-center justify-center h-full w-full z-10">
+        <>
+            <div className="flex flex-wrap gap-4 justify-center py-5">
+                {games.map((game) => {
+                    const saveState = getSaveButtonState(game.id, game);
+                    const isExpanded = expandedTitles[game.id] || false;
+                    const rating = game.total_rating ? Math.round(game.total_rating) : null;
+                    
+                    return (
+                        <div
+                            key={game.id}
+                            className="game-card flex-shrink-0 bg-surface-800 rounded-lg overflow-hidden border border-surface-700 hover:border-primary-600 transition-colors duration-300 relative"
+                        >
+                            {/* Save Button */}
+                            {Auth.loggedIn() && (
+                                <button
+                                    type="button"
+                                    onClick={(e) => saveGame(e, game)}
+                                    disabled={saveState === 'saving' || saveState === 'saved' || saveState === 'already-saved'}
+                                    className={`absolute top-2 right-2 p-1.5 z-10 text-white rounded-full shadow-md transition-all duration-300 ${
+                                        saveState === 'default' ? 'bg-primary-600 hover:bg-primary-700' :
+                                        saveState === 'saving' ? 'bg-amber-500 cursor-wait' : 
+                                        saveState === 'saved' ? 'bg-green-600' :
+                                        saveState === 'already-saved' ? 'bg-green-600 opacity-75' :
+                                        'bg-red-600'
+                                    }`}
+                                    title={
+                                        saveState === 'default' ? 'Save Game' :
+                                        saveState === 'saving' ? 'Saving...' : 
+                                        saveState === 'saved' ? 'Saved!' :
+                                        saveState === 'already-saved' ? 'Already Saved' :
+                                        'Error saving'
+                                    }
+                                >
+                                    {saveState === 'saved' || saveState === 'already-saved' ? <LuCheck className="text-sm" /> : <LuSave className="text-sm" />}
+                                </button>
+                            )}
+                            
+                            {/* Game image with blurred background */}
+                            <div className="game-image bg-surface-900 relative">
+                                <div className="w-full h-full relative">
+                                    {/* Blurred background for better image presentation */}
+                                    <div 
+                                        className="absolute inset-0"
+                                        style={{
+                                            backgroundImage: `url(${game.cover ? getOptimizedImageUrl(game.cover.url) : NoImage})`,
+                                            backgroundSize: 'cover',
+                                            backgroundPosition: 'center',
+                                            filter: 'blur(10px) brightness(0.7)',
+                                            transform: 'scale(1.1)',
+                                        }}
+                                    />
+                                    
+                                    {/* Actual image centered */}
+                                    <div className="absolute inset-0 flex items-center justify-center p-2">
+                                        {game.cover ? (
                                             <img 
-                                                src={NoImage} 
-                                                alt="No image available"
-                                                className="w-3/4 h-3/4 object-contain opacity-80"
+                                                src={getOptimizedImageUrl(game.cover.url)} 
+                                                alt={game.name}
+                                                className="h-full max-w-full object-contain z-10 drop-shadow-md"
+                                                loading="lazy"
                                             />
-                                        </div>
-                                    )}
+                                        ) : (
+                                            <div className="flex items-center justify-center h-full w-full z-10">
+                                                <img 
+                                                    src={NoImage} 
+                                                    alt="No image available"
+                                                    className="w-3/4 h-3/4 object-contain opacity-80"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        {/* Game Content */}
-                        <div className="game-content bg-surface-800 p-3 flex flex-col">
-                            {/* Game Title with expand/collapse option */}
-                            <div className="mb-1">
-                                <div className="flex items-start justify-between gap-1">
-                                    <h3 
-                                        className={`text-primary-400 font-medium text-base ${isExpanded ? '' : 'line-clamp-2'}`}
-                                    >
-                                        {game.name}
-                                    </h3>
+                            
+                            {/* Game content */}
+                            <div className="game-content bg-surface-800 p-3 flex flex-col">
+                                {/* Game Title with expand/collapse option */}
+                                <div className="mb-1">
+                                    <div className="flex items-start justify-between gap-1">
+                                        <h3 
+                                            className={`text-primary-400 font-medium text-base ${isExpanded ? '' : 'line-clamp-2'}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleTitleExpansion(game.id);
+                                            }}
+                                        >
+                                            {game.name}
+                                        </h3>
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleTitleExpansion(game.id);
+                                            }}
+                                            className="flex-shrink-0 text-tonal-400 hover:text-primary-400 transition-colors duration-200 p-1"
+                                            title={isExpanded ? "Collapse title" : "Expand title"}
+                                        >
+                                            {isExpanded ? <LuChevronUp size={14} /> : <LuChevronDown size={14} />}
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {/* Rating */}
+                                {rating && (
+                                    <div className="mb-0.5 text-xs">
+                                        <div className="text-primary-400 font-medium">
+                                            Rating: {rating}/100
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Game genres */}
+                                <div className="flex flex-wrap gap-1 mb-1">
+                                    {game.genres && game.genres.slice(0, 3).map((genre, index) => (
+                                        <span key={index} className="text-xs bg-primary-600/20 text-primary-100 px-1.5 py-0.5 rounded-md">
+                                            {genre.name}
+                                        </span>
+                                    ))}
+                                </div>
+                                
+                                {/* View Details button */}
+                                <div className="mt-auto pt-1">
                                     <button 
-                                        onClick={() => toggleTitleExpansion(game.id)}
-                                        className="flex-shrink-0 text-tonal-400 hover:text-primary-400 transition-colors duration-200 p-1"
-                                        title={isExpanded ? "Collapse title" : "Expand title"}
+                                        onClick={() => handleGameClick(game)}
+                                        className="view-details-btn"
                                     >
-                                        {isExpanded ? <LuChevronUp size={14} /> : <LuChevronDown size={14} />}
+                                        View Details
                                     </button>
                                 </div>
                             </div>
-                            
-                            <div className="mb-0.5 text-xs">
-                                {/* Rating if available */}
-                                {game.rating && (
-                                    <div className="text-primary-400 font-medium">
-                                        Rating: {Math.round(game.rating)}/100
-                                    </div>
-                                )}
-                            </div>
-                            
-                            {/* Game genres */}
-                            <div className="flex flex-wrap gap-1 mb-1">
-                                {game.genres?.slice(0, 3).map((genre, gIndex) => (
-                                    <span key={`${game.id}-genre-${gIndex}`} className="text-xs bg-primary-600/20 text-primary-100 px-1.5 py-0.5 rounded-md">
-                                        {genre.name}
-                                    </span>
-                                ))}
-                            </div>
-                            
-                            {/* View Details button */}
-                            <div className="mt-auto pt-1">
-                                <button 
-                                    onClick={() => handleGameClick(game)}
-                                    className="bg-primary-600 hover:bg-primary-700 text-white text-xs py-1 px-3 rounded w-full transition duration-300"
-                                >
-                                    View Details
-                                </button>
-                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+            
+            {/* Lazy load the modal component only when needed */}
+            {showModal && (
+                <Suspense fallback={
+                    <div className="fixed inset-0 z-50 flex items-center justify-center">
+                        <div className="animate-pulse flex space-x-2">
+                            <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+                            <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+                            <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
                         </div>
                     </div>
-                );
-            })}
-            
-            {/* Game Modal */}
-            {showModal && <GameModal game={selectedGame} onClose={handleCloseModal} />}
-        </div>
+                }>
+                    <GameModal 
+                        game={selectedGame} 
+                        onClose={handleCloseModal} 
+                    />
+                </Suspense>
+            )}
+        </>
     );
 } 
