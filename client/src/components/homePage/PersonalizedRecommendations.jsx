@@ -78,7 +78,6 @@ export default function PersonalizedRecommendations() {
       ...game,
       isTrending: true,
       _respawnId: respawnCount, // Add respawn ID to force a reference change
-      matchScore: Math.max(Math.min(85, game.rating ? Math.round(game.rating) : 75), 70), // Use actual rating if available, keep 70-85 range
       ratingCount: game.rating_count || game.ratingCount || 0 // Use existing rating count
     }));
     
@@ -210,8 +209,8 @@ export default function PersonalizedRecommendations() {
             
             return {
               ...game,
-              matchScore: score > 0 ? Math.min(Math.round((score / 3) * 100), 95) : 70, // Convert to rating-style value (0-100)
-              ratingCount: game.rating_count || game.ratingCount || 0 // Use existing rating count
+              ratingCount: game.rating_count || game.ratingCount || 0, // Normalize rating count
+              rating: game.rating || null // Ensure rating is properly passed through
             };
           });
           
@@ -229,8 +228,8 @@ export default function PersonalizedRecommendations() {
             ...game,
             isTrending: true,
             _respawnId: respawnCount, // Add respawn ID to force a reference change
-            matchScore: Math.max(Math.min(85, game.rating ? Math.round(game.rating) : 75), 70), // Use actual rating if available, keep 70-85 range
-            ratingCount: game.rating_count || game.ratingCount || 0 // Use existing rating count
+            ratingCount: game.rating_count || game.ratingCount || 0, // Normalize rating count
+            rating: game.rating || null // Ensure rating is properly passed through
           }));
           
           // Combine and shuffle a bit
