@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import NoImage from '../../assets/noImage.jpg';
 import { getGameVideo, getGameById } from '../../utils/api';
 import MovieClip from './YouTube/youtube';
@@ -8,6 +8,9 @@ export default function GameModal({ game, onClose, location}) {
 
     const [hasVideo, setHasVideo] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [mounted, setMounted] = useState(false);
+    const modalRef = useRef(null);
+    const modalContentRef = useRef(null);
 
     function handleImage(location) {
         let hdCover;
@@ -36,6 +39,13 @@ export default function GameModal({ game, onClose, location}) {
 
     const hdCover = handleImage(location);
 
+    // Handle click outside
+    const handleOutsideClick = (e) => {
+        if (modalRef.current && !modalContentRef.current.contains(e.target)) {
+            onClose();
+        }
+    };
+
     useEffect(() => {
         const handleKeyDown = (event) => {
             if (event.key === 'Escape') {
@@ -43,8 +53,28 @@ export default function GameModal({ game, onClose, location}) {
             }
         };
 
+        // Scroll to top when modal opens
+        window.scrollTo(0, 0);
+        
+        // Lock body scroll when modal is open
+        document.body.style.overflow = 'hidden';
+        
+        // Set mounted to true after a small delay to enable animations
+        const timer = setTimeout(() => {
+            setMounted(true);
+            // Force focus to the modal for better keyboard navigation
+            if (modalRef.current) {
+                modalRef.current.focus();
+            }
+        }, 50);
+        
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = '';
+            clearTimeout(timer);
+        };
     }, [onClose]);
 
     useEffect(() => {
@@ -102,97 +132,109 @@ export default function GameModal({ game, onClose, location}) {
 
     return (
         <div 
-            className="fixed inset-0 flex items-center justify-center z-50 modalBackground" 
-            onClick={(e) => e.target.classList.contains('modalBackground') && onClose()}
+            ref={modalRef}
+            className="fixed inset-0 z-50 overflow-hidden"
+            style={{ 
+                backdropFilter: 'blur(5px)',
+                backgroundColor: 'rgba(0,0,0,0.7)' 
+            }}
+            onClick={handleOutsideClick}
         >
-            <div className="bg-surface-900 p-6 w-full max-w-small sm:max-w-md md:max-w-xl lg:max-w-2xl xl:max-w-6xl h-auto max-h-[90vh] shadow-xl relative overflow-y-auto border border-primary-600/30 rounded-lg transform transition-all duration-300 translate-y-0 opacity-100">
-                <button 
-                    onClick={onClose} 
-                    className="absolute top-3 right-3 text-tonal-600 hover:text-primary-400 focus:outline-none bg-surface-800 rounded-full p-1.5 transition-colors duration-200"
-                    aria-label="Close modal"
+            {/* Fixed position modal container with scrolling */}
+            <div className="fixed inset-0 pt-20 pb-6 px-4 overflow-y-auto">
+                <div 
+                    ref={modalContentRef}
+                    tabIndex={-1}
+                    className={`mx-auto my-6 bg-surface-900 p-6 w-full max-w-small sm:max-w-md md:max-w-xl lg:max-w-2xl xl:max-w-6xl shadow-xl relative border border-primary-600/30 rounded-lg transition-all duration-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-                <h2 className="text-primary-500 text-3xl font-bold text-pretty text-center w-full border-b border-primary-600/20 pb-3 mb-4">
-                    {game.name}
-                </h2>
-                <div className="flex xl:flex-row flex-col xl:space-x-6 space-y-6 xl:space-y-0 mt-2 py-4 rounded-lg bg-surface-800/70 border border-primary-600/10">
-                    {/* Cover Image */}
-                    <div className='xl:w-[45%] w-full max-w-lg mx-auto'>
-                        {hdCover !== NoImage ? (
-                            <img
-                                src={hdCover}
-                                alt={game.name}
-                                className="w-full h-full object-cover rounded-lg shadow-lg"
-                            />
-                        ) : (
-                            <div className="w-full aspect-ratio-2/3 min-h-[300px] flex items-center justify-center bg-surface-800 rounded-lg shadow-lg">
+                    <button 
+                        onClick={onClose} 
+                        className="absolute top-3 right-3 text-tonal-600 hover:text-primary-400 focus:outline-none bg-surface-800 rounded-full p-1.5 transition-colors duration-200 z-10"
+                        aria-label="Close modal"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                    <h2 className="text-primary-500 text-3xl font-bold text-pretty text-center w-full border-b border-primary-600/20 pb-3 mb-4">
+                        {game.name}
+                    </h2>
+                    <div className="flex xl:flex-row flex-col xl:space-x-6 space-y-6 xl:space-y-0 mt-2 py-4 rounded-lg bg-surface-800/70 border border-primary-600/10">
+                        {/* Cover Image */}
+                        <div className='xl:w-[45%] w-full max-w-lg mx-auto'>
+                            {hdCover !== NoImage ? (
                                 <img
-                                    src={NoImage}
-                                    alt="No image available"
-                                    className="w-2/3 h-2/3 object-contain opacity-70"
+                                    src={hdCover}
+                                    alt={game.name}
+                                    className="w-full h-full object-cover rounded-lg shadow-lg"
                                 />
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex flex-col text-pretty items-center xl:w-[55%] w-full space-y-4 px-4">
-                        {/* Genres and POVs */}
-                        <div className="w-full">
-                            <h3 className="text-primary-400 text-xl font-bold mb-2 border-b border-primary-600/20 pb-1">
-                                Genres & Perspectives
-                            </h3>
-                            <div className='flex flex-wrap gap-2 mt-2'>
-                                {game.genres && game.genres.map((genre, index) => (
-                                    <span key={index} className="bg-primary-600/20 text-primary-400 px-3 py-1 rounded-md text-sm font-medium">
-                                        {genre.name}
-                                    </span>
-                                ))}
-                                {game.player_perspectives && game.player_perspectives.map((perspective, index) => (
-                                    <span key={`pov-${index}`} className="bg-tonal-800 text-tonal-400 px-3 py-1 rounded-md text-sm font-medium">
-                                        {perspective.name}
-                                    </span>
-                                ))}
-                                {(!game.genres || game.genres.length === 0) && (!game.player_perspectives || game.player_perspectives.length === 0) && (
-                                    <span className="text-tonal-400">No genre or perspective information available</span>
-                                )}
-                            </div>
+                            ) : (
+                                <div className="w-full aspect-ratio-2/3 min-h-[300px] flex items-center justify-center bg-surface-800 rounded-lg shadow-lg">
+                                    <img
+                                        src={NoImage}
+                                        alt="No image available"
+                                        className="w-2/3 h-2/3 object-contain opacity-70"
+                                    />
+                                </div>
+                            )}
                         </div>
-                        
-                        {/* Summary */}
-                        <div className="w-full">
-                            <h3 className="text-primary-400 text-xl font-bold mb-2 border-b border-primary-600/20 pb-1">
-                                Summary
-                            </h3>
-                            <div className="bg-surface-700/50 rounded-lg p-4 max-h-60 overflow-y-auto text-light text-opacity-90 shadow-inner">
-                                {game.summary || 'No summary available.'}
-                            </div>
-                        </div>
-                        
-                        {/* Video Section */}
-                        <div className="w-full">
-                            <h3 className="text-primary-400 text-xl font-bold mb-2 border-b border-primary-600/20 pb-1">
-                                Trailer
-                            </h3>
-                            <div className="rounded-lg overflow-hidden shadow-lg">
-                                <div className="relative pt-[56.25%] h-0">
-                                    {isLoading ? (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-surface-800">
-                                            <div className="animate-pulse flex space-x-2">
-                                                <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
-                                                <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
-                                                <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
-                                            </div>
-                                        </div>
-                                    ) : hasVideo ? (
-                                        <MovieClip videoId={game.videoId} />
-                                    ) : (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-surface-800 text-tonal-400">
-                                            <p>No trailer available</p>
-                                        </div>
+                        <div className="flex flex-col text-pretty items-center xl:w-[55%] w-full space-y-4 px-4">
+                            {/* Genres and POVs */}
+                            <div className="w-full">
+                                <h3 className="text-primary-400 text-xl font-bold mb-2 border-b border-primary-600/20 pb-1">
+                                    Genres & Perspectives
+                                </h3>
+                                <div className='flex flex-wrap gap-2 mt-2'>
+                                    {game.genres && game.genres.map((genre, index) => (
+                                        <span key={index} className="bg-primary-600/20 text-primary-400 px-3 py-1 rounded-md text-sm font-medium">
+                                            {genre.name}
+                                        </span>
+                                    ))}
+                                    {game.player_perspectives && game.player_perspectives.map((perspective, index) => (
+                                        <span key={`pov-${index}`} className="bg-tonal-800 text-tonal-400 px-3 py-1 rounded-md text-sm font-medium">
+                                            {perspective.name}
+                                        </span>
+                                    ))}
+                                    {(!game.genres || game.genres.length === 0) && (!game.player_perspectives || game.player_perspectives.length === 0) && (
+                                        <span className="text-tonal-400">No genre or perspective information available</span>
                                     )}
+                                </div>
+                            </div>
+                            
+                            {/* Summary */}
+                            <div className="w-full">
+                                <h3 className="text-primary-400 text-xl font-bold mb-2 border-b border-primary-600/20 pb-1">
+                                    Summary
+                                </h3>
+                                <div className="bg-surface-700/50 rounded-lg p-4 max-h-60 overflow-y-auto text-light text-opacity-90 shadow-inner">
+                                    {game.summary || 'No summary available.'}
+                                </div>
+                            </div>
+                            
+                            {/* Video Section */}
+                            <div className="w-full">
+                                <h3 className="text-primary-400 text-xl font-bold mb-2 border-b border-primary-600/20 pb-1">
+                                    Trailer
+                                </h3>
+                                <div className="rounded-lg overflow-hidden shadow-lg">
+                                    <div className="relative pt-[56.25%] h-0">
+                                        {isLoading ? (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-surface-800">
+                                                <div className="animate-pulse flex space-x-2">
+                                                    <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+                                                    <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+                                                    <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+                                                </div>
+                                            </div>
+                                        ) : hasVideo ? (
+                                            <MovieClip videoId={game.videoId} />
+                                        ) : (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-surface-800 text-tonal-400">
+                                                <p>No trailer available</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>

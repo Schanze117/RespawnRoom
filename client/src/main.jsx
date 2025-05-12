@@ -2,17 +2,20 @@ import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
+import { lazy, Suspense } from 'react';
 import './index.css';
 
 import App from './App.jsx';
+// Import Home normally as it's the initial page users see
 import Home from './pages/home.jsx';
-import Search from './pages/search.jsx';
-import Discover from './pages/discover.jsx';
-import Login from './pages/loginPage.jsx';
-import Saved from './pages/saved.jsx';
-import Register from './pages/register.jsx';
-import Friends from './pages/friends/index.jsx';
-import RoomsRoutes from './pages/rooms/index.jsx';
+// Lazy load other page components
+const Search = lazy(() => import('./pages/search.jsx'));
+const Discover = lazy(() => import('./pages/discover.jsx'));
+const Login = lazy(() => import('./pages/loginPage.jsx'));
+const Saved = lazy(() => import('./pages/saved.jsx'));
+const Register = lazy(() => import('./pages/register.jsx'));
+const Friends = lazy(() => import('./pages/friends/index.jsx'));
+const RoomsRoutes = lazy(() => import('./pages/rooms/index.jsx'));
 import { GameProvider } from './utils/GameContext.jsx';
 
 // Create an HTTP link
@@ -41,6 +44,17 @@ const client = new ApolloClient({
   cache: new InMemoryCache(),
 });
 
+// Loading component that maintains the app's appearance
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center h-full min-h-[200px]">
+    <div className="animate-pulse flex space-x-2">
+      <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+      <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+      <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+    </div>
+  </div>
+);
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -52,31 +66,59 @@ const router = createBrowserRouter([
       },
       {
         path: '/search',
-        element: <Search />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <Search />
+          </Suspense>
+        ),
       },
       {
         path: '/discover',
-        element: <Discover />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <Discover />
+          </Suspense>
+        ),
       },
       {
         path: '/saved',
-        element: <Saved />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <Saved />
+          </Suspense>
+        ),
       },
       {
         path: '/friends',
-        element: <Friends />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <Friends />
+          </Suspense>
+        ),
       },
       {
         path: '/login',
-        element: <Login />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <Login />
+          </Suspense>
+        ),
       },
       {
         path: '/register',
-        element: <Register />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <Register />
+          </Suspense>
+        ),
       },
       {
         path: '/rooms/*',
-        element: <RoomsRoutes />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <RoomsRoutes />
+          </Suspense>
+        ),
       },
     ],
   },

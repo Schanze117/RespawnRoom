@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, useMemo } from 'react';
 import Header from './components/Header';
 import LoginPrompt from './components/LoginPrompt';
 import FloatingRoomWindow from './components/rooms/FloatingRoomWindow';
@@ -8,7 +8,7 @@ import './App.css'
 import Auth from './utils/auth';
 
 // This component is just to track location changes and notify the room context
-function LocationListener() {
+const LocationListener = memo(function LocationListener() {
   const location = useLocation();
   const { activeRoom, checkPathAndToggleWindow } = useRoomContext();
   
@@ -18,9 +18,9 @@ function LocationListener() {
   }, [location.pathname, activeRoom, checkPathAndToggleWindow]);
   
   return null;
-}
+});
 
-function AppContent() {
+const AppContent = memo(function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -53,11 +53,14 @@ function AppContent() {
       </div>
     </div>
   );
-}
+});
 
 function App() {
+  // Use useMemo to prevent unnecessary re-renders of provider value
+  const roomProviderValue = useMemo(() => ({}), []);
+  
   return (
-    <RoomProvider>
+    <RoomProvider value={roomProviderValue}>
       <LocationListener />
       <AppContent />
       <FloatingRoomWindow />
