@@ -13,8 +13,8 @@ const EmptyFriendsList = ({ searchQuery, toggleSearchMode }) => (
     </svg>
     {searchQuery ? (
       <>
-        <p className="text-white font-medium text-lg mb-1">No friends found</p>
-        <p className="text-gray-400 text-center">We couldn't find any friends matching '{searchQuery}'</p>
+        <p className="text-white font-medium text-lg mb-1">No friends found matching "{searchQuery}"</p>
+        <p className="text-gray-400 text-center">Try a different username or check your spelling</p>
       </>
     ) : (
       <>
@@ -32,13 +32,11 @@ const EmptyFriendsList = ({ searchQuery, toggleSearchMode }) => (
 );
 
 const FriendsList = ({ 
-  pinnedFriends,
   unpinnedFriends,
   searchQuery,
   toggleSearchMode,
   activeDropdown,
   setActiveDropdown,
-  togglePinFriend,
   handleRemoveFriend,
   dropdownRefs,
   currentPage,
@@ -46,17 +44,14 @@ const FriendsList = ({
   handlePageChange,
   handlePrevPage,
   handleNextPage,
-  unreadCounts = {}
+  unreadCounts = {},
+  onMessageClick
 }) => {
   const [activeChatFriend, setActiveChatFriend] = useState(null);
   const [chatError, setChatError] = useState(null);
   
-  // Ensure pinnedFriends and unpinnedFriends are arrays
-  const safePinnedFriends = useMemo(() => {
-    return Array.isArray(pinnedFriends) ? pinnedFriends : [];
-  }, [pinnedFriends]);
-  
-  const safeUnpinnedFriends = useMemo(() => {
+  // Ensure friends array is valid
+  const safeFriends = useMemo(() => {
     return Array.isArray(unpinnedFriends) ? unpinnedFriends : [];
   }, [unpinnedFriends]);
 
@@ -64,23 +59,14 @@ const FriendsList = ({
   const isValidFriend = (friend) => friend && typeof friend === 'object' && friend._id && friend.userName;
 
   // Filter out invalid friend objects using useMemo to prevent unnecessary re-renders
-  const validPinnedFriends = useMemo(() => {
-    return safePinnedFriends.filter(isValidFriend);
-  }, [safePinnedFriends]);
-  
-  const validUnpinnedFriends = useMemo(() => {
-    return safeUnpinnedFriends.filter(isValidFriend);
-  }, [safeUnpinnedFriends]);
-  
-  // Memoize the combined array to prevent unnecessary re-renders
-  const displayedFriends = useMemo(() => {
-    return [...validPinnedFriends, ...validUnpinnedFriends];
-  }, [validPinnedFriends, validUnpinnedFriends]);
+  const validFriends = useMemo(() => {
+    return safeFriends.filter(isValidFriend);
+  }, [safeFriends]);
   
   // Memoize the empty state check
-  const allFriendsEmpty = useMemo(() => {
-    return validPinnedFriends.length === 0 && validUnpinnedFriends.length === 0;
-  }, [validPinnedFriends.length, validUnpinnedFriends.length]);
+  const friendsEmpty = useMemo(() => {
+    return validFriends.length === 0;
+  }, [validFriends.length]);
 
   const handleMessageClick = (friend) => {
     try {
@@ -100,6 +86,11 @@ const FriendsList = ({
       
       // If there was an error before, clear it
       if (chatError) setChatError(false);
+      
+      // Call the parent handler if provided
+      if (onMessageClick) {
+        onMessageClick(friend);
+      }
     } catch (error) {
       console.error("Error opening chat:", error);
       setChatError(true);
@@ -114,15 +105,17 @@ const FriendsList = ({
 
   // Function to create dropdown ref
   const createDropdownRef = (friendId, element) => {
-    dropdownRefs.current[friendId] = element;
+    if (dropdownRefs) {
+      dropdownRefs(friendId, element);
+    }
   };
 
-  if (allFriendsEmpty && !searchQuery) {
+  if (friendsEmpty && !searchQuery) {
     return <EmptyFriendsList searchQuery={searchQuery} toggleSearchMode={toggleSearchMode} />;
   }
   
   return (
-    <>
+    <div className="flex flex-col">
       {chatError && !activeChatFriend && (
         <div className="mb-4 p-3 bg-red-500 text-white rounded-md">
           There was a problem opening the chat. Please try again.
@@ -135,19 +128,17 @@ const FriendsList = ({
         </div>
       )}
     
-      {allFriendsEmpty && searchQuery ? (
+      {friendsEmpty && searchQuery ? (
         <EmptyFriendsList searchQuery={searchQuery} toggleSearchMode={toggleSearchMode} />
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {displayedFriends.map((friend) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {validFriends.map((friend) => (
               <FriendCard
                 key={`friend-${friend._id}`}
                 friend={friend}
-                isPinned={validPinnedFriends.some(f => f._id === friend._id)}
                 activeDropdown={activeDropdown}
                 setActiveDropdown={setActiveDropdown}
-                togglePinFriend={togglePinFriend}
                 handleRemoveFriend={handleRemoveFriend}
                 dropdownRef={createDropdownRef}
                 onMessageClick={handleMessageClick}
@@ -157,13 +148,15 @@ const FriendsList = ({
           </div>
           
           {totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-              onPrevPage={handlePrevPage}
-              onNextPage={handleNextPage}
-            />
+            <div className="mt-8">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                onPrevPage={handlePrevPage}
+                onNextPage={handleNextPage}
+              />
+            </div>
           )}
         </>
       )}
@@ -175,7 +168,7 @@ const FriendsList = ({
           onClose={handleCloseChat} 
         />
       )}
-    </>
+    </div>
   );
 };
 

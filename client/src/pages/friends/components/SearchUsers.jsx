@@ -2,11 +2,13 @@ import React from 'react';
 import UserAvatar, { getStatusClass } from './UserUtils';
 
 const SearchUsers = ({ 
-  searchLoading, 
   searchQuery, 
-  searchResults, 
-  requestSent, 
-  handleSendRequest 
+  setSearchQuery,
+  onSearch,
+  onSendRequest,
+  searchResults = [], 
+  loading: searchLoading = false, 
+  requestSent = {} 
 }) => {
   // Empty state - no search performed yet
   if (!searchQuery.trim() && !searchLoading) {
@@ -76,7 +78,7 @@ const SearchUsers = ({
             ) : (
               <button 
                 className="px-3 py-2 bg-primary-600 text-white rounded text-sm font-medium flex items-center gap-2 hover:bg-primary-700 transition-colors"
-                onClick={() => handleSendRequest(user._id)}
+                onClick={() => onSendRequest(user._id)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>

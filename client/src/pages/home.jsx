@@ -31,7 +31,7 @@ export default function Home() {
     return (
         <div className="min-h-screen bg-surface-900">
             {/* Fixed position container for consistent layout structure */}
-            <div className="flex-1 pt-20 md:pl-64 transition-all duration-300 w-full">
+            <div className="flex-1 pt-20 md:pl-64 w-full">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                     {/* Content wrapper */}
                     <div className="max-w-7xl w-full mx-auto">

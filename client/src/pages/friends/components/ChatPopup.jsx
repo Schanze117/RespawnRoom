@@ -28,6 +28,28 @@ const ChatPopup = ({ friend, onClose }) => {
   const [showDebug, setShowDebug] = useState(false);
   const channelRef = useRef(null);
 
+  // Add this useEffect near the top of the component to mark messages as read when chat opens
+  useEffect(() => {
+    // Mark messages as read when the chat popup opens
+    if (friend && friend._id) {
+      try {
+        markAsRead({ 
+          variables: { senderId: friend._id },
+          onCompleted: () => {
+            // Force refetch of unread message counts globally
+            if (window.refetchAllUnreadCounts) {
+              window.refetchAllUnreadCounts();
+            }
+          }
+        }).catch(() => {
+          // Handle error silently
+        });
+      } catch {
+        // Handle error silently
+      }
+    }
+  }, [friend, markAsRead]);
+
   // Function to test PubNub connection
   const runPubNubTest = async () => {
     try {
@@ -281,6 +303,23 @@ const ChatPopup = ({ friend, onClose }) => {
           } catch {
             // Handle error silently
           }
+        }
+
+        // Mark messages as read since we're actively chatting
+        try {
+          markAsRead({ 
+            variables: { senderId: friend._id },
+            onCompleted: () => {
+              // Force refetch of unread message counts globally
+              if (window.refetchAllUnreadCounts) {
+                window.refetchAllUnreadCounts();
+              }
+            }
+          }).catch(() => {
+            // Handle error silently
+          });
+        } catch {
+          // Handle error silently
         }
       } else {
         throw new Error("Invalid response from server");
