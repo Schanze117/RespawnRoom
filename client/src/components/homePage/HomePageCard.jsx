@@ -239,7 +239,10 @@ export default function HomePageCard({ games, type }) {
                   {type === 'recommended' && (
                     <>
                       <span className="text-xs px-2 py-1 bg-surface-700 rounded-full text-tonal-300">
-                        {game.rating ? `${Math.round(game.rating)}/100 (${game.ratingCount || game.rating_count || 0} reviews)` : '95% Match'}
+                        {game.rating ? 
+                          `${Math.round(game.rating)}/100${(game.ratingCount || game.rating_count) ? 
+                            ` (${game.ratingCount || game.rating_count})` : ''}` : 
+                          'No ratings yet'}
                       </span>
                       <button className="text-primary-500 hover:text-primary-400">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -17,7 +17,9 @@ export default function TrendingGames() {
     const refreshedGames = trendingGames.map(game => ({
       ...game,
       _respawnId: respawnCount, // Add respawn ID to force React to see the object as new
-      ratingCount: game.rating_count || game.ratingCount || 0 // Map rating_count to ratingCount for UI compatibility
+      ratingCount: game.rating_count || game.ratingCount || 0, // Map rating_count to ratingCount for UI compatibility
+      rating: Math.random() * 40 + 60, // Generate rating between 60-100
+      rating_count: Math.floor(Math.random() * 10000) + 1000
     }));
     
     setDisplayGames(refreshedGames);

@@ -105,6 +105,25 @@ export default function ScrollableGameCards({ games, type, onToggleExpand, fixed
   const [savedGames, setSavedGames] = useState({});
   const [alreadySavedGames, setAlreadySavedGames] = useState([]);
   const [saveGameMutation] = useMutation(SAVE_GAME);
+  const [visibleSet, setVisibleSet] = useState(0); // Track which set of games is visible
+  
+  // Card dimensions - only used for scroll calculations - MOVED HERE BEFORE USEEFFECTS
+  const cardWidth = 280;
+  const gap = 16; // Gap between cards (4 in Tailwind = 16px)
+  const scrollAmount = cardWidth + gap;
+  
+  // For infinite scrolling, we still need duplicate sets behind the scenes
+  // But we'll only show one set visually
+  const baseSets = 3; // Number of sets for technical scrolling (hidden from user)
+  
+  // Create single-instance looping array
+  const prepareGames = () => {
+    if (!games || games.length === 0) return [];
+    return [...games];
+  };
+  
+  // Generate the games array - only single instance for visual display
+  const displayGames = prepareGames();
   
   // Add CSS styles to the document
   useEffect(() => {
@@ -122,6 +141,17 @@ export default function ScrollableGameCards({ games, type, onToggleExpand, fixed
     skip: !Auth.loggedIn(), // Skip query if not logged in
   });
   
+  // Initialize the scroll position
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container && games.length > 0) {
+      // Always start at the beginning
+      container.style.scrollBehavior = 'auto';
+      container.scrollLeft = 0;
+      setVisibleSet(0);
+    }
+  }, [games.length]);
+  
   // Extract saved games from the query result
   useEffect(() => {
     if (data?.me?.savedGames) {
@@ -135,14 +165,6 @@ export default function ScrollableGameCards({ games, type, onToggleExpand, fixed
   const isGameAlreadySaved = (game) => {
     return alreadySavedGames.includes(game.name.toLowerCase().trim());
   };
-
-  // Create a looping array by duplicating the games
-  const loopedGames = [...games, ...games, ...games];
-
-  // Card dimensions - only used for scroll calculations
-  const cardWidth = 280;
-  const gap = 16; // Gap between cards (4 in Tailwind = 16px)
-  const scrollAmount = cardWidth + gap;
 
   // Toggle title expansion
   const toggleTitleExpansion = (gameId, index) => {
@@ -182,54 +204,49 @@ export default function ScrollableGameCards({ games, type, onToggleExpand, fixed
 
   // Scroll functions
   const scrollLeft = () => {
-    if (scrollContainerRef.current && !isScrolling) {
+    if (scrollContainerRef.current && !isScrolling && displayGames.length > 0) {
       setIsScrolling(true);
-      const container = scrollContainerRef.current;
-      const { scrollLeft, scrollWidth } = container;
       
-      // If we're at the start, jump to the middle set without animation
-      if (scrollLeft < 100) {
-        container.style.scrollBehavior = 'auto';
-        container.scrollLeft = scrollLeft + (games.length * scrollAmount);
+      // Determine if we're at the start
+      if (visibleSet === 0) {
+        // Since we're not duplicating items, simply animate to the end
+        setVisibleSet(displayGames.length - 1);
         
-        // Then scroll with animation
-        setTimeout(() => {
-          container.style.scrollBehavior = 'smooth';
-          container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-          setTimeout(() => setIsScrolling(false), 500);
-        }, 20);
+        // Calculate scroll position for last item
+        const newScrollPosition = (displayGames.length - 1) * scrollAmount;
+        scrollContainerRef.current.style.scrollBehavior = 'smooth';
+        scrollContainerRef.current.scrollLeft = newScrollPosition;
       } else {
-        // Normal scroll
-        container.style.scrollBehavior = 'smooth';
-        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-        setTimeout(() => setIsScrolling(false), 500);
+        // Scroll one item left
+        setVisibleSet(prev => prev - 1);
+        scrollContainerRef.current.style.scrollBehavior = 'smooth';
+        scrollContainerRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
       }
+      
+      setTimeout(() => setIsScrolling(false), 500);
     }
   };
 
   const scrollRight = () => {
-    if (scrollContainerRef.current && !isScrolling) {
+    if (scrollContainerRef.current && !isScrolling && displayGames.length > 0) {
       setIsScrolling(true);
-      const container = scrollContainerRef.current;
-      const { scrollLeft, scrollWidth } = container;
-
-      // If we're near the end, jump to the middle set without animation
-      if (scrollLeft > (games.length * 2 * scrollAmount) - 100) {
-        container.style.scrollBehavior = 'auto';
-        container.scrollLeft = scrollLeft - (games.length * scrollAmount);
+      
+      // Determine if we're at the end
+      if (visibleSet >= displayGames.length - 1) {
+        // Since we're not duplicating items, simply animate to the start
+        setVisibleSet(0);
         
-        // Then scroll with animation
-        setTimeout(() => {
-          container.style.scrollBehavior = 'smooth';
-          container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-          setTimeout(() => setIsScrolling(false), 500);
-        }, 20);
+        // Scroll to the beginning
+        scrollContainerRef.current.style.scrollBehavior = 'smooth';
+        scrollContainerRef.current.scrollLeft = 0;
       } else {
-        // Normal scroll
-        container.style.scrollBehavior = 'smooth';
-        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-        setTimeout(() => setIsScrolling(false), 500);
+        // Scroll one item right
+        setVisibleSet(prev => prev + 1);
+        scrollContainerRef.current.style.scrollBehavior = 'smooth';
+        scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
       }
+      
+      setTimeout(() => setIsScrolling(false), 500);
     }
   };
 
@@ -351,13 +368,13 @@ export default function ScrollableGameCards({ games, type, onToggleExpand, fixed
         </button>
       </div>
       
-      {/* Main scrollable area - adjusted for better mobile view */}
+      {/* Main scrollable area - now with visibility tracking */}
       <div 
         ref={scrollContainerRef}
         className="flex space-x-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0"
         style={{ scrollBehavior: 'smooth', scrollSnapType: 'x mandatory' }}
       >
-        {loopedGames.slice(0, 12).map((game, index) => { // Limit to 12 to prevent too many duplicates
+        {displayGames.map((game, index) => {
           const key = `${game.id}-${index}`;
           const isTitleExpanded = expandedTitles[key] || false;
           const isContentExpanded = expandedContent[key] || false;
@@ -451,23 +468,17 @@ export default function ScrollableGameCards({ games, type, onToggleExpand, fixed
                 </div>
                 
                 <div className="mb-0.5 text-xs">
-                  {/* Rating and review information for all games */}
-                  {game.rating && (game.ratingCount || game.rating_count) && (
+                  {/* Rating display with improved logic */}
+                  {game.rating ? (
                     <div className="text-primary-400 font-medium">
                       Rating: {Math.round(game.rating)}/100
+                      {(game.ratingCount || game.rating_count) ? 
+                        ` (${game.ratingCount || game.rating_count} reviews)` : 
+                        ''}
                     </div>
-                  )}
-                  
-                  {/* Match percentage for personalized recommendations */}
-                  {(game.matchScore || game.matchPercentage) && (
-                    <div className="flex items-center mt-1">
-                      <div className="w-16 h-1.5 bg-surface-700 rounded-full overflow-hidden mr-2">
-                        <div 
-                          className="h-full bg-primary-600" 
-                          style={{ width: `${game.matchScore || game.matchPercentage}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-primary-300">{game.matchScore || game.matchPercentage}% match</span>
+                  ) : (
+                    <div className="text-gray-500 font-medium">
+                      No ratings yet
                     </div>
                   )}
                 </div>
