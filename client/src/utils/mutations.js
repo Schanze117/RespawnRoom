@@ -116,9 +116,16 @@ export const REMOVE_FRIEND = gql`
     removeFriend(userId: $userId) {
       _id
       userName
+      email
+      status
+      lastSeen
+      __typename
       friends {
         _id
         userName
+        status
+        lastSeen
+        __typename
       }
     }
   }

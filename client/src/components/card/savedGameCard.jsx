@@ -6,11 +6,13 @@ import { useQuery, useMutation } from '@apollo/client';
 import { GET_ME } from '../../utils/queries';
 import { REMOVE_GAME } from '../../utils/mutations';
 import GameModal from './gameModal';
+import { searchGames } from '../../utils/api';
 
 export default function SavedGameCard() {
     const [showModal, setShowModal] = useState(false);
     const [selectedGame, setSelectedGame] = useState(null);
     const [imageError, setImageError] = useState({});
+    const [gameDetails, setGameDetails] = useState({});
 
     const { loading, error, data, refetch } = useQuery(GET_ME);
     const [removeGame] = useMutation(REMOVE_GAME);
@@ -52,10 +54,67 @@ export default function SavedGameCard() {
         );
     }, []);
 
+    // Fetch game details by name
+    const fetchGameDetails = useCallback(async (game) => {
+        try {
+            // Check if we already have details cached
+            if (gameDetails[game._id]) {
+                const enhancedGame = {
+                    ...game,
+                    id: gameDetails[game._id].id,
+                    genres: gameDetails[game._id].genres,
+                    player_perspectives: gameDetails[game._id].player_perspectives,
+                    videos: gameDetails[game._id].videos
+                };
+                setSelectedGame(enhancedGame);
+                setShowModal(true);
+                return;
+            }
+
+            // Fetch game details from API
+            const results = await searchGames(game.name, 1, 1);
+            
+            if (results.games.length > 0) {
+                const apiGame = results.games[0];
+                
+                // Cache the result
+                setGameDetails(prev => ({
+                    ...prev,
+                    [game._id]: {
+                        id: apiGame.id,
+                        genres: apiGame.genres || [],
+                        player_perspectives: apiGame.player_perspectives || [],
+                        videos: apiGame.videos || []
+                    }
+                }));
+                
+                // Create enhanced game object with both local and API data
+                const enhancedGame = {
+                    ...game,
+                    id: apiGame.id,
+                    genres: apiGame.genres || [],
+                    player_perspectives: apiGame.player_perspectives || [],
+                    videos: apiGame.videos || []
+                };
+                
+                setSelectedGame(enhancedGame);
+                setShowModal(true);
+            } else {
+                // If no details found, just use saved data
+                setSelectedGame(game);
+                setShowModal(true);
+            }
+        } catch (error) {
+            console.error("Error fetching game details:", error);
+            // Fallback to just showing saved data
+            setSelectedGame(game);
+            setShowModal(true);
+        }
+    }, [gameDetails]);
+
     const handleGameClick = useCallback((game) => {
-        setSelectedGame(game);
-        setShowModal(true);
-    }, []);
+        fetchGameDetails(game);
+    }, [fetchGameDetails]);
 
     const handleCloseModal = useCallback(() => {
         setShowModal(false);

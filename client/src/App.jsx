@@ -6,6 +6,7 @@ import FloatingRoomWindow from './components/rooms/FloatingRoomWindow';
 import { RoomProvider, useRoomContext } from './utils/RoomContext';
 import './App.css'
 import Auth from './utils/auth';
+// import Footer from './components/Footer';
 
 // This component is just to track location changes and notify the room context
 const LocationListener = memo(function LocationListener() {
@@ -43,6 +44,25 @@ const AppContent = memo(function AppContent() {
     setShowLoginPrompt(!isAuthPage && !Auth.loggedIn());
   }, [navigate, location]);
 
+  const handleClearDataAndCache = () => {
+    if (window.confirm(
+      "Are you sure you want to clear all local site data and refresh? " +
+      "This will log you out and remove any saved preferences for this site."
+    )) {
+      try {
+        localStorage.clear();
+        console.log("Local storage cleared successfully.");
+        alert("Local storage has been cleared. The page will now perform a hard reload to attempt to clear cached assets for this page.");
+        window.location.reload(true); // true forces a reload from the server, bypassing cache for the current page
+      } catch (error) {
+        console.error("Error clearing local storage or reloading:", error);
+        alert("An error occurred while trying to clear data. Please check the console.");
+      }
+    } else {
+      console.log("User cancelled clearing data.");
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-surface-900">
       <Header />
@@ -51,6 +71,17 @@ const AppContent = memo(function AppContent() {
           {showLoginPrompt ? <LoginPrompt /> : <Outlet />}
         </main>
       </div>
+      {/* <Footer /> */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <button
+          onClick={handleClearDataAndCache}
+          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg focus:outline-none focus:shadow-outline"
+          title="Clears all data stored by this site in your browser (localStorage) and forces a page refresh from the server for the current page."
+        >
+          Clear Cache & Data
+        </button>
+      </div>
+      <FloatingRoomWindow />
     </div>
   );
 });
@@ -63,7 +94,6 @@ function App() {
     <RoomProvider value={roomProviderValue}>
       <LocationListener />
       <AppContent />
-      <FloatingRoomWindow />
     </RoomProvider>
   );
 }

@@ -108,6 +108,14 @@ app.use('/graphql',
       // Add the user to the context
       return { user };
     },
+    plugins: [],
+    // Add explicit CORS options for Apollo
+    cors: {
+      origin: ['http://localhost:3000', 'http://localhost:5173'],
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'cache-control', 'x-requested-with', 'apollo-require-preflight'],
+    }
   })
 );
 
@@ -429,8 +437,8 @@ app.get('/api/games/all-categories', async (req, res) => {
       // Batch 1: Trending games (high rating, recent release)
       `
         fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id,hypes;
-        where rating > 70 & first_release_date > ${oneYearAgo}; 
-        sort rating desc;
+        where rating > 70 & rating < 95 & first_release_date > ${oneYearAgo}; 
+        sort popularity desc;
         limit 500;
       `,
       
@@ -439,7 +447,7 @@ app.get('/api/games/all-categories', async (req, res) => {
         fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id,hypes;
         where first_release_date > ${sixMonthsAgo} 
         & first_release_date < ${now} 
-        & rating_count > 5;
+        & rating_count > 3;
         sort first_release_date desc;
         limit 500;
       `,
@@ -447,7 +455,7 @@ app.get('/api/games/all-categories', async (req, res) => {
       // Batch 3: Top rated games (highest-rated games of all time)
       `
         fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id,hypes;
-        where rating >= 90 & rating_count > 100;
+        where rating >= 80 & rating_count > 50;
         sort rating desc;
         limit 500;
       `,
@@ -456,9 +464,8 @@ app.get('/api/games/all-categories', async (req, res) => {
       `
         fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id,hypes;
         where first_release_date > ${now} 
-        & first_release_date < ${oneYearLater}
-        & hypes > 5;
-        sort first_release_date asc;
+        & first_release_date < ${oneYearLater};
+        sort hypes desc;
         limit 500;
       `
     ];
@@ -522,11 +529,18 @@ app.get('/api/games/all-categories', async (req, res) => {
                        batchIndex === 1 ? 'latest' : 
                        batchIndex === 2 ? 'topRated' : 'upcoming';
       
-      return allUniqueGames
+      // Get all eligible games from this category
+      const eligibleGames = allUniqueGames
         .filter(game => 
           game.sourceCategory === category && 
           !assignedGameIds.has(game.id)
-        )
+        );
+      
+      // Shuffle the eligible games to increase randomness
+      const shuffledGames = [...eligibleGames].sort(() => 0.5 - Math.random());
+      
+      // Take the requested number of games
+      return shuffledGames
         .slice(0, limit)
         .map(game => {
           // Mark as assigned

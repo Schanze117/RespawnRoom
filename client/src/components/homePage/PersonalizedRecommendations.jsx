@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { useGameContext } from '../../utils/GameContext';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import { processTrendingGames } from '../../utils/gameFetcher';
 
 export default function PersonalizedRecommendations() {
   const { respawnCount, featuredGames } = useGameContext();
@@ -46,15 +47,38 @@ export default function PersonalizedRecommendations() {
       }));
     }
     
-    // Get up to 3 random trending games
-    const randomTrending = getRandomItems(trendingGames, 3);
+    // Get existing genres from personalized games to find diverse trending games
+    const existingGenres = new Set();
+    personalizedGames.forEach(game => {
+      if (game.genres) {
+        game.genres.forEach(genre => {
+          if (genre && genre.name) existingGenres.add(genre.name.toLowerCase());
+        });
+      }
+    });
+    
+    // Filter trending games to prioritize those with different genres
+    const diverseTrendingGames = trendingGames.filter(game => {
+      if (!game.genres || game.genres.length === 0) return false;
+      
+      // Check if this game has at least one genre not in existingGenres
+      return game.genres.some(genre => 
+        genre && genre.name && !existingGenres.has(genre.name.toLowerCase())
+      );
+    });
+    
+    // Get up to 3 diverse trending games, fall back to random if needed
+    const randomTrending = getRandomItems(
+      diverseTrendingGames.length > 0 ? diverseTrendingGames : trendingGames, 
+      3
+    );
     
     // Mark them as trending recommendations and add respawnId
     const markedTrending = randomTrending.map(game => ({
       ...game,
       isTrending: true,
       _respawnId: respawnCount, // Add respawn ID to force a reference change
-      matchScore: Math.floor(Math.random() * 25) + 70, // Random score between 70-95 (0-100 scale)
+      matchScore: Math.max(Math.min(85, game.rating ? Math.round(game.rating) : 75), 70), // Use actual rating if available, keep 70-85 range
       ratingCount: game.rating_count || game.ratingCount || 0 // Use existing rating count
     }));
     
@@ -118,7 +142,7 @@ export default function PersonalizedRecommendations() {
         } else {
           // Fallback - fetch trending games directly
           try {
-            trendingGamesForMixing = await getTrendingGames();
+            trendingGamesForMixing = await processTrendingGames();
           } catch (err) {
             console.warn('Could not get trending games for mixing', err);
           }
@@ -164,7 +188,7 @@ export default function PersonalizedRecommendations() {
           // Get trending games from API if we don't already have them
           const trendingGames = trendingGamesForMixing.length > 0 
             ? trendingGamesForMixing 
-            : await getTrendingGames();
+            : await processTrendingGames();
           
           if (!trendingGames || trendingGames.length === 0) {
             throw new Error('No trending games available');
@@ -205,7 +229,7 @@ export default function PersonalizedRecommendations() {
             ...game,
             isTrending: true,
             _respawnId: respawnCount, // Add respawn ID to force a reference change
-            matchScore: Math.floor(Math.random() * 25) + 70, // Random score between 70-95 (0-100 scale)
+            matchScore: Math.max(Math.min(85, game.rating ? Math.round(game.rating) : 75), 70), // Use actual rating if available, keep 70-85 range
             ratingCount: game.rating_count || game.ratingCount || 0 // Use existing rating count
           }));
           
@@ -248,8 +272,9 @@ export default function PersonalizedRecommendations() {
   if (loading) {
     return (
       <section className="w-full mb-12">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-primary-500">For You</h2>
+        <div className="relative mb-6">
+          <div className="absolute left-0 top-0 w-1 h-full bg-primary-600"></div>
+          <h2 className="text-2xl font-bold text-primary-500 pl-4">For You</h2>
         </div>
         <div className="flex space-x-4 overflow-hidden pb-4">
           {[...Array(5)].map((_, index) => (
@@ -308,21 +333,24 @@ export default function PersonalizedRecommendations() {
 
   return (
     <section className="w-full mb-12">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-primary-500">For You</h2>
-        <div className="flex items-center space-x-3">
-          <button 
-            onClick={handleRefresh}
-            className="text-primary-400 hover:text-primary-300 text-sm flex items-center"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 2v6h-6"></path>
-              <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-              <path d="M3 22v-6h6"></path>
-              <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-            </svg>
-            Refresh
-          </button>
+      <div className="relative mb-6">
+        <div className="absolute left-0 top-0 w-1 h-full bg-primary-600"></div>
+        <div className="flex justify-between items-center pl-4">
+          <h2 className="text-2xl font-bold text-primary-500">For You</h2>
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={handleRefresh}
+              className="text-primary-400 hover:text-primary-300 text-sm flex items-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 2v6h-6"></path>
+                <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                <path d="M3 22v-6h6"></path>
+                <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+              </svg>
+              Refresh
+            </button>
+          </div>
         </div>
       </div>
       

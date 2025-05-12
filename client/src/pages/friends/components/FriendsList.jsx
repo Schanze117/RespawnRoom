@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import FriendCard from './FriendCard';
 import Pagination from './Pagination';
 import ChatPopup from './ChatPopup';
@@ -49,7 +49,38 @@ const FriendsList = ({
   unreadCounts = {}
 }) => {
   const [activeChatFriend, setActiveChatFriend] = useState(null);
-  const [chatError, setChatError] = useState(false);
+  const [chatError, setChatError] = useState(null);
+  
+  // Ensure pinnedFriends and unpinnedFriends are arrays
+  const safePinnedFriends = useMemo(() => {
+    return Array.isArray(pinnedFriends) ? pinnedFriends : [];
+  }, [pinnedFriends]);
+  
+  const safeUnpinnedFriends = useMemo(() => {
+    return Array.isArray(unpinnedFriends) ? unpinnedFriends : [];
+  }, [unpinnedFriends]);
+
+  // Helper function to check if a friend object is valid
+  const isValidFriend = (friend) => friend && typeof friend === 'object' && friend._id && friend.userName;
+
+  // Filter out invalid friend objects using useMemo to prevent unnecessary re-renders
+  const validPinnedFriends = useMemo(() => {
+    return safePinnedFriends.filter(isValidFriend);
+  }, [safePinnedFriends]);
+  
+  const validUnpinnedFriends = useMemo(() => {
+    return safeUnpinnedFriends.filter(isValidFriend);
+  }, [safeUnpinnedFriends]);
+  
+  // Memoize the combined array to prevent unnecessary re-renders
+  const displayedFriends = useMemo(() => {
+    return [...validPinnedFriends, ...validUnpinnedFriends];
+  }, [validPinnedFriends, validUnpinnedFriends]);
+  
+  // Memoize the empty state check
+  const allFriendsEmpty = useMemo(() => {
+    return validPinnedFriends.length === 0 && validUnpinnedFriends.length === 0;
+  }, [validPinnedFriends.length, validUnpinnedFriends.length]);
 
   const handleMessageClick = (friend) => {
     try {
@@ -86,13 +117,9 @@ const FriendsList = ({
     dropdownRefs.current[friendId] = element;
   };
 
-  const allFriendsEmpty = pinnedFriends.length === 0 && unpinnedFriends.length === 0;
-
   if (allFriendsEmpty && !searchQuery) {
     return <EmptyFriendsList searchQuery={searchQuery} toggleSearchMode={toggleSearchMode} />;
   }
-
-  const displayedFriends = [...pinnedFriends, ...unpinnedFriends];
   
   return (
     <>
@@ -115,9 +142,9 @@ const FriendsList = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {displayedFriends.map((friend) => (
               <FriendCard
-                key={friend._id}
+                key={`friend-${friend._id}`}
                 friend={friend}
-                isPinned={pinnedFriends.some(f => f._id === friend._id)}
+                isPinned={validPinnedFriends.some(f => f._id === friend._id)}
                 activeDropdown={activeDropdown}
                 setActiveDropdown={setActiveDropdown}
                 togglePinFriend={togglePinFriend}
@@ -152,4 +179,4 @@ const FriendsList = ({
   );
 };
 
-export default FriendsList; 
+export default React.memo(FriendsList); 
