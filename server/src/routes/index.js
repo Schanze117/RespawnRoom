@@ -6,6 +6,7 @@ import gameRoutes from './api/gameRoutes.js';
 import userRoutes from './api/userRoutes.js';
 import pubnubRoutes from './api/pubnub.js';
 import agoraVideoRoutes from './api/agoraVideo.js';
+import roomRoutes from './roomRoutes.js';
 
 // Create router
 const router = express.Router();
@@ -15,6 +16,7 @@ router.use('/api/games', gameRoutes);
 router.use('/api/user', userRoutes);
 router.use('/api/pubnub', pubnubRoutes);
 router.use('/api/agora', agoraVideoRoutes);
+router.use('/api/rooms', roomRoutes);
 
 // Check if api directory has files
 try {

@@ -13,10 +13,14 @@ const LocationListener = memo(function LocationListener() {
   const location = useLocation();
   const { activeRoom, checkPathAndToggleWindow } = useRoomContext();
   
-  // Update when either location or activeRoom changes
+  // Update when either location changes
   useEffect(() => {
-    checkPathAndToggleWindow(location.pathname);
-  }, [location.pathname, activeRoom, checkPathAndToggleWindow]);
+    // Only process if we have a pathname
+    if (location.pathname) {
+      checkPathAndToggleWindow(location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]); // Removed activeRoom and checkPathAndToggleWindow from dependencies
   
   return null;
 });
@@ -87,11 +91,8 @@ const AppContent = memo(function AppContent() {
 });
 
 function App() {
-  // Use useMemo to prevent unnecessary re-renders of provider value
-  const roomProviderValue = useMemo(() => ({}), []);
-  
   return (
-    <RoomProvider value={roomProviderValue}>
+    <RoomProvider>
       <LocationListener />
       <AppContent />
     </RoomProvider>

@@ -48,8 +48,8 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
-// Remove static file serving since we're running client and server separately
-// app.use(express.static('../client/dist'));
+// Serve static files from the React app build directory in production
+app.use(express.static(path.join(__dirname, '../../client/dist')));
 app.use(routes); // Mount API routes from routes/index.js
 
 passport.use(new GoogleStrategy({
@@ -689,6 +689,12 @@ app.post("/api/game_videos", async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
   }
+});
+
+// For any request that doesn't match an API route, serve the React app
+// This should be at the end of all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
 });
 
 // Start the server
