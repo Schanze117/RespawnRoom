@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 
 // Create a context
 const RoomContext = createContext();
@@ -14,48 +14,69 @@ export const RoomProvider = ({ children }) => {
   const [position, setPosition] = useState({ x: null, y: null });
   const [size, setSize] = useState({ width: 300, height: 250 });
   const [showFloatingWindow, setShowFloatingWindow] = useState(false);
+  const [joiningStatus, setJoiningStatus] = useState({ 
+    isJoining: false, 
+    roomId: null, 
+    error: null 
+  });
 
   // Enter a room and update room data
-  const enterRoom = (roomData) => {
+  const enterRoom = useCallback((roomData) => {
     setActiveRoom(roomData);
     setShowFloatingWindow(false); // Initially hidden until user navigates away
     setIsMinimized(false);
-  };
+    setJoiningStatus({ isJoining: false, roomId: null, error: null });
+  }, []);
 
   // Exit a room and hide the floating window
-  const exitRoom = () => {
+  const exitRoom = useCallback(() => {
     setActiveRoom(null);
     setShowFloatingWindow(false);
     setParticipantCount(0);
-  };
+    setJoiningStatus({ isJoining: false, roomId: null, error: null });
+  }, []);
+
+  // Start the joining process
+  const startJoining = useCallback((roomId) => {
+    setJoiningStatus({ isJoining: true, roomId, error: null });
+  }, []);
+
+  // Complete the joining process
+  const completeJoining = useCallback((success, error = null) => {
+    if (success) {
+      setJoiningStatus({ isJoining: false, roomId: null, error: null });
+    } else {
+      setJoiningStatus({ isJoining: false, roomId: null, error });
+    }
+  }, []);
 
   // Toggle minimized state
-  const toggleMinimize = () => {
+  const toggleMinimize = useCallback(() => {
     setIsMinimized(prev => !prev);
-  };
+  }, []);
 
   // Update participant count
-  const updateParticipantCount = (count) => {
+  const updateParticipantCount = useCallback((count) => {
     setParticipantCount(count);
-  };
+  }, []);
 
   // Update position
-  const updatePosition = (newPosition) => {
+  const updatePosition = useCallback((newPosition) => {
     setPosition(newPosition);
-  };
+  }, []);
 
   // Update size
-  const updateSize = (newSize) => {
+  const updateSize = useCallback((newSize) => {
     setSize(newSize);
-  };
+  }, []);
 
   // Reset position to default (top right)
-  const resetPosition = () => {
+  const resetPosition = useCallback(() => {
     setPosition({ x: null, y: null });
-  };
+  }, []);
 
   // Check pathname and show/hide floating window
-  const checkPathAndToggleWindow = (pathname) => {
+  const checkPathAndToggleWindow = useCallback((pathname) => {
     if (!activeRoom) return;
     
     // Check if we're currently on a room page
@@ -68,9 +89,9 @@ export const RoomProvider = ({ children }) => {
     const shouldShow = !isRoomPage;
     
     setShowFloatingWindow(shouldShow);
-  };
+  }, [activeRoom]);
 
-  // Context value
+  // Context value with memoized callbacks
   const contextValue = {
     activeRoom,
     isMinimized,
@@ -78,6 +99,7 @@ export const RoomProvider = ({ children }) => {
     position,
     size,
     showFloatingWindow,
+    joiningStatus,
     enterRoom,
     exitRoom,
     toggleMinimize,
@@ -85,7 +107,9 @@ export const RoomProvider = ({ children }) => {
     updatePosition,
     updateSize,
     resetPosition,
-    checkPathAndToggleWindow
+    checkPathAndToggleWindow,
+    startJoining,
+    completeJoining
   };
 
   return (
