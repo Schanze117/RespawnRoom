@@ -12,6 +12,12 @@ export default function GameModal({ game, onClose, location}) {
     const modalRef = useRef(null);
     const modalContentRef = useRef(null);
 
+    // Helper function to format the rating consistently
+    const formatRating = (rating) => {
+        if (rating === undefined || rating === null) return null;
+        return Math.round(rating);
+    };
+
     function handleImage(location) {
         let hdCover;
         if (location === "saved") {
@@ -113,14 +119,12 @@ export default function GameModal({ game, onClose, location}) {
                             }
                         }
                     } catch (fetchError) {
-                        console.error('Error fetching game details:', fetchError);
                         game.videoId = null;
                     }
                 } else {
                     game.videoId = null;
                 }
             } catch (error) {
-                console.error('Error fetching game video:', error);
                 game.videoId = null;
             } finally {
                 setIsLoading(false);
@@ -194,6 +198,50 @@ export default function GameModal({ game, onClose, location}) {
         }
     };
 
+    // Helper function to render game rating
+    const renderRating = () => {
+        // If the game data is still loading, show a placeholder
+        if (game.isLoading) {
+            return (
+                <div className="animate-pulse ml-auto p-2 bg-surface-700/50 rounded h-8 w-16"></div>
+            );
+        }
+        
+        // Check for explicit "no rating available" flag
+        if (game.no_rating_available) {
+            return (
+                <div className="text-gray-400 text-xl font-bold ml-auto flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor" opacity="0.5">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    <span>Not Rated</span>
+                </div>
+            );
+        }
+        
+        // Get the rating directly from the game object - use either property
+        const ratingValue = formatRating(game.total_rating || game.rating);
+        
+        // Only render if there's a valid rating
+        if (ratingValue === null) {
+            return null;
+        }
+        
+        // Determine color based on rating
+        let colorClass = "text-emerald-400";
+        if (ratingValue < 70) colorClass = "text-amber-400";
+        if (ratingValue < 50) colorClass = "text-red-400";
+        
+        return (
+            <div className={`${colorClass} text-xl font-bold ml-auto flex items-center`}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <span>{ratingValue}<span className="text-sm">/100</span></span>
+            </div>
+        );
+    };
+
     return (
         <div 
             ref={modalRef}
@@ -246,9 +294,12 @@ export default function GameModal({ game, onClose, location}) {
                         <div className="flex flex-col text-pretty items-center xl:w-[55%] w-full space-y-4 px-4">
                             {/* Genres and POVs */}
                             <div className="w-full">
-                                <h3 className="text-primary-400 text-xl font-bold mb-2 border-b border-primary-600/20 pb-1">
-                                    Genres & Perspectives
-                                </h3>
+                                <div className="flex items-center justify-between border-b border-primary-600/20 pb-1 mb-2">
+                                    <h3 className="text-primary-400 text-xl font-bold">
+                                        Genres & Perspectives
+                                    </h3>
+                                    {renderRating()}
+                                </div>
                                 <div className='flex flex-wrap gap-2 mt-2'>
                                     {renderGenres()}
                                     {renderPlayerPerspectives()}

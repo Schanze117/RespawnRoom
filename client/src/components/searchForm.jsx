@@ -1,8 +1,9 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { LuSearch } from "react-icons/lu";
 import { searchGames } from '../utils/api'; 
 import GameCard from './card/gameCard';
 import Pagination from './discoverComponents/subComponents/pagination';
+import ReviewToggle from './discoverComponents/subComponents/ReviewToggle';
 
 // Loading component
 const LoadingSpinner = () => (
@@ -18,144 +19,114 @@ const LoadingSpinner = () => (
 );
 
 export default function SearchForm() {
-    // State to hold the search form data
-    const [searchForm, setSearchForm] = useState({
-        search: ''
-    });
-    
-    // State to hold the search results
+    const [searchForm, setSearchForm] = useState({ search: '' });
     const [display, setDisplay] = useState(false);
-    
-    // State to manage loading status
     const [loading, setLoading] = useState(false);
-    
-    // State to hold the current search results with pagination
     const [searchResults, setSearchResults] = useState({
         games: [],
-        pagination: {
-            totalItems: 0,
-            totalPages: 1,
-            currentPage: 1,
-            itemsPerPage: 25
-        }
+        pagination: { totalItems: 0, totalPages: 1, currentPage: 1, itemsPerPage: 25 }
     });
-    
-    // Store active search query to allow pagination with same search
     const [activeSearch, setActiveSearch] = useState('');
+    const [showHighReviewsOnly, setShowHighReviewsOnly] = useState(false);
 
-    function displayError(error){
-        return <div className="text-red-500 py-1 px-5 text-center">{error}</div>
-    }
+    useEffect(() => {
+        const savedPreference = localStorage.getItem('showHighReviewsOnly');
+        if (savedPreference !== null) setShowHighReviewsOnly(savedPreference === 'true');
+        
+        const handleReviewFilterChange = (event) => setShowHighReviewsOnly(event.detail.showHighReviewsOnly);
+        window.addEventListener('reviewFilterChange', handleReviewFilterChange);
+        return () => window.removeEventListener('reviewFilterChange', handleReviewFilterChange);
+    }, []);
 
-    // Handle form input changes and update the searchForm state
+    // Re-fetch data when showHighReviewsOnly changes and a search is active
+    useEffect(() => {
+        if (activeSearch) {
+            fetchData(activeSearch, 1, showHighReviewsOnly);
+        }
+    }, [showHighReviewsOnly]); // Only re-run if showHighReviewsOnly changes
+
+    const displayError = (error) => <div className="text-red-500 py-1 px-5 text-center">{error}</div>;
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setSearchForm((prev) => ({ ...prev, [name]: value }));
-    }
+    };
 
-    // Handle page change
-    const handlePageChange = async (newPage) => {
-        if (newPage === searchResults.pagination.currentPage) return;
-        
+    const fetchData = async (searchTerm, page, filterByReview) => {
+        console.log(`SearchForm: fetchData called with searchTerm: ${searchTerm}, page: ${page}, filterByReview: ${filterByReview}`);
         setLoading(true);
-        
+        setDisplay(<LoadingSpinner />); 
         try {
-            // Perform the search with pagination
-            const results = await searchGames(activeSearch, newPage, searchResults.pagination.itemsPerPage);
-            
-            setSearchResults(results);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const results = await searchGames(searchTerm, page, 25, filterByReview);
+            console.log("SearchForm: searchGames results:", results);
+            if (results.games.length === 0) {
+                setDisplay(displayError(filterByReview ? "No games with 5+ reviews found" : "No results found"));
+                setSearchResults({ games: [], pagination: { totalItems: 0, totalPages: 1, currentPage: page, itemsPerPage: 25 } });
+            } else {
+                setSearchResults(results);
+                setDisplay(<GameCard games={results.games} showRating={false} />);
+            }
+            if (page === 1) window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
-            console.error("Error changing page:", error);
-            setDisplay(displayError("Error loading page. Please try again."));
+            console.error("SearchForm: Error in fetchData:", error);
+            console.error("SearchForm: Error message:", error.message);
+            console.error("SearchForm: Error stack:", error.stack);
+            setDisplay(
+                <div className="text-red-500 py-1 px-5 text-center">
+                    <p>Error searching games. Please try again.</p>
+                    <p>Details: {error.message}</p>
+                </div>
+            );
         } finally {
             setLoading(false);
         }
     };
 
-    // Handle form submission
+    const handlePageChange = async (newPage) => {
+        if (newPage === searchResults.pagination.currentPage) return;
+        fetchData(activeSearch, newPage, showHighReviewsOnly);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true); // Set loading to true when form is submitted
-        
-        // Reset display first to show loading state immediately
-        setDisplay(<LoadingSpinner />);
-        
-        try {
-            // Check if the search field is empty
-            if(searchForm.search === '') {
-                setDisplay(displayError("Please enter a valid name"));
-                setLoading(false); // Set loading to false if the search field is empty
-                return;
-            }
-            
-            // Store active search for pagination
-            setActiveSearch(searchForm.search);
-            
-            // Search for games by name with pagination (page 1, 25 items per page)
-            const results = await searchGames(searchForm.search, 1, 25);
-            
-            if(results.games.length === 0) {
-                setDisplay(displayError("No results found"));
-                setSearchResults({
-                    games: [],
-                    pagination: {
-                        totalItems: 0,
-                        totalPages: 1,
-                        currentPage: 1,
-                        itemsPerPage: 25
-                    }
-                });
-                setLoading(false); // Set loading to false if no results are found
-                return;
-            }
-            
-            // Store the search results
-            setSearchResults(results);
-            
-            // Display the search results
-            setDisplay(<GameCard games={results.games} />);
-            
-            // Scroll to top when showing new results
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        } catch (error) {
-            console.error("Error searching games:", error);
-            setDisplay(displayError("Error searching games. Please try again."));
+        console.log("SearchForm: handleSubmit called with searchForm.search:", searchForm.search);
+        if (searchForm.search === '') {
+            setDisplay(displayError("Please enter a valid name"));
+            return;
         }
-        setLoading(false); // Set loading to false after results are received
-    }
-
-    useEffect(() => {
-        // Update display when searchResults change (for pagination)
-        if (searchResults.games.length > 0) {
-            setDisplay(<GameCard games={searchResults.games} />);
-        }
-    }, [searchResults]);
+        setActiveSearch(searchForm.search);
+        fetchData(searchForm.search, 1, showHighReviewsOnly);
+    };
 
     return (
         <div className="flex flex-col w-full">
-            <form className="flex px-4 py-4" onSubmit={handleSubmit}>
-                <label className="mb-2 text-sm font-medium sr-only">Search</label>
-                <div className='relative text-light w-full'>
-                    <div className='absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none'>
-                        <LuSearch />
-                    </div>
-                    <input
-                        type="text"
-                        name="search"
-                        value={searchForm.search}
-                        onChange={handleChange}
-                        placeholder="Search by name" 
-                        className="block w-full ps-10 px-3 py-3 rounded-lg bg-surface-800 border border-surface-700 text-light placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition"
-                    />
-                    <button 
-                        type="submit" 
-                        className="absolute end-1.5 bottom-1.5 text-light font-medium px-3 py-1.5 bg-primary-600 hover:bg-primary-700 focus:ring-3 focus:outline-none focus:ring-primary-800 rounded-lg transition-colors duration-200"
-                    >
-                        Search
-                    </button>
+            <div className="flex flex-col gap-3 px-4 py-4">
+                <div className="flex justify-end mb-2">
+                    <ReviewToggle />
                 </div>
-            </form>
+                <form className="flex" onSubmit={handleSubmit}>
+                    <label className="mb-2 text-sm font-medium sr-only">Search</label>
+                    <div className='relative text-light w-full'>
+                        <div className='absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none'>
+                            <LuSearch />
+                        </div>
+                        <input
+                            type="text"
+                            name="search"
+                            value={searchForm.search}
+                            onChange={handleChange}
+                            placeholder="Search by name" 
+                            className="block w-full ps-10 px-3 py-3 rounded-lg bg-surface-800 border border-surface-700 text-light placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition"
+                        />
+                        <button 
+                            type="submit" 
+                            className="absolute end-1.5 bottom-1.5 text-light font-medium px-3 py-1.5 bg-primary-600 hover:bg-primary-700 focus:ring-3 focus:outline-none focus:ring-primary-800 rounded-lg transition-colors duration-200"
+                        >
+                            Search
+                        </button>
+                    </div>
+                </form>
+            </div>
             
             <div className="w-full p-4 min-h-[200px]">
                 {loading ? (
@@ -166,18 +137,21 @@ export default function SearchForm() {
                             {display}
                         </div>
                         
-                        {/* Results count */}
                         {searchResults.games.length > 0 && (
                             <div className="text-center text-tonal-400 italic font-light mt-8 mb-2">
                                 Showing <span className="text-light font-normal">{(searchResults.pagination.currentPage - 1) * searchResults.pagination.itemsPerPage + 1}</span>
                                 {' '}-{' '}
-                                <span className="text-light font-normal">{Math.min(searchResults.pagination.currentPage * searchResults.pagination.itemsPerPage, searchResults.pagination.totalItems)}</span>
+                                <span className="text-light font-normal">
+                                    {(searchResults.pagination.currentPage - 1) * searchResults.pagination.itemsPerPage + searchResults.games.length}
+                                </span>
                                 {' '}of{' '}
                                 <span className="text-light font-normal">{searchResults.pagination.totalItems}</span> results
+                                {showHighReviewsOnly && (
+                                    <span className="text-primary-400"> (filtered for 5+ reviews)</span>
+                                )}
                             </div>
                         )}
                         
-                        {/* Pagination */}
                         {searchResults.games.length > 0 && searchResults.pagination.totalPages > 1 && (
                             <Pagination 
                                 currentPage={searchResults.pagination.currentPage} 

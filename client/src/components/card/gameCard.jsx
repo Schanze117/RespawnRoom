@@ -5,6 +5,7 @@ import { useMutation, useQuery } from '@apollo/client';
 import { SAVE_GAME } from '../../utils/mutations';
 import { GET_ME } from '../../utils/queries';
 import Auth from '../../utils/auth';
+import { getGameById } from '../../utils/api';
 
 // Lazy load the GameModal component since it's only needed when a user clicks on a game
 const GameModal = lazy(() => import('./gameModal'));
@@ -81,7 +82,7 @@ const cssStyles = `
   }
 `;
 
-export default function GameCard({ games }) {
+export default function GameCard({ games, showRating = true }) {
     const [showModal, setShowModal] = useState(false);
     const [selectedGame, setSelectedGame] = useState(null);
     const [savedGames, setSavedGames] = useState({});
@@ -118,9 +119,57 @@ export default function GameCard({ games }) {
         return alreadySavedGames.includes(game.name.toLowerCase().trim());
     };
 
-    const handleGameClick = (game) => {
-        setSelectedGame(game);
-        setShowModal(true);
+    const handleGameClick = async (game) => {
+        console.log('Game clicked:', game);
+        
+        try {
+            // Show a loading state
+            setSelectedGame({...game, isLoading: true});
+            setShowModal(true);
+            
+            // Fetch detailed game data including ratings
+            const detailedGame = await getGameById(game.id);
+            console.log('Detailed game data:', detailedGame);
+            
+            // Create an enhanced game object with all data
+            const enhancedGame = {
+                ...game,
+                ...detailedGame,
+                isLoading: false
+            };
+            
+            // Set the enhanced game object for the modal
+            setSelectedGame(enhancedGame);
+            
+        } catch (error) {
+            console.error('Error fetching detailed game data:', error);
+            
+            // Calculate the rating from all possible sources as fallback
+            const calculatedRating = game.total_rating ? parseFloat(game.total_rating) : 
+                                  (game.rating ? parseFloat(game.rating) : 
+                                  (game.aggregated_rating ? parseFloat(game.aggregated_rating) : null));
+            
+            // Create a new game object with all original properties
+            const gameWithRating = { 
+                ...game,
+                isLoading: false
+            };
+            
+            // Only add the rating if we actually have one
+            if (calculatedRating !== null) {
+                console.log('Setting rating on gameWithRating:', Math.round(calculatedRating));
+                // Ensure the rating is on both properties for consistency
+                gameWithRating.total_rating = calculatedRating;
+                gameWithRating.rating = calculatedRating;
+            } else {
+                console.log('No rating found for this game');
+                // Set a "no rating available" indicator
+                gameWithRating.no_rating_available = true;
+            }
+            
+            // Set the enhanced game object for the modal
+            setSelectedGame(gameWithRating);
+        }
     };
 
     const handleCloseModal = () => {
@@ -244,7 +293,12 @@ export default function GameCard({ games }) {
                 {games.map((game) => {
                     const saveState = getSaveButtonState(game.id, game);
                     const isExpanded = expandedTitles[game.id] || false;
-                    const rating = game.total_rating ? Math.round(game.total_rating) : null;
+                    
+                    // Calculate rating here for display in the card
+                    const rating = game.total_rating ? Math.round(game.total_rating) : 
+                                 (game.rating ? Math.round(game.rating) : null);
+                    
+                    console.log(`Game ${game.name} has rating:`, rating);
                     
                     return (
                         <div
@@ -340,11 +394,21 @@ export default function GameCard({ games }) {
                                     </div>
                                 </div>
                                 
-                                {/* Rating */}
-                                {rating && (
+                                {/* Rating - Only show if showRating prop is true */}
+                                {showRating && rating ? (
                                     <div className="mb-0.5 text-xs">
-                                        <div className="text-primary-400 font-medium">
+                                        <div className={`font-medium ${
+                                            rating >= 70 ? "text-emerald-400" : 
+                                            rating >= 50 ? "text-amber-400" : 
+                                            "text-red-400"
+                                        }`}>
                                             Rating: {rating}/100
+                                        </div>
+                                    </div>
+                                ) : showRating && (
+                                    <div className="mb-0.5 text-xs">
+                                        <div className="text-gray-400 font-medium">
+                                            Not Rated
                                         </div>
                                     </div>
                                 )}
@@ -385,8 +449,10 @@ export default function GameCard({ games }) {
                     </div>
                 }>
                     <GameModal 
+                        key={`game-modal-${selectedGame.id}-${selectedGame.total_rating || 'no-rating'}`}
                         game={selectedGame} 
-                        onClose={handleCloseModal} 
+                        onClose={handleCloseModal}
+                        location="api" 
                     />
                 </Suspense>
             )}

@@ -4,15 +4,23 @@ import { GET_MESSAGES } from '../../../utils/queries';
 import { SEND_MESSAGE, MARK_MESSAGES_AS_READ } from '../../../utils/mutations';
 import UserAvatar from './UserUtils';
 import { format } from 'date-fns';
-import { getPubNub, connectPubNub, addMessageListener, removeMessageListener, sendChatMessage, testPubNubConnection, getPrivateChannel } from '../../../utils/pubnubChat';
+import { 
+  getPubNub, 
+  connectPubNub, 
+  addMessageListener, 
+  removeMessageListener, 
+  sendChatMessage, 
+  testPubNubConnection, 
+  getPrivateChannel, 
+  setupChatChannel, 
+  markChannelActive, 
+  markChannelInactive 
+} from '../../../utils/pubnubChat';
 import Auth from '../../../utils/auth';
-
-// Helper function to validate dates before formatting
-const isValidDate = (dateString) => {
-  if (!dateString) return false;
-  const date = new Date(dateString);
-  return !isNaN(date.getTime());
-};
+import { formatTimeAgo, isValidDate } from '../../../utils/helpers';
+import { FaTimes, FaPaperPlane } from "react-icons/fa";
+import LoadingSpinner from '../../../components/LoadingSpinner';
+import Avatar from '../../../components/Avatar';
 
 const ChatPopup = ({ friend, onClose }) => {
   const [message, setMessage] = useState('');
@@ -24,9 +32,19 @@ const ChatPopup = ({ friend, onClose }) => {
   const chatContainerRef = useRef(null);
   const messageEndRef = useRef(null);
   const chatInitialized = useRef(false);
+  const pubnubRef = useRef(null);
   const currentUser = Auth.getProfile();
   const [showDebug, setShowDebug] = useState(false);
   const channelRef = useRef(null);
+  const connectionAttempts = useRef(0);
+  const messagesRef = useRef(messages);
+  const chatCleanupRef = useRef(null);
+  const [processedMessageIds, setProcessedMessageIds] = useState(new Set());
+
+  // Keep messagesRef in sync with the messages state
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Add this useEffect near the top of the component to mark messages as read when chat opens
   useEffect(() => {
@@ -108,10 +126,22 @@ const ChatPopup = ({ friend, onClose }) => {
     }
   });
 
-  // Message listener function to handle incoming real-time messages
+  // Improve message listener function to better handle incoming real-time messages
   const handleNewMessage = (message) => {
-    // Check if message is from the current chat partner (using the senderId field)
-    if (message.senderId === friend._id) {
+    console.log('[PubNub] Received message:', message);
+    
+    // Extract message ID with fallbacks
+    const messageId = message.id || `pubnub-${Date.now()}`;
+    
+    // Check if we've already processed this message - check both state and refs
+    if (processedMessageIds.has(messageId) || 
+        messagesRef.current.some(msg => msg._id === messageId)) {
+      console.log('[PubNub] Ignoring duplicate message by ID:', message);
+      return;
+    }
+    
+    // Check if message is from the current chat partner or current user
+    if (message.senderId === friend._id || message.senderId === currentUser._id) {
       // Ensure we have a valid timestamp
       const timestamp = message.timestamp && isValidDate(message.timestamp) 
         ? message.timestamp 
@@ -119,124 +149,165 @@ const ChatPopup = ({ friend, onClose }) => {
       
       // Create a message object in our app's format
       const newMessage = {
-        _id: message.id || `pubnub-${Date.now()}`,
+        _id: messageId,
         senderId: message.senderId,
-        receiverId: currentUser._id,
+        receiverId: message.senderId === currentUser._id ? friend._id : currentUser._id,
         content: message.text,
         timestamp: timestamp,
-        read: false,
-        sender: { _id: message.senderId, userName: friend.userName }
+        read: message.senderId === friend._id ? true : false,
+        sender: { 
+          _id: message.senderId, 
+          userName: message.senderId === currentUser._id ? 'You' : friend.userName 
+        }
       };
       
-      // Add message to UI
-      setMessages(prev => Array.isArray(prev) ? [...prev, newMessage] : [newMessage]);
+      // Add message to UI and to our processed set
+      setMessages(prevMessages => {
+        const updatedMessages = [...prevMessages];
+        
+        // Final check for duplicates before adding
+        if (!updatedMessages.some(m => m._id === newMessage._id)) {
+          updatedMessages.push(newMessage);
+          
+          // Add to processed IDs set
+          setProcessedMessageIds(prev => new Set(prev).add(messageId));
+          
+          // Force scroll to bottom in next tick
+          setTimeout(() => {
+            messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 10);
+        }
+        
+        return updatedMessages;
+      });
       
-      // Mark message as read immediately
-      try {
-        markAsRead({ 
-          variables: { senderId: friend._id }
-        }).catch(() => {
-          // Handle error silently
-        });
-      } catch {
-        // Handle error silently
-      }
-    }
-  };
-
-  // Setup PubNub for real-time messaging
-  useEffect(() => {
-    let chatConnected = false;
-    let pollInterval = null;
-    
-    // Initialize PubNub
-    const initPubNub = async () => {
-      try {
-        // Make sure we have the current user information
-        if (!currentUser || !currentUser._id) {
-          return false;
-        }
-        
-        // Get PubNub connection
-        const pubnub = await getPubNub();
-        
-        if (!pubnub) {
-          return false;
-        }
-        
-        // Connect with user ID
-        await connectPubNub(currentUser._id);
-        
-        // Create a channel for this private chat
-        channelRef.current = getPrivateChannel(currentUser._id, friend._id);
-        
-        // Add message listener for this channel
-        const listenerAdded = addMessageListener(channelRef.current, handleNewMessage);
-        
-        if (listenerAdded) {
-          chatInitialized.current = true;
-          chatConnected = true;
-          return true;
-        } else {
-          return false;
-        }
-      } catch (error) {
-        chatInitialized.current = false;
-        setChatError('Chat initialization failed. Messages will be sent via server only.');
-        return false;
-      }
-    };
-    
-    // Try to initialize PubNub chat
-    initPubNub().then(success => {
-      if (!success) {
-        chatInitialized.current = false;
-      }
-    }).catch(() => {
-      chatInitialized.current = false;
-    });
-    
-    // Always set up message polling as a fallback (or for message history)
-    pollInterval = setInterval(() => {
-      if (friend && friend._id) {
-        // Use a try-catch block around refetch
+      // Mark message as read immediately if it's from our friend
+      if (message.senderId === friend._id) {
         try {
-          refetch()
-            .then(result => {
-              if (result?.data?.getMessages) {
-                const freshMessages = result.data.getMessages;
-                if (Array.isArray(freshMessages) && freshMessages.length > 0) {
-                  setMessages(freshMessages);
-                }
-              }
-            })
-            .catch(() => {
-              // Handle error silently
-            });
+          markAsRead({ 
+            variables: { senderId: friend._id }
+          }).catch(() => {
+            // Handle error silently
+          });
         } catch {
           // Handle error silently
         }
       }
-    }, 10000); // Poll every 10 seconds
+    }
+  };
+
+  // Initialize PubNub chat when the component mounts
+  useEffect(() => {
+    // Define a variable to track component mounted state
+    let isMounted = true;
+    
+    // Ensure we have required data before continuing
+    if (friend && friend._id && currentUser && currentUser._id && !chatInitialized.current) {
+      console.log(`[ChatPopup] Setting up chat with ${friend.userName}`);
+      
+      // Create a unique channel for this conversation
+      const chatChannel = getPrivateChannel(currentUser._id, friend._id);
+      channelRef.current = chatChannel;
+      
+      // Mark the channel as active when the chat is opened
+      markChannelActive(chatChannel);
+      
+      const initChat = async () => {
+        try {
+          // Get PubNub instance
+          const pubnub = await getPubNub();
+          pubnubRef.current = pubnub;
+          
+          if (!pubnub) {
+            console.error('[ChatPopup] Could not get PubNub instance');
+            setChatError('Could not initialize chat. Please refresh the page.');
+            return;
+          }
+          
+          // Connect with user ID
+          await connectPubNub(currentUser._id);
+          
+          // Setup chat channel with message listener
+          const channelSetup = setupChatChannel(chatChannel, handleNewMessage);
+          
+          // Check if component still mounted before updating state
+          if (isMounted) {
+            if (channelSetup) {
+              console.log('[ChatPopup] Chat channel setup successful');
+              chatInitialized.current = true;
+              setChatError(null);
+              
+              // Store cleanup function
+              chatCleanupRef.current = channelSetup.cleanup;
+            } else {
+              console.error('[ChatPopup] Failed to set up chat channel');
+              setChatError('Could not initialize chat. Please refresh and try again.');
+            }
+          }
+        } catch (error) {
+          console.error('[ChatPopup] Error initializing chat:', error);
+          if (isMounted) {
+            setChatError('Chat initialization failed. Please try again.');
+            chatInitialized.current = false;
+          }
+        }
+      };
+      
+      initChat();
+    }
     
     return () => {
-      // Clean up - remove message listener and disconnect
-      if (chatConnected && channelRef.current) {
-        removeMessageListener(channelRef.current);
+      // Update mounted flag
+      isMounted = false;
+      
+      // Mark the channel as inactive when the component unmounts
+      if (channelRef.current) {
+        markChannelInactive(channelRef.current);
       }
       
-      if (pollInterval) {
-        clearInterval(pollInterval);
+      // Clean up the PubNub subscription when unmounting
+      if (chatCleanupRef.current) {
+        console.log('[ChatPopup] Cleaning up PubNub subscription');
+        chatCleanupRef.current();
+        chatCleanupRef.current = null;
       }
+      chatInitialized.current = false;
     };
-  }, [friend._id, friend.userName, currentUser, refetch]);
+  }, [friend?._id, currentUser?._id]); // Simplified dependency array
 
-  // Scroll to bottom whenever messages change
+  // Improve scroll handling useEffect to be more aggressive
   useEffect(() => {
+    // Ensure messages scroll to bottom whenever messages change
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    
+    // Create a mutation observer to watch for new messages and scroll
+    if (chatContainerRef.current) {
+      const observer = new MutationObserver(() => {
+        messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      });
+      
+      observer.observe(chatContainerRef.current, { 
+        childList: true, 
+        subtree: true,
+        characterData: true,
+        attributes: true
+      });
+      
+      // Also set up a fallback timer to ensure scrolling happens
+      const scrollInterval = setInterval(() => {
+        if (messagesRef.current.length > 0) {
+          messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 500);
+      
+      return () => {
+        observer.disconnect();
+        clearInterval(scrollInterval);
+      }
+    }
   }, [messages]);
 
-  // Handle sending a message
+  // Improve the send message function to better handle optimistic updates
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!message.trim() || isSending) return;
@@ -247,8 +318,11 @@ const ChatPopup = ({ friend, onClose }) => {
     const tempId = `temp-${Date.now()}`;
     const messageContent = message.trim();
     
+    // Clear input immediately for better UX
+    setMessage('');
+    
     try {
-      // Create a temporary message
+      // Create a temporary message for immediate UI feedback
       const tempMessage = {
         _id: tempId,
         senderId: currentUser._id,
@@ -260,13 +334,43 @@ const ChatPopup = ({ friend, onClose }) => {
         pending: true
       };
       
+      // Add to our processed set to prevent duplication
+      setProcessedMessageIds(prev => new Set(prev).add(tempId));
+      
       // Add temporary message to UI immediately
-      setMessages(prev => Array.isArray(prev) ? [...prev, tempMessage] : [tempMessage]);
+      setMessages(prev => {
+        const updatedMessages = [...prev, tempMessage];
+        // Force scroll to bottom
+        setTimeout(() => {
+          messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 10);
+        return updatedMessages;
+      });
       
-      // Clear input
-      setMessage('');
+      // Flag to track if realtime was successful
+      let realtimeSent = false;
       
-      // Always send via GraphQL first to ensure storage
+      // Send message via PubNub first for real-time delivery
+      if (chatInitialized.current && channelRef.current && pubnubRef.current) {
+        console.log('[PubNub] Sending message via PubNub');
+        try {
+          await sendChatMessage(
+            channelRef.current, 
+            messageContent,
+            {
+              senderId: currentUser._id,
+              id: tempId
+            }
+          );
+          console.log('[PubNub] Message sent successfully');
+          realtimeSent = true;
+        } catch (error) {
+          console.error('[PubNub] Error sending message:', error);
+          // Continue with GraphQL as fallback
+        }
+      }
+      
+      // Also send via GraphQL for storage
       const response = await sendMessage({
         variables: {
           receiverId: friend._id,
@@ -283,38 +387,42 @@ const ChatPopup = ({ friend, onClose }) => {
           serverMessage.sender = { _id: currentUser._id, userName: currentUser.userName || 'You' };
         }
         
-        setMessages(prev => {
-          if (!Array.isArray(prev)) return [serverMessage];
-          return prev.map(msg => msg._id === tempId ? serverMessage : msg);
-        });
-        
-        // If PubNub is initialized, send the message via real-time also
-        if (chatInitialized.current && channelRef.current) {
+        // If realtime failed, manually trigger a PubNub-like message
+        if (!realtimeSent && chatInitialized.current) {
           try {
-            // Send via PubNub for real-time delivery
-            await sendChatMessage(
-              channelRef.current, 
-              messageContent,
-              {
-                senderId: currentUser._id,
-                id: serverMessage._id
-              }
-            );
-          } catch {
-            // Handle error silently
+            // First add this ID to our processed set
+            setProcessedMessageIds(prev => new Set(prev).add(serverMessage._id));
+            
+            handleNewMessage({
+              senderId: currentUser._id,
+              id: serverMessage._id,
+              text: serverMessage.content,
+              timestamp: serverMessage.timestamp
+            });
+          } catch (error) {
+            console.error("[PubNub] Error with manual message handling:", error);
           }
         }
+        
+        // Replace temporary message with server message (using a more robust method)
+        setMessages(prev => {
+          // Add server message ID to processed set to prevent duplication
+          setProcessedMessageIds(set => new Set([...set, serverMessage._id]));
+          
+          // Find temp message and replace it with server message
+          return prev.map(msg => 
+            msg._id === tempId ? { 
+              ...serverMessage, 
+              _id: serverMessage._id || tempId,
+              sender: serverMessage.sender || msg.sender
+            } : msg
+          );
+        });
 
         // Mark messages as read since we're actively chatting
         try {
           markAsRead({ 
-            variables: { senderId: friend._id },
-            onCompleted: () => {
-              // Force refetch of unread message counts globally
-              if (window.refetchAllUnreadCounts) {
-                window.refetchAllUnreadCounts();
-              }
-            }
+            variables: { senderId: friend._id }
           }).catch(() => {
             // Handle error silently
           });
@@ -326,17 +434,58 @@ const ChatPopup = ({ friend, onClose }) => {
       }
     } catch (error) {
       setChatError('Failed to send message. Please try again.');
+      console.error('[ChatPopup] Error sending message:', error);
       
       // Remove pending message
-      setMessages(prev => {
-        if (!Array.isArray(prev)) return [];
-        return prev.filter(msg => msg._id !== tempId);
-      });
+      setMessages(prev => prev.filter(msg => msg._id !== tempId));
       
       // Restore message in input field
       setMessage(messageContent);
     } finally {
       setIsSending(false);
+    }
+  };
+
+  // Run this function when the user clicks "Reconnect" in the connection status bar
+  const handleReconnect = async () => {
+    connectionAttempts.current = 0;
+    setChatError("Reconnecting to real-time chat...");
+    
+    try {
+      // Try to reinitialize chat
+      const chatChannel = getPrivateChannel(currentUser._id, friend._id);
+      channelRef.current = chatChannel;
+      
+      // Get PubNub instance
+      const pubnub = await getPubNub();
+      pubnubRef.current = pubnub;
+      
+      if (!pubnub) {
+        setChatError("Failed to connect to chat service. Please try again.");
+        return;
+      }
+      
+      // Connect with user ID
+      await connectPubNub(currentUser._id);
+      
+      // Setup chat channel
+      const channelSetup = setupChatChannel(chatChannel, handleNewMessage);
+      
+      if (channelSetup) {
+        // Clean up any existing subscription first
+        if (chatCleanupRef.current) {
+          chatCleanupRef.current();
+        }
+        chatCleanupRef.current = channelSetup.cleanup;
+        chatInitialized.current = true;
+        setChatError("Successfully reconnected to real-time chat!");
+        setTimeout(() => setChatError(null), 3000);
+      } else {
+        setChatError("Failed to reconnect. Please try again.");
+      }
+    } catch (error) {
+      console.error('[ChatPopup] Reconnection error:', error);
+      setChatError("Failed to reconnect. Please refresh the page.");
     }
   };
 
@@ -367,6 +516,21 @@ const ChatPopup = ({ friend, onClose }) => {
         </button>
       </div>
       
+      {/* Connection status indicator */}
+      <div className={`px-3 py-1 text-xs flex items-center justify-between ${chatInitialized.current ? 'bg-green-900' : 'bg-orange-900'}`}>
+        <span>
+          {chatInitialized.current ? 'Real-time messaging active' : 'Standard messaging mode'}
+        </span>
+        {!chatInitialized.current && 
+          <button 
+            onClick={handleReconnect}
+            className="text-xs underline"
+          >
+            Reconnect
+          </button>
+        }
+      </div>
+      
       {/* Debug panel */}
       {showDebug && (
         <div className="p-2 bg-gray-900 border-b border-gray-700">
@@ -378,6 +542,29 @@ const ChatPopup = ({ friend, onClose }) => {
             >
               Test PubNub Connection
             </button>
+          </div>
+          <div className="mt-1 text-xs text-gray-400">
+            <p>Channel: {channelRef.current || 'Not connected'}</p>
+            <p>Status: {chatInitialized.current ? 'Connected' : 'Disconnected'}</p>
+            <p>Messages in state: {messages.length}</p>
+            <p>Connection attempts: {connectionAttempts.current}/3</p>
+            <div className="mt-2 flex space-x-2">
+              <button 
+                className="text-xs bg-gray-700 text-white px-2 py-1 rounded"
+                onClick={() => console.log('[Debug] Current messages:', messages)}
+              >
+                Log Messages
+              </button>
+              <button 
+                className="text-xs bg-gray-700 text-white px-2 py-1 rounded"
+                onClick={() => {
+                  console.log('[Debug] Environment variables:', import.meta.env);
+                  console.log('[Debug] PubNub Channel:', channelRef.current);
+                }}
+              >
+                Log Env Vars
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -438,9 +625,11 @@ const ChatPopup = ({ friend, onClose }) => {
                   }`}
                 >
                   <p>{msg.content}</p>
-                  <p className="text-xs opacity-70 mt-1 flex items-center">
-                    {senderName && !isCurrentUser && <span className="mr-1">{senderName}</span>}
-                    {msg.timestamp && isValidDate(msg.timestamp) ? format(new Date(msg.timestamp), 'h:mm a') : ''}
+                  <p className="text-xs opacity-70 mt-1 flex items-center justify-between">
+                    <span>
+                      {senderName && !isCurrentUser && <span className="mr-1">{senderName}</span>}
+                      {msg.timestamp && isValidDate(msg.timestamp) ? format(new Date(msg.timestamp), 'h:mm a') : ''}
+                    </span>
                     {msg.pending && (
                       <span className="ml-2 inline-block">
                         <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">

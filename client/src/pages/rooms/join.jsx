@@ -8,28 +8,13 @@ export default function JoinRoom() {
   const [error, setError] = useState('');
 
   const extractRoomId = (input) => {
-    // Check if it's a direct room ID
-    if (input.trim().startsWith('room-') || !input.includes('/')) {
-      return input.trim();
-    }
+    const trimmedInput = input.trim();
+    // Regex to match "room-" followed by any characters (alphanumeric typically)
+    const roomFormat = /^room-[a-zA-Z0-9]+$/;
     
-    // Check if it's a URL
-    try {
-      const url = new URL(input);
-      const pathParts = url.pathname.split('/');
-      const roomId = pathParts[pathParts.length - 1];
-      
-      // Return the room ID if it exists in the URL
-      if (roomId) return roomId;
-      
-      // Check if it's a join link with a query parameter
-      const params = new URLSearchParams(url.search);
-      const roomParam = params.get('room');
-      if (roomParam) return roomParam;
-    } catch (e) {
-      // Not a valid URL, continue to error
+    if (roomFormat.test(trimmedInput)) {
+      return trimmedInput;
     }
-    
     return null;
   };
 
@@ -37,18 +22,18 @@ export default function JoinRoom() {
     e.preventDefault();
     
     if (!roomInput.trim()) {
-      setError('Please enter a room ID or paste an invite link');
+      setError('Please enter a Room ID');
       return;
     }
     
     const roomId = extractRoomId(roomInput);
     
     if (!roomId) {
-      setError('Invalid room ID or invite link');
+      setError('Invalid Room ID format. It should be like \'room-abc123\'.');
       return;
     }
     
-    // Navigate to the room
+    // Navigate to the room. Mode will be fetched from server or default in room.jsx
     navigate(`/rooms/${roomId}`);
   };
 
@@ -68,12 +53,12 @@ export default function JoinRoom() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="roomInput" className="block text-sm font-medium text-gray-300 mb-2">
-              Room ID or Invite Link
+              Room ID
             </label>
             <div className="mb-2 text-sm text-gray-400">
               <p className="flex items-center">
                 <LinkIcon size={14} className="mr-1.5" />
-                Enter the room ID or paste the invite link shared by your friend
+                Enter the Room ID shared by your friend (e.g., room-abc123)
               </p>
             </div>
             <input
@@ -84,7 +69,7 @@ export default function JoinRoom() {
                 setRoomInput(e.target.value);
                 setError(''); // Clear error when input changes
               }}
-              placeholder="e.g., room-abc123 or https://respawn.com/rooms/join?room=..."
+              placeholder="room-abc123"
               className={`w-full px-4 py-2 bg-surface-700 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                 error ? 'border-red-500' : 'border-surface-600'
               }`}

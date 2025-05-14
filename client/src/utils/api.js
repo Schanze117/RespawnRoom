@@ -2,74 +2,117 @@ export const API_BASE_URL = "https://api.igdb.com/v4";
 export const SERVER_URL = "http://localhost:3001";
 
 // Search for games by name with pagination
-export const searchGames = async (game, page = 1, itemsPerPage = 25) => {
+export const searchGames = async (game, page = 1, itemsPerPage = 25, filterByReviewCount = false) => {
   try {
     // Calculate offset based on page and itemsPerPage
     const offset = (page - 1) * itemsPerPage;
     
+    let reviewFilterQuery = '';
+    if (filterByReviewCount) {
+      reviewFilterQuery = ' & (total_rating_count >= 5 | rating_count >= 5)';
+    }
+
+    // Construct the count query string
+    let countQueryContent = `search "${game}"; fields id; limit 500;`;
+    if (filterByReviewCount) {
+      // If filtering by reviews, apply the filter to the count query.
+      // Note: IGDB syntax for search + where can be tricky.
+      // This attempts to count games matching the search AND the review filter.
+      // A simple search might be `search "game name"; fields id; where (filter_condition); limit 500;`
+      // If the search term itself is complex or contains special characters, this might need escaping.
+      // For now, we assume the 'game' variable is a simple string.
+      countQueryContent = `search "${game}"; fields id; where (total_rating_count >= 5 | rating_count >= 5); limit 500;`;
+    } else {
+      // If not filtering by reviews, just count games matching the search term.
+      countQueryContent = `search "${game}"; fields id; limit 500;`;
+    }
+    
     // First get a count of matching games for pagination
+    // Note: The count query might not perfectly reflect the review filter, leading to potentially inaccurate totalPages.
+    // A more complex solution would be to make the count query also aware of the review filter, 
+    // but that can be significantly more complex with IGDB's API for combined search + where.
     const countResponse = await fetch(`${SERVER_URL}/api/games`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        content: `search "${game}"; fields id; limit 500;`
+        content: countQueryContent
       })
     });
     
     let totalEstimatedCount = 0;
     
-    if (countResponse.ok) {
+    if (!countResponse.ok) {
+      const errorText = await countResponse.text();
+      console.error(
+        `Count API Error: ${countResponse.status} ${countResponse.statusText}. Response: ${errorText}`
+      );
+      console.warn("Count query failed. Pagination might be inaccurate. Proceeding with main data fetch.");
+      totalEstimatedCount = itemsPerPage * 2; // Fallback if count fails
+    } else {
       const countData = await countResponse.json();
       totalEstimatedCount = countData.length;
-    } else {
-      // If count request fails, assume a reasonable number
-      totalEstimatedCount = 100;
+      // If count is 500, it might be capped, so we fetch actual results to refine
     }
     
-    // Fetch the game data from the API with pagination
+    // Fetch the game data from the API with pagination and review filter
+    // Let's rename mainQuery to mainQueryString for clarity before it's logged
+    let mainQueryString = `search "${game}"; fields name, cover.url, summary, genres.name, player_perspectives.name, videos, websites, rating, total_rating, aggregated_rating, rating_count, total_rating_count; limit ${itemsPerPage}; offset ${offset}`;
+
+    if (filterByReviewCount) {
+      mainQueryString += '; where (total_rating_count >= 5 | rating_count >= 5)';
+    }
+    mainQueryString += ';'; // Ensure the query string properly ends with a semicolon
+
     const response = await fetch(`${SERVER_URL}/api/games`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        content: `search "${game}"; fields name, cover.url, summary, genres.name, player_perspectives.name, videos, websites; limit ${itemsPerPage}; offset ${offset};`
+        content: mainQueryString // Use the corrected query string
       })
     });
     
-    const games = await response.json();
-
     if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(
+        // Log the actual query string that was sent
+        `Main API Error: ${response.status} ${response.statusText}. Query: ${mainQueryString}. Response: ${errorText}`
+      );
+      throw new Error(`API Error: ${response.status} ${response.statusText}. Details: ${errorText}`);
     }
     
-    // If we got fewer games than requested and we're on the first page,
-    // assume this is the actual total count
-    if (games.length < itemsPerPage && page === 1) {
-      totalEstimatedCount = games.length;
+    const games = await response.json();
+
+    // Refine totalEstimatedCount if the initial count was capped at 500 and this is the first page
+    if (totalEstimatedCount === 500 && page === 1 && games.length < itemsPerPage && filterByReviewCount) {
+        // If fewer than itemsPerPage results on page 1 with filter, assume this is all there is.
+        // This is a heuristic and might not be perfect for large datasets.
+        totalEstimatedCount = games.length;
+    } else if (filterByReviewCount && games.length < itemsPerPage && page === 1) {
+        // If the count was less than 500 but we still get fewer than itemsPerPage, that's the total
+        totalEstimatedCount = games.length;
+    } else if (filterByReviewCount && games.length === 0 && page > 1) {
+        // If we get no games on a subsequent page with the filter, the previous page was the last.
+        totalEstimatedCount = (page - 1) * itemsPerPage;
     }
 
-    // If we're on a page beyond the first and got no results,
-    // adjust the estimated count to match what we've seen
-    if (games.length === 0 && page > 1) {
-      totalEstimatedCount = (page - 1) * itemsPerPage;
-    }
 
     return {
       games,
       pagination: {
         totalItems: totalEstimatedCount,
-        totalPages: Math.ceil(totalEstimatedCount / itemsPerPage),
+        totalPages: Math.max(1, Math.ceil(totalEstimatedCount / itemsPerPage)),
         currentPage: page,
         itemsPerPage
       }
     };
     
   } catch (error) {
-    console.error("Error fetching game data:", error);
-    throw error;
+    console.error("Error in searchGames function:", error.message, error.stack); // Log the full error
+    throw error; // Re-throw the original error or a new one wrapping it
   }
 };
 
@@ -98,7 +141,7 @@ export const getGameVideo = async (id) => {
 }
 
 // Filter games by genre, player perspective, theme, and mode
-export const filterGames = async (genres = [], playerPerspectives = [], themes = [], modes = [], page = 1, itemsPerPage = 25) => {
+export const filterGames = async (genres = [], playerPerspectives = [], themes = [], modes = [], page = 1, itemsPerPage = 25, filterByReviewCount = false) => {
   try {
     // Build the query string based on the filters using AND logic within each category type
     const genreQuery = genres.length > 0 ? genres.map(g => `genres = (${g})`).join(' & ') : '';
@@ -107,20 +150,32 @@ export const filterGames = async (genres = [], playerPerspectives = [], themes =
     const modesQuery = modes.length > 0 ? modes.map(m => `game_modes = (${m})`).join(' & ') : '';
     
     // Join the different category types with AND logic
-    const whereClause = [genreQuery, perspectiveQuery, themeQuery, modesQuery].filter(Boolean).join(' & ');
+    let whereClause = [genreQuery, perspectiveQuery, themeQuery, modesQuery].filter(Boolean).join(' & ');
+
+    if (filterByReviewCount) {
+      const reviewFilter = '(total_rating_count >= 5 | rating_count >= 5)';
+      if (whereClause) {
+        whereClause += ` & ${reviewFilter}`;
+      } else {
+        whereClause = reviewFilter;
+      }
+    }
+    
+    if (!whereClause) { // If no filters are applied, it's problematic for a 'where only' query
+        whereClause = 'id != null'; // Default to a condition that's always true if no other filters
+    }
 
     // Calculate offset based on page and itemsPerPage
     const offset = (page - 1) * itemsPerPage;
 
-    // Instead of getting counts separately, we'll request a large batch to estimate total count
-    // We'll request a maximum of 500 games to get a reasonable estimate of the total
+    // Count query with all filters
     const countResponse = await fetch(`${SERVER_URL}/api/games`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        content: `fields id; where ${whereClause}; limit 500;`
+        content: `fields id; where ${whereClause}; limit 500;` // Max limit for count estimation
       }),
     });
 
@@ -130,18 +185,18 @@ export const filterGames = async (genres = [], playerPerspectives = [], themes =
       const countData = await countResponse.json();
       totalEstimatedCount = countData.length;
     } else {
-      // If count request fails, assume a reasonable number
-      totalEstimatedCount = 100;
+      totalEstimatedCount = itemsPerPage * 2; // Fallback
     }
 
     // Then get the actual page of games
+    const mainQuery = `fields name, cover.url, summary, genres.name, player_perspectives.name, videos, rating, total_rating, aggregated_rating, rating_count, total_rating_count; where ${whereClause}; limit ${itemsPerPage}; offset ${offset};`;
     const response = await fetch(`${SERVER_URL}/api/games`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        content: `fields name, cover.url, summary, genres.name, player_perspectives.name, videos; where ${whereClause}; limit ${itemsPerPage}; offset ${offset};`
+        content: mainQuery
       }),
     });
 
@@ -151,23 +206,20 @@ export const filterGames = async (genres = [], playerPerspectives = [], themes =
       throw new Error(`API Error: ${response.statusText}`);
     }
 
-    // If we got fewer games than requested and we're on the first page,
-    // assume this is the actual total count
-    if (games.length < itemsPerPage && page === 1) {
-      totalEstimatedCount = games.length;
-    }
-
-    // If we're on a page beyond the first and got no results,
-    // adjust the estimated count to match what we've seen
-    if (games.length === 0 && page > 1) {
-      totalEstimatedCount = (page - 1) * itemsPerPage;
+    // Refine totalEstimatedCount if the initial count was capped at 500 and this is the first page
+    if (totalEstimatedCount === 500 && page === 1 && games.length < itemsPerPage) {
+        totalEstimatedCount = games.length;
+    } else if (games.length < itemsPerPage && page === 1) {
+        totalEstimatedCount = games.length;
+    } else if (games.length === 0 && page > 1) {
+        totalEstimatedCount = (page - 1) * itemsPerPage;
     }
 
     return {
       games,
       pagination: {
         totalItems: totalEstimatedCount,
-        totalPages: Math.ceil(totalEstimatedCount / itemsPerPage),
+        totalPages: Math.max(1, Math.ceil(totalEstimatedCount / itemsPerPage)),
         currentPage: page,
         itemsPerPage
       }
@@ -282,24 +334,27 @@ export const getUpcomingGames = async () => {
 // Get game by ID
 export const getGameById = async (id) => {
   try {
-    // Add cache busting timestamp to prevent cached results
-    const timestamp = new Date().getTime();
-    const response = await fetch(`${SERVER_URL}/api/games/${id}?_cb=${timestamp}`, {
-      method: 'GET',
+    const response = await fetch(`${SERVER_URL}/api/games`, {
+      method: 'POST',
       headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store'
-      }
+        'Content-Type': 'application/json',
+      },
+      // Ensure all relevant rating fields are fetched
+      body: JSON.stringify({
+        content: `fields name, cover.url, summary, genres.name, player_perspectives.name, screenshots.url, videos.video_id, websites.url, release_dates.human, aggregated_rating, aggregated_rating_count, rating, rating_count, total_rating, total_rating_count, similar_games.name, similar_games.cover.url, storyline, themes.name, game_modes.name; where id = ${id};`
+      })
     });
+    const game = await response.json();
     
     if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
+      throw new Error(`API Error: ${response.statusText}`);
     }
     
-    const data = await response.json();
-    return data;
+    // Since we expect a single game, return the first element of the array
+    return game.length > 0 ? game[0] : null;
+    
   } catch (error) {
-    console.error(`Error fetching game with ID ${id}:`, error);
+    console.error("Error fetching game data by ID:", error);
     throw error;
   }
 };
@@ -437,5 +492,31 @@ export const getAllCategorizedGames = async () => {
   } catch (error) {
     console.error('Error fetching all categorized games:', error);
     throw error;
+  }
+};
+
+// Helper to get game data for multiple IDs
+export const getGamesByIds = async (ids) => {
+  if (!ids || ids.length === 0) {
+    return [];
+  }
+  try {
+    const response = await fetch(`${SERVER_URL}/api/games`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content: `fields name, cover.url, summary, genres.name, player_perspectives.name, rating, total_rating, aggregated_rating, rating_count, total_rating_count; where id = (${ids.join(',')}); limit ${ids.length};`
+      })
+    });
+    const games = await response.json();
+    if (!response.ok) {
+      throw new Error(`API Error fetching games by IDs: ${response.statusText}`);
+    }
+    return games;
+  } catch (error) {
+    console.error("Error fetching games by IDs:", error);
+    return []; // Return empty array on error
   }
 };
