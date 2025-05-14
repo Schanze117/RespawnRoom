@@ -7,6 +7,7 @@ import {
   REMOVE_FRIEND,
   SEND_FRIEND_REQUEST 
 } from '../../utils/mutations';
+import { getPrivateChannel, markChannelActive } from '../../utils/pubnubChat';
 
 // Component imports
 import UserAvatar from './components/UserUtils';
@@ -75,10 +76,26 @@ export default function Friends() {
 
   const handleMessageClick = useCallback((friend) => {
     console.log('[Friends] handleMessageClick for:', friend);
+
+    // Mark unread count as 0 for this friend
     setUnreadCounts(prev => ({
       ...prev,
       [friend._id]: 0
     }));
+
+    // Get the current user
+    const currentUser = localStorage.getItem('user_id');
+    
+    // If we have both users, create and mark the channel as active
+    if (currentUser && friend._id) {
+      const chatChannel = getPrivateChannel(currentUser, friend._id);
+      
+      // Mark the channel as active
+      if (chatChannel) {
+        console.log(`[Friends] Marking chat channel active: ${chatChannel}`);
+        markChannelActive(chatChannel);
+      }
+    }
   }, []);
 
   // GraphQL queries

@@ -236,6 +236,7 @@ export default function Room() {
   const [tokenDetails, setTokenDetails] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [roomFull, setRoomFull] = useState(false);
+  const [roomCreationTime, setRoomCreationTime] = useState(null);
   
   // Use a more deterministic UID when using tokens
   const uid = useRef(Math.floor(Math.random() * 100000));
@@ -259,37 +260,39 @@ export default function Room() {
     await clientRef.current.subscribe(user, mediaType);
     console.log(`Subscribed to ${user.uid}'s ${mediaType} track`);
     
-    // Get username if available in user attributes
+    // Attempt to get username if available in user attributes
     let username = null;
+    
+    // Check userProperties first
     if (user.userProperties && user.userProperties.username) {
       username = user.userProperties.username;
+      console.log(`Username from userProperties in published event: ${username}`);
+    }
+    
+    // If not found, check our sessionStorage
+    if (!username) {
+      const storedUsername = window.sessionStorage.getItem(`rtc_user_${user.uid}`);
+      if (storedUsername) {
+        username = storedUsername;
+        console.log(`Username from session storage in published event: ${username}`);
+      }
     }
     
     // Update remoteUsers state with new user or updated track info
     setRemoteUsers(prev => {
-      // If user already exists in our state, update it
-      if (prev[user.uid]) {
-        return {
-          ...prev,
-          [user.uid]: {
-            ...prev[user.uid],
-            [mediaType]: true,
-            ...(mediaType === 'video' ? { videoTrack: user.videoTrack } : {}),
-            ...(mediaType === 'audio' ? { audioTrack: user.audioTrack } : {}),
-            ...(username ? { username } : {})
-          }
-        };
-      }
-      // Otherwise, add the new user
+      const existingUser = prev[user.uid] || {};
+      // Prioritize username already in state (from user-joined), then from current event, then undefined
+      const finalUsername = existingUser.username || username;
+
       return {
         ...prev,
         [user.uid]: {
-          uid: user.uid,
-          audio: mediaType === 'audio',
-          video: mediaType === 'video',
+          ...existingUser, // Spread existing user data (like username from user-joined)
+          uid: user.uid,    // Ensure uid is present
+          [mediaType]: true,
           ...(mediaType === 'video' ? { videoTrack: user.videoTrack } : {}),
           ...(mediaType === 'audio' ? { audioTrack: user.audioTrack } : {}),
-          username
+          ...(finalUsername && { username: finalUsername }) // Set username if available
         }
       };
     });
@@ -325,6 +328,72 @@ export default function Room() {
       delete newRemoteUsers[user.uid];
       return newRemoteUsers;
     });
+  };
+
+  const handleUserJoined = (user) => {
+    console.log(`Remote user ${user.uid} joined the channel`);
+    
+    // Multiple strategies to get username
+    let username = null;
+    
+    // Strategy 1: Check userProperties (standard way)
+    if (user.userProperties && user.userProperties.username) {
+      username = user.userProperties.username;
+      console.log(`Username from userProperties: ${username}`);
+    }
+    
+    // Strategy 2: Check any channel attributes we might have set
+    if (!username) {
+      const storedUsername = window.sessionStorage.getItem(`rtc_user_${user.uid}`);
+      if (storedUsername) {
+        username = storedUsername;
+        console.log(`Username from session storage: ${username}`);
+      }
+    }
+    
+    // Strategy
+    if (!username) {
+      // If all else fails, we'll use the UID for now
+      console.log(`No username found for user ${user.uid}`);
+    }
+    
+    // Update with the most reliable info we have
+    setRemoteUsers(prev => ({
+      ...prev,
+      [user.uid]: {
+        uid: user.uid,
+        username: username, // Store the username we found
+        // Initialize media tracks as null or undefined, to be populated by user-published
+        audio: false,
+        video: false,
+        audioTrack: undefined,
+        videoTrack: undefined,
+        ...prev[user.uid], // Spread existing user data if any (e.g., if published fired first)
+      }
+    }));
+    
+    // Attempt to get username from RTM or other sources if needed
+    if (!username) {
+      // Try to query user attributes if available
+      if (clientRef.current && clientRef.current.getUserAttributes) {
+        clientRef.current.getUserAttributes(user.uid)
+          .then(attrs => {
+            if (attrs && attrs.username) {
+              console.log(`Got username from attributes: ${attrs.username}`);
+              
+              // Update remote users with the username we found
+              setRemoteUsers(prev => ({
+                ...prev,
+                [user.uid]: {
+                  ...prev[user.uid],
+                  username: attrs.username
+                }
+              }));
+            }
+          })
+          .catch(e => console.warn('Failed to get user attributes:', e));
+      }
+    }
   };
 
   // Ensure the Agora client is initialized correctly
@@ -433,7 +502,7 @@ export default function Room() {
     // Update room info in context
     const participants = Object.values(remoteUsers).map((user) => ({
       uid: user.uid,
-      name: user.username || `User ${user.uid?.toString()?.slice(-4)}`,
+      name: user.username || localStorage.getItem('username') || `User ${user.uid?.toString()?.slice(-4)}`,
       hasAudio: user.audio && !user.audioTrack?.muted,
       hasVideo: user.video && user.videoTrack
     }));
@@ -442,7 +511,7 @@ export default function Room() {
     const localUsername = localStorage.getItem('username') || 'You';
     participants.unshift({
       uid: uid.current,
-      name: `${localUsername} (Host)`,
+      name: localUsername,
       hasAudio: !isMuted,
       hasVideo: !isVideoOff && mode === 'video'
     });
@@ -463,6 +532,7 @@ export default function Room() {
   // Initialize joining status
   useEffect(() => {
     startJoining(roomId);
+    setRoomCreationTime(new Date().toLocaleTimeString()); // Set creation time once when component mounts for the room
     
     // Add a retry system instead of just a timeout
     let retryCount = 0;
@@ -805,6 +875,7 @@ export default function Room() {
       clientRef.current.on('user-published', handleUserPublished);
       clientRef.current.on('user-unpublished', handleUserUnpublished);
       clientRef.current.on('user-left', handleUserLeft);
+      clientRef.current.on('user-joined', handleUserJoined);
       
       // Set up connection state change listener
       clientRef.current.on('connection-state-change', (curState, prevState) => {
@@ -840,6 +911,7 @@ export default function Room() {
         // Request permissions first to catch any issues
         const permissionsStream = await navigator.mediaDevices.getUserMedia({ 
           audio: true, 
+          // Only request video in video mode
           video: mode === 'video' 
         });
         
@@ -856,6 +928,25 @@ export default function Room() {
       // Get username from localStorage for identifying the user
       const username = localStorage.getItem('username') || 'User';
       console.log('Joining as:', username);
+      
+      // Set up channel attributes to share username with others
+      try {
+        // Try to set a channel attribute with our username before joining
+        if (username) {
+          console.log('Setting channel attribute for username');
+          // We'll use a custom attribute format to avoid conflicts
+          const userAttr = {
+            key: `user_${tokenData.uid || uid.current}`,
+            value: username
+          };
+          
+          // Store our UID-username mapping for later retrieval
+          window.sessionStorage.setItem(`rtc_user_${tokenData.uid || uid.current}`, username);
+        }
+      } catch (attrError) {
+        console.error('Error setting channel attribute:', attrError);
+        // Continue anyway - this is not critical
+      }
       
       // Join the channel
       console.log('Joining channel with appId and token:', {
@@ -884,6 +975,16 @@ export default function Room() {
         );
         
         console.log('Successfully joined channel as', username);
+        
+        // After successful join, update the client with our metadata
+        if (clientRef.current && clientRef.current.setLocalUserAttributes) {
+          try {
+            await clientRef.current.setLocalUserAttributes([{ key: 'username', value: username }]);
+            console.log('Set local user attribute for username');
+          } catch (e) {
+            console.warn('Failed to set local user attributes:', e);
+          }
+        }
       } catch (joinError) {
         console.error('Error joining channel with options:', joinError);
         // Fallback to join without options if there's an error
@@ -907,6 +1008,7 @@ export default function Room() {
             console.error('Failed to create audio track:', audioError);
           }
           
+      // Only create video track in video mode
       if (mode === 'video') {
             try {
           videoTrack = await AgoraRTC.createCameraVideoTrack({
@@ -923,7 +1025,9 @@ export default function Room() {
               setIsVideoOff(true);
             }
       } else {
+        // In voice-only mode, ensure video is off
         setIsVideoOff(true);
+        console.log('Voice-only mode, skipping video track creation');
           }
       
       // Only add tracks that were successfully created
@@ -1134,32 +1238,8 @@ export default function Room() {
                   </>
                 )}
               </button>
-
-              {/* Copy Invite Link button */}
-              <button 
-                onClick={() => {
-                  const inviteLink = `${window.location.origin}/rooms/join?room=${roomId}`;
-                  navigator.clipboard.writeText(inviteLink);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-                className="flex items-center px-3 py-1.5 bg-surface-700/80 hover:bg-surface-600 rounded text-sm text-white transition-colors duration-200"
-                title="Copy Invite Link"
-              >
-                {copied ? (
-                  <>
-                    <CheckCircle size={16} className="mr-1.5 text-green-500" />
-                    Link Copied!
-                  </>
-                ) : (
-                  <>
-                    <LinkIcon size={16} className="mr-1.5" />
-                    Link
-                  </>
-                )}
-              </button>
               
-              {/* Share button */}
+              {/* Share button - This will now only show Room ID in the modal */}
               <button 
                 onClick={() => setShowShareModal(true)}
                 className="flex items-center px-3 py-1.5 bg-primary-600/80 hover:bg-primary-700 rounded text-sm text-white transition-colors duration-200"
@@ -1213,7 +1293,7 @@ export default function Room() {
                   {/* Participant label */}
                   <div className="user-label">
                     <div className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                    {localStorage.getItem('username') || 'You'} (Host)
+                    {localStorage.getItem('username') || 'You'}
                   </div>
                   
                   <div className="media-indicator media-indicator-left">
@@ -1248,7 +1328,7 @@ export default function Room() {
                   const hasActiveVideo = user.videoTrack && user.video;
                   
                   // Get display name - use username if available, fallback to uid or generic name
-                  const displayName = user.username || `User ${user.uid?.toString()?.slice(-4)}`;
+                  const displayName = user.username || localStorage.getItem('username') || `User ${user.uid?.toString()?.slice(-4)}`;
                   
                   return (
                     <div 
@@ -1282,14 +1362,16 @@ export default function Room() {
                         )}
                       </div>
 
-                      {/* Video status indicator */}
-                      <div className="media-indicator media-indicator-right">
-                        {!hasActiveVideo ? (
-                          <VideoOff size={16} className="text-red-400" />
-                        ) : (
-                          <Video size={16} className="text-green-400" />
-                        )}
-                      </div>
+                      {/* Video status indicator - only show in video mode */}
+                      {mode === 'video' && (
+                        <div className="media-indicator media-indicator-right">
+                          {!hasActiveVideo ? (
+                            <VideoOff size={16} className="text-red-400" />
+                          ) : (
+                            <Video size={16} className="text-green-400" />
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1321,47 +1403,49 @@ export default function Room() {
                 )}
               </button>
               
-              {/* Video Toggle Button */}
-              <button
-                onClick={() => {
-                  if (localTracks.length > 0) {
-                    const videoTrack = localTracks.find(track => track.trackMediaType === 'video');
-                    
-                    if (videoTrack) {
-                      videoTrack.setEnabled(!isVideoOff);
-                      setIsVideoOff(!isVideoOff);
-                    } else if (mode === 'video') {
-                      // Create and publish a new video track
-                      AgoraRTC.createCameraVideoTrack({
-                        encoderConfig: {
-                          width: { min: 640, ideal: 1280, max: 1920 },
-                          height: { min: 360, ideal: 720, max: 1080 },
-                          frameRate: 30
-                        }
-                      }).then(newVideoTrack => {
-                        newVideoTrack.setEnabled(true);
-                        setIsVideoOff(false);
-                        
-                        if (clientRef.current) {
-                          clientRef.current.publish(newVideoTrack);
-                        }
-                        
-                        setLocalTracks(prev => [...prev, newVideoTrack]);
-                      }).catch(error => {
-                        console.error('Failed to create video track:', error);
-                      });
+              {/* Video Toggle Button - only show in video mode */}
+              {mode === 'video' && (
+                <button
+                  onClick={() => {
+                    if (localTracks.length > 0) {
+                      const videoTrack = localTracks.find(track => track.trackMediaType === 'video');
+                      
+                      if (videoTrack) {
+                        videoTrack.setEnabled(!isVideoOff);
+                        setIsVideoOff(!isVideoOff);
+                      } else if (mode === 'video') {
+                        // Create and publish a new video track
+                        AgoraRTC.createCameraVideoTrack({
+                          encoderConfig: {
+                            width: { min: 640, ideal: 1280, max: 1920 },
+                            height: { min: 360, ideal: 720, max: 1080 },
+                            frameRate: 30
+                          }
+                        }).then(newVideoTrack => {
+                          newVideoTrack.setEnabled(true);
+                          setIsVideoOff(false);
+                          
+                          if (clientRef.current) {
+                            clientRef.current.publish(newVideoTrack);
+                          }
+                          
+                          setLocalTracks(prev => [...prev, newVideoTrack]);
+                        }).catch(error => {
+                          console.error('Failed to create video track:', error);
+                        });
+                      }
                     }
-                  }
-                }}
-                className={`control-button ${isVideoOff ? 'bg-red-600/80 hover:bg-red-700' : 'bg-surface-700/80 hover:bg-surface-600'}`}
-                title={isVideoOff ? "Turn On Camera" : "Turn Off Camera"}
-              >
-                {isVideoOff ? (
-                  <VideoOff size={20} className="text-white" />
-                ) : (
-                  <Video size={20} className="text-white" />
-                )}
-              </button>
+                  }}
+                  className={`control-button ${isVideoOff ? 'bg-red-600/80 hover:bg-red-700' : 'bg-surface-700/80 hover:bg-surface-600'}`}
+                  title={isVideoOff ? "Turn On Camera" : "Turn Off Camera"}
+                >
+                  {isVideoOff ? (
+                    <VideoOff size={20} className="text-white" />
+                  ) : (
+                    <Video size={20} className="text-white" />
+                  )}
+                </button>
+              )}
               
               {/* Share Room Button */}
               <button
@@ -1428,38 +1512,14 @@ export default function Room() {
             </div>
             
             <div className="space-y-4">
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Invite Link
-                </label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    readOnly
-                    value={`${window.location.origin}/rooms/join?room=${roomId}`}
-                    className="flex-1 px-4 py-2 bg-surface-700/80 border border-surface-600 rounded-l-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-white text-sm"
-                  />
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const inviteLink = `${window.location.origin}/rooms/join?room=${roomId}`;
-                      navigator.clipboard.writeText(inviteLink);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    }}
-                    className="px-4 py-2 bg-primary-700 hover:bg-primary-800 transition-colors rounded-r-md"
-                  >
-                    {copied ? <CheckCircle size={20} className="text-green-400" /> : <Copy size={20} />}
-                  </button>
-                </div>
-              </div>
-              
               <div className="pt-4 border-t border-surface-700">
                 <h3 className="text-sm font-medium text-gray-300 mb-3">Room Information</h3>
                 <ul className="space-y-2 text-sm text-gray-400">
                   <li className="flex justify-between">
                     <span>Mode:</span>
-                    <span className="font-medium text-primary-400">{mode === 'video' ? 'Video & Voice' : 'Voice Only'}</span>
+                    <span className="font-medium text-primary-400">
+                      {mode === 'video' ? 'Video & Voice' : 'Voice Only'}
+                    </span>
                   </li>
                   <li className="flex justify-between">
                     <span>Participants:</span>
@@ -1467,7 +1527,7 @@ export default function Room() {
                   </li>
                   <li className="flex justify-between">
                     <span>Created:</span>
-                    <span className="font-medium text-primary-400">{new Date().toLocaleTimeString()}</span>
+                    <span className="font-medium text-primary-400">{roomCreationTime || 'N/A'}</span>
                   </li>
                 </ul>
               </div>

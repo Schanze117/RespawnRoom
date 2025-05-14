@@ -6,6 +6,7 @@ import { useMutation, useQuery } from '@apollo/client';
 import { SAVE_GAME } from '../../utils/mutations';
 import { GET_ME } from '../../utils/queries';
 import Auth from '../../utils/auth';
+import { getGameById } from '../../utils/api';
 
 export default function HomePageCard({ games, type }) {
   const [showModal, setShowModal] = useState(false);
@@ -34,9 +35,59 @@ export default function HomePageCard({ games, type }) {
   };
 
   // Handle game click to show modal
-  const handleGameClick = (game) => {
-    setSelectedGame(game);
-    setShowModal(true);
+  const handleGameClick = async (game) => {
+    console.log('HomePageCard: Game clicked:', game);
+    
+    try {
+      // Show a loading state
+      setSelectedGame({...game, isLoading: true});
+      setShowModal(true);
+      
+      // Fetch detailed game data including ratings
+      const detailedGame = await getGameById(game.id);
+      console.log('Detailed game data:', detailedGame);
+      
+      // Create an enhanced game object with all data
+      const enhancedGame = {
+        ...game,
+        ...detailedGame,
+        isLoading: false
+      };
+      
+      // Set the enhanced game object for the modal
+      setSelectedGame(enhancedGame);
+      
+    } catch (error) {
+      console.error('Error fetching detailed game data:', error);
+      
+      // Calculate the rating from all possible sources as fallback
+      const calculatedRating = game.total_rating ? parseFloat(game.total_rating) : 
+                          (game.rating ? parseFloat(game.rating) : 
+                          (game.aggregated_rating ? parseFloat(game.aggregated_rating) : null));
+      
+      console.log('HomePageCard: Raw calculated rating:', calculatedRating);
+      
+      // Create a new game object with all original properties
+      const gameWithRating = { 
+        ...game,
+        isLoading: false
+      };
+      
+      // Only add the rating if we actually have one
+      if (calculatedRating !== null) {
+        console.log('HomePageCard: Setting rating on game:', Math.round(calculatedRating));
+        // Ensure the rating is on both properties for consistency
+        gameWithRating.total_rating = calculatedRating;
+        gameWithRating.rating = calculatedRating;
+      } else {
+        console.log('HomePageCard: No rating found for this game');
+        // Set a "no rating available" indicator
+        gameWithRating.no_rating_available = true;
+      }
+      
+      // Set the enhanced game object for the modal
+      setSelectedGame(gameWithRating);
+    }
   };
 
   // Handle modal close
@@ -357,7 +408,7 @@ export default function HomePageCard({ games, type }) {
       </div>
       
       {/* Game Modal */}
-      {showModal && <GameModal game={selectedGame} onClose={handleCloseModal} />}
+      {showModal && <GameModal game={selectedGame} onClose={handleCloseModal} location="featured" />}
     </>
   );
 } 
