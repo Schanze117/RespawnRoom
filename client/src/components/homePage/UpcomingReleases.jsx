@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ScrollableGameCards from './ScrollableGameCards';
 import { useGameContext } from '../../utils/GameContext';
-import Skeleton from 'react-loading-skeleton';
-import 'react-loading-skeleton/dist/skeleton.css';
+import { SectionSkeleton } from '../../utils/LoadingSkeletons';
 
 export default function UpcomingReleases() {
   const { upcomingGames, isLoading, respawnCount } = useGameContext();
@@ -56,9 +55,7 @@ export default function UpcomingReleases() {
       </div>
       
       {isLoading ? (
-        <div className="w-full py-4">
-          <Skeleton height={320} count={1} />
-        </div>
+        <SectionSkeleton title="Upcoming Releases" />
       ) : displayGames.length === 0 ? (
         <div className="w-full py-8 text-center bg-surface-800/50 rounded-lg border border-surface-700">
           <p className="text-light text-opacity-70">No upcoming games available at the moment</p>

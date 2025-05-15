@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import { useQuery, useMutation, useLazyQuery, useApolloClient } from '@apollo/client';
 import { GET_FRIENDS, GET_FRIEND_REQUESTS, SEARCH_USERS, GET_UNREAD_MESSAGE_COUNT } from '../../utils/queries';
 import { 
@@ -8,6 +8,7 @@ import {
   SEND_FRIEND_REQUEST 
 } from '../../utils/mutations';
 import { getPrivateChannel, markChannelActive } from '../../utils/pubnubChat';
+import { refreshAllUnreadCounts } from '../../utils/MessageContext';
 
 // Component imports
 import UserAvatar from './components/UserUtils';
@@ -15,6 +16,10 @@ import FriendRequestDropdown from './components/FriendRequestDropdown';
 import FriendsList from './components/FriendsList';
 import SearchUsers from './components/SearchUsers';
 import SearchTabs from './components/SearchTabs';
+import FriendsPageSkeleton from './components/FriendSkeletonLoader';
+
+// Lazy load ChatPopup component
+const ChatPopup = lazy(() => import('./components/ChatPopup'));
 
 export default function Friends() {
   // Get Apollo client instance
@@ -31,34 +36,26 @@ export default function Friends() {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const dropdownRefs = useRef({});
   const [unreadCounts, setUnreadCounts] = useState({});
+  const [selectedFriend, setSelectedFriend] = useState(null);
 
   // Get unread message count for each friend
   const { data: unreadCountData, refetch: refetchUnreadCounts } = useQuery(GET_UNREAD_MESSAGE_COUNT, {
     fetchPolicy: 'network-only'
   });
   
-  // Create a global function to refresh unread counts that can be called from any component
+  // Update the refreshAllUnreadCounts to use our function
   useEffect(() => {
-    window.refetchAllUnreadCounts = () => {
-      refetchUnreadCounts();
-    };
+    // Register the refetch function with our global handler
+    const currentRefetchFunction = refetchUnreadCounts;
     
-    return () => {
-      // Clean up when component unmounts
-      delete window.refetchAllUnreadCounts;
-    };
-  }, [refetchUnreadCounts]);
-  
-  useEffect(() => {
-  }, [unreadCountData]);
-
-  useEffect(() => {
+    // Set up interval to periodically refetch unread counts
     const intervalId = setInterval(() => {
-      refetchUnreadCounts();
+      currentRefetchFunction();
     }, 30000);
+    
     return () => clearInterval(intervalId);
   }, [refetchUnreadCounts]);
-
+  
   useEffect(() => {
     if (unreadCountData?.getUnreadMessageCount) {
       setUnreadCounts(prev => ({
@@ -413,7 +410,7 @@ export default function Friends() {
   };
 
   if (friendsLoading) {
-    return <div className="w-full mt-28 p-6 text-white">Loading friends...</div>;
+    return <FriendsPageSkeleton />;
   }
 
   const filteredFriends = Array.isArray(friends) && friends.length > 0 
@@ -542,6 +539,17 @@ export default function Friends() {
           </div>
         </div>
       </div>
+      {selectedFriend && (
+        <Suspense fallback={<div className="fixed bottom-4 right-4 w-80 h-[500px] bg-surface-800 rounded-lg shadow-lg border border-surface-700 z-50 flex items-center justify-center">
+          <div className="animate-pulse flex space-x-2">
+            <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+            <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+            <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+          </div>
+        </div>}>
+          <ChatPopup friend={selectedFriend} onClose={() => setSelectedFriend(null)} />
+        </Suspense>
+      )}
     </div>
   );
 } 

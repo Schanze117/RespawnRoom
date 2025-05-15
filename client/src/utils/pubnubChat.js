@@ -54,26 +54,24 @@ export const getPubNub = async () => {
   }
 
   try {
-    // Get Publish and Subscribe keys directly, matching your actual env variable names
-    // First try VITE_* prefixed variables (for Vite-based projects)
-    let publishKey = import.meta.env.VITE_PUBNUB_PUBLISH_KEY || 
-                    import.meta.env.publishKey || 
-                    import.meta.env.VITE_publishKey || 
-                    'pub-c-9ae3b848-f4a6-465f-9977-ea965eb2c6f0';
-                    
-    let subscribeKey = import.meta.env.VITE_PUBNUB_SUBSCRIBE_KEY || 
-                      import.meta.env.subscribeKey || 
-                      import.meta.env.VITE_subscribeKey || 
-                      'sub-c-c1e9f51e-1ebe-4d20-8ace-b862d2ac1903';
+    // Get Publish and Subscribe keys from environment variables
+    let publishKey = import.meta.env.VITE_PUBNUB_PUBLISH_KEY;
+    let subscribeKey = import.meta.env.VITE_PUBNUB_SUBSCRIBE_KEY;
     
-    // Create PubNub connection with more verbose logging
+    // If keys are missing, we can't initialize PubNub
+    if (!publishKey || !subscribeKey) {
+      console.error('PubNub keys are missing from environment variables');
+      return null;
+    }
+    
+    // Create PubNub connection
     connectionState = 'connecting';
     
     pubnubConnection = new PubNub({
       publishKey,
       subscribeKey,
       uuid: 'anonymous', // This will be updated when user connects
-      logVerbosity: true,
+      logVerbosity: false, // Disable verbose logging in production
       keepAlive: true, // Keep connection alive
       heartbeatInterval: 30, // Send a heartbeat every 30 seconds
       presenceTimeout: 150, // Presence timeout after 2.5 minutes
@@ -248,194 +246,126 @@ export const setupChatChannel = (channel, callback) => {
           try {
             const userInfo = JSON.parse(localStorage.getItem('userInfo')) || {};
             const friends = userInfo.friends || [];
-            const friend = friends.find(f => f._id === message.senderId);
             
-            if (friend && friend.userName) {
-              senderName = friend.userName;
+            // Find the sender in friends list
+            const friend = friends.find(f => f._id === message.senderId);
+            if (friend) {
+              senderName = friend.userName || senderName;
             }
-          } catch (error) {
+          } catch (e) {
+            // Silently fail and use default name
           }
           
-          // Show browser notification
-          showNotification(senderName, {
-            body: message.text,
-            icon: '/logo192.png', // Default app icon
-            tag: `chat-${channel}`, // Group notifications by channel
-            data: {
-              channel: channel,
-              messageId: message.id,
-              senderId: message.senderId
-            }
-          }).catch(error => {
-          });
+          // Show notification
+          showNotification(senderName, message.text || message.content || "Sent you a message");
         }
       }
       
-      // Process the message immediately 
-      callback(messageEvent.message);
+      callback(message);
     }
   };
 
-  // Set up the listener
-  const listener = {
-    message: messageHandler,
-    presence: (presenceEvent) => {
-      if (presenceEvent.channel === channel) {
-      }
-      // Handle presence events (join, leave, etc.) if needed
-    },
-    status: (statusEvent) => {
-      if (statusEvent.category === "PNConnectedCategory") {
-      } else if (statusEvent.category === "PNReconnectedCategory") {
-        
-        // Fetch missed messages on reconnection, but only if needed
-        pubnubConnection.fetchMessages(
-          {
-            channels: [channel],
-            count: 20, // Smaller count for reconnections to reduce load
-          },
-          (status, response) => {
-            if (!status.error && response && response.channels && response.channels[channel]) {
-              // Process missed messages
-              response.channels[channel]
-                .sort((a, b) => a.timetoken - b.timetoken)
-                .forEach(msg => {
-                  callback(msg.message);
-                });
-            }
-          }
-        );
-      }
-    }
-  };
+  // Add listener only if not already active for this channel
+  if (!activeListeners.has(channel)) {
+    const listener = {
+      message: messageHandler
+    };
+    
+    pubnubConnection.addListener(listener);
+    activeListeners.set(channel, listener);
+  }
 
-  // Add the listener
-  pubnubConnection.addListener(listener);
-
+  // Return the subscription details and a cleanup function
   return {
-    // Function to unsubscribe and clean up
+    channel,
     cleanup: () => {
-      pubnubConnection.removeListener(listener);
-      pubnubConnection.unsubscribe({
-        channels: [channel],
-      });
-      // Mark channel as inactive when cleaning up
+      // Remove the listener
+      const listener = activeListeners.get(channel);
+      if (listener) {
+        pubnubConnection.removeListener(listener);
+        activeListeners.delete(channel);
+      }
+      
+      // Mark channel as inactive
       markChannelInactive(channel);
+      
+      // Unsubscribe from the channel
+      pubnubConnection.unsubscribe({
+        channels: [channel]
+      });
     }
   };
 };
 
-// Enhanced message sending with better error handling and deduplication
+// Send a message to a channel
 export const sendChatMessage = async (channel, text, metadata = {}) => {
   if (!pubnubConnection) {
-    return Promise.reject(new Error('PubNub connection not initialized'));
+    throw new Error('PubNub not initialized');
   }
 
-  if (!channel || !text) {
-    return Promise.reject(new Error('Missing channel or message text'));
+  if (!channel) {
+    throw new Error('Channel is required');
   }
 
-  // Ensure message has a unique ID
-  const messageId = metadata.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-  const messagePayload = {
-    text: text,
-    timestamp: new Date().toISOString(),
-    id: messageId,
-    ...metadata,
-  };
-
-  return new Promise((resolve, reject) => {
-    pubnubConnection.publish(
-      {
-        channel,
-        message: messagePayload,
-      },
-      (status, response) => {
-        if (status.error) {
-          reject(status);
-        } else {
-          resolve(response);
-        }
-      }
-    );
-  });
-};
-
-// Test PubNub connection
-export const testPubNubConnection = async () => {
   try {
-    // Use a test user ID
-    const testUserId = `test-${Date.now()}`;
-    const testChannel = `test-channel-${Date.now()}`;
-    
-    // Get PubNub connection
-    connectionState = 'connecting';
-    const pubnub = await getPubNub();
-    
-    if (!pubnub) {
-      return false;
-    }
-    
-    // Set the user ID
-    pubnub.setUUID(testUserId);
-    
-    // Check time endpoint to verify connectivity
-    return new Promise((resolve) => {
-      pubnub.time((status) => {
-        if (!status.error) {
-          connectionState = 'connected';
-          resolve(true);
-        } else {
-          connectionState = 'disconnected';
-          resolve(false);
-        }
-      });
+    // Publish message to the channel
+    const result = await pubnubConnection.publish({
+      channel,
+      message: {
+        text,
+        timestamp: new Date().toISOString(),
+        ...metadata
+      }
     });
+    
+    return result;
   } catch (error) {
-    connectionState = 'disconnected';
-    return false;
+    throw error;
   }
 };
 
-// Provides the current connection state
+// Get the current PubNub connection state
 export const getPubNubState = () => {
-  return connectionState;
+  return {
+    isConnected: connectionState === 'connected',
+    state: connectionState
+  };
 };
 
-// For backwards compatibility with existing code
+// Add a message listener to a channel
 export const addMessageListener = (channel, callback) => {
-  const setup = setupChatChannel(channel, callback);
-  if (setup) {
-    // Store the cleanup function in a global registry
-    activeListeners.set(channel, setup.cleanup);
-    return true;
-  }
-  return false;
+  if (!pubnubConnection || !channel) return null;
+  
+  const listener = {
+    message: (messageEvent) => {
+      if (messageEvent.channel === channel) {
+        callback(messageEvent.message);
+      }
+    }
+  };
+  
+  pubnubConnection.addListener(listener);
+  return listener;
 };
 
-// For backwards compatibility with existing code
-export const removeMessageListener = (channel) => {
-  const cleanup = activeListeners.get(channel);
-  if (cleanup) {
-    cleanup();
-    activeListeners.delete(channel);
-    return true;
-  }
-  return false;
+// Remove a specific message listener
+export const removeMessageListener = (listener) => {
+  if (!pubnubConnection || !listener) return false;
+  
+  pubnubConnection.removeListener(listener);
+  return true;
 };
 
-// Function to check if browser notifications should be shown
-// Checks if the channel is active and if the window is focused
+// Check if a notification should be shown for a message
 export const shouldShowNotification = (channel, message) => {
-  // Don't show notifications for messages from the current user
-  const currentUserId = localStorage.getItem('user_id');
-  if (message && message.senderId === currentUserId) {
+  // Don't show notifications for active channels if the window is focused
+  if (isChannelActive(channel) && isChatFocused) {
     return false;
   }
   
-  // Don't show notifications if the chat is active and the window is focused
-  if (isChannelActive(channel) && isChatFocused) {
+  // Don't show notifications for messages from the current user
+  const currentUserId = localStorage.getItem('user_id');
+  if (message && message.senderId === currentUserId) {
     return false;
   }
   
@@ -451,7 +381,6 @@ export default {
   addMessageListener,
   removeMessageListener,
   sendChatMessage,
-  testPubNubConnection,
   getPubNubState,
   markChannelActive,
   markChannelInactive,

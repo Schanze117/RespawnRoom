@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import FriendCard from './FriendCard';
 import Pagination from './Pagination';
-import ChatPopup from './ChatPopup';
+
+// Lazy load ChatPopup component
+const ChatPopup = lazy(() => import('./ChatPopup'));
 
 const EmptyFriendsList = ({ searchQuery, toggleSearchMode }) => (
   <div className="col-span-full p-10 bg-surface-800 rounded-lg border border-dashed border-surface-700 flex flex-col items-center justify-center">
@@ -161,10 +163,20 @@ const FriendsList = ({
 
       {/* Chat popup */}
       {activeChatFriend && !chatError && (
-        <ChatPopup 
-          friend={activeChatFriend} 
-          onClose={handleCloseChat} 
-        />
+        <Suspense fallback={
+          <div className="fixed bottom-4 right-4 w-80 h-[500px] bg-surface-800 rounded-lg shadow-lg border border-surface-700 z-50 flex items-center justify-center">
+            <div className="animate-pulse flex space-x-2">
+              <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+            </div>
+          </div>
+        }>
+          <ChatPopup 
+            friend={activeChatFriend} 
+            onClose={handleCloseChat} 
+          />
+        </Suspense>
       )}
     </div>
   );

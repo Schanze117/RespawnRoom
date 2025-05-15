@@ -2,11 +2,32 @@ import React, { useEffect, useState } from 'react';
 import { useGameContext } from '../../utils/GameContext';
 import NoImage from '../../assets/noImage.jpg';
 import GameModal from '../card/gameModal';
-import Skeleton from 'react-loading-skeleton';
-import 'react-loading-skeleton/dist/skeleton.css';
 
 // The specific game ID we want to feature
 const FEATURED_GAME_ID = 2903;
+
+// Hero carousel skeleton
+const HeroSkeleton = () => (
+  <div className="w-full h-72 md:h-96 relative animate-pulse">
+    <div className="w-full h-full bg-surface-800"></div>
+    <div className="absolute inset-0 flex flex-col md:flex-row items-center justify-center p-6">
+      <div className="md:w-1/2 mb-6 md:mb-0 flex justify-center">
+        <div className="w-48 h-72 bg-surface-700 rounded-lg"></div>
+      </div>
+      <div className="md:w-1/2 space-y-4">
+        <div className="h-8 bg-surface-700 rounded w-3/4"></div>
+        <div className="h-4 bg-surface-700 rounded w-1/2"></div>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-6 w-16 bg-surface-700 rounded-md"></div>
+          ))}
+        </div>
+        <div className="h-24 bg-surface-700 rounded"></div>
+        <div className="h-10 w-32 bg-surface-700 rounded-lg"></div>
+      </div>
+    </div>
+  </div>
+);
 
 export default function HeroCarousel() {
   const { featuredGame, isLoading, respawnCount } = useGameContext();
@@ -84,9 +105,7 @@ export default function HeroCarousel() {
   return (
     <section className="relative w-full mb-8">
       {isLoading ? (
-        <div className="w-full h-72 md:h-96 relative">
-          <Skeleton height="100%" />
-        </div>
+        <HeroSkeleton />
       ) : displayGame ? (
         <div className="w-full relative">
           <div className="absolute inset-0 z-0">
