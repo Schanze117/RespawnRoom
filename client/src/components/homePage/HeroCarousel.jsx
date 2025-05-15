@@ -92,15 +92,16 @@ export default function HeroCarousel() {
           <div className="absolute inset-0 z-0">
             {backdropImage && (
               <div className="w-full h-full relative">
-                {/* Backdrop image with gradient overlay */}
+                {/* Backdrop image - kept fully opaque */}
                 <div
                   className="absolute inset-0 w-full h-full bg-cover bg-center"
                   style={{
                     backgroundImage: `url(${backdropImage})`,
-                    opacity: "0.85"
+                    opacity: "1" 
                   }}
                 ></div>
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-surface-900 via-surface-900/70 to-surface-900/60"></div>
+                {/* Uniform overlay for consistent dimming */}
+                <div className="absolute inset-0 w-full h-full bg-surface-900/60"></div> {/* Adjusted to 60% opacity */}
               </div>
             )}
           </div>

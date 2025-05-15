@@ -32,9 +32,10 @@ export default function Home() {
         <div className="min-h-screen bg-surface-900">
             {/* Fixed position container for consistent layout structure */}
             <div className="flex-1 pt-20 md:pl-64 w-full">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                    {/* Content wrapper */}
-                    <div className="max-w-7xl w-full mx-auto">
+                {/* Adjusted container: Removed specific padding, relying on inner max-width container for padding */}
+                <div className="container mx-auto">
+                    {/* Content wrapper: Increased max-width and added responsive padding */}
+                    <div className="max-w-screen-2xl w-full mx-auto px-4 md:px-6 lg:px-8">
                         {/* Header section with welcome message */}
                         <div className="mb-8 px-2">
                             <h1 className="text-2xl sm:text-3xl font-bold text-primary-600 break-words">

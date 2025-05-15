@@ -1,103 +1,53 @@
 import React from 'react';
-import { Mic, MicOff, Video, VideoOff, LogOut, Share2 } from 'lucide-react';
-import AgoraRTC from 'agora-rtc-sdk-ng';
+import { Mic, MicOff, UserPlus } from 'lucide-react';
 
 const ControlPanel = ({ 
   isMuted, 
   setIsMuted, 
-  isVideoOff, 
-  setIsVideoOff, 
   localTracks, 
-  setLocalTracks, 
-  mode, 
-  setShowShareModal, 
-  cleanup, 
-  clientRef 
+  setShowShareModal,
+  cleanup
 }) => {
   return (
-    <div className="flex-none py-4 px-4 bg-surface-800/60 backdrop-blur-md border-t border-surface-700">
-      <div className="control-panel">
-        {/* Mute/Unmute Button */}
+    <div className="flex-none py-6 px-4 bg-surface-800/60 backdrop-blur-md border-t border-surface-700">
+      <div className="flex justify-center items-center gap-6">
+        {/* Mute/Unmute Button - Large center button */}
         <button
           onClick={() => {
             if (localTracks.length > 0) {
               const audioTrack = localTracks.find(track => track.trackMediaType === 'audio');
               if (audioTrack) {
-                audioTrack.setEnabled(!isMuted);
+                audioTrack.setEnabled(isMuted);
                 setIsMuted(!isMuted);
               }
             }
           }}
-          className={`control-button ${isMuted ? 'bg-red-600/80 hover:bg-red-700' : 'bg-surface-700/80 hover:bg-surface-600'}`}
-          title={isMuted ? "Unmute Microphone" : "Mute Microphone"}
+          className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
+            isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
+          }`}
         >
           {isMuted ? (
-            <MicOff size={20} className="text-white" />
+            <MicOff size={24} className="text-white" />
           ) : (
-            <Mic size={20} className="text-white" />
+            <Mic size={24} className="text-white" />
           )}
         </button>
         
-        {/* Video Toggle Button - only show in video mode */}
-        {mode === 'video' && (
-          <button
-            onClick={() => {
-              if (localTracks.length > 0) {
-                const videoTrack = localTracks.find(track => track.trackMediaType === 'video');
-                
-                if (videoTrack) {
-                  videoTrack.setEnabled(!isVideoOff);
-                  setIsVideoOff(!isVideoOff);
-                } else if (mode === 'video') {
-                  // Create and publish a new video track
-                  AgoraRTC.createCameraVideoTrack({
-                    encoderConfig: {
-                      width: { min: 640, ideal: 1280, max: 1920 },
-                      height: { min: 360, ideal: 720, max: 1080 },
-                      frameRate: 30
-                    }
-                  }).then(newVideoTrack => {
-                    newVideoTrack.setEnabled(true);
-                    setIsVideoOff(false);
-                    
-                    if (clientRef.current) {
-                      clientRef.current.publish(newVideoTrack);
-                    }
-                    
-                    setLocalTracks(prev => [...prev, newVideoTrack]);
-                  }).catch(error => {
-                    console.error('Failed to create video track:', error);
-                  });
-                }
-              }
-            }}
-            className={`control-button ${isVideoOff ? 'bg-red-600/80 hover:bg-red-700' : 'bg-surface-700/80 hover:bg-surface-600'}`}
-            title={isVideoOff ? "Turn On Camera" : "Turn Off Camera"}
-          >
-            {isVideoOff ? (
-              <VideoOff size={20} className="text-white" />
-            ) : (
-              <Video size={20} className="text-white" />
-            )}
-          </button>
-        )}
-        
-        {/* Share Room Button */}
+        {/* Invite Friends Button */}
         <button
           onClick={() => setShowShareModal(true)}
-          className="control-button bg-primary-600/80 hover:bg-primary-700"
-          title="Share Room"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center transition-colors duration-200"
         >
-          <Share2 size={20} className="text-white" />
+          <UserPlus size={18} className="mr-2" />
+          Invite Friends
         </button>
-        
-        {/* Leave Room Button */}
-        <button
+
+        {/* Leave Room button */}
+        <button 
           onClick={cleanup}
-          className="control-button danger"
-          title="Leave Room"
+          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center"
         >
-          <LogOut size={20} className="text-white" />
+          Leave Room
         </button>
       </div>
     </div>

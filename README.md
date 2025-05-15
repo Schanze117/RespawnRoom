@@ -26,6 +26,7 @@
 - [How to Contribute](#how-to-contribute)
 - [Tests](#tests)
 - [Credits/Contacts](#credits/contacts)
+- [Nickname Implementation](#nickname-implementation)
 
 ## Overview
 
@@ -33,7 +34,7 @@ RespawnRoom is your all-in-one gaming hub, designed to streamline the way you di
 
 ## Description
 
-RespawnRoom offers a seamless, user-friendly platform for all your gaming needs. With features like game discovery, wishlist management, it’s the ultimate tool for gamers who want to keep their gaming journey organized and connected. Whether you're an avid gamer exploring new titles or managing your growing backlog, RespawnRoom enhances your entire gaming experience beyond just playing games. Respawn rooms allows you to stay connected with other avid gamers on the socail network platform. 
+RespawnRoom offers a seamless, user-friendly platform for all your gaming needs. With features like game discovery, wishlist management, it's the ultimate tool for gamers who want to keep their gaming journey organized and connected. Whether you're an avid gamer exploring new titles or managing your growing backlog, RespawnRoom enhances your entire gaming experience beyond just playing games. Respawn rooms allows you to stay connected with other avid gamers on the socail network platform. 
 
 ## SCREENSHOT 
 
@@ -49,13 +50,13 @@ Game Discovery: Search for and explore a vast collection of video games across d
 
 Wishlist Management: Create and maintain a personalized wishlist of games you'd like to buy or play in the future. Stay organized by tracking games you are interested in, with notifications for price drops, sales, or new updates.
 
-Personalized Profiles: Customize your gaming profile with your gaming preferences, achievements, and backlogs. Show off your favorite games, what you've played, and what’s on your radar. Your profile serves as a hub for everything related to your gaming journey.
+Personalized Profiles: Customize your gaming profile with your gaming preferences, achievements, and backlogs. Show off your favorite games, what you've played, and what's on your radar. Your profile serves as a hub for everything related to your gaming journey.
 
-Game Backlog Tracker: Keep track of the games you own, those you’ve completed, and those still on your to-play list. RespawnRoom helps you stay organized and focused, ensuring no game gets left behind.
+Game Backlog Tracker: Keep track of the games you own, those you've completed, and those still on your to-play list. RespawnRoom helps you stay organized and focused, ensuring no game gets left behind.
 
 Social Integration: Connect with fellow gamers, share your gaming experiences, and discover what others are playing. Engage in discussions, share game reviews, and get recommendations from a community of like-minded players.
 
-Seamless User Experience: With its sleek, intuitive design, RespawnRoom provides a fluid and enjoyable experience for both casual and hardcore gamers. Whether you’re browsing games, updating your wishlist, or managing your backlog, the platform ensures an effortless journey.
+Seamless User Experience: With its sleek, intuitive design, RespawnRoom provides a fluid and enjoyable experience for both casual and hardcore gamers. Whether you're browsing games, updating your wishlist, or managing your backlog, the platform ensures an effortless journey.
 
 Whether you're new to gaming or a seasoned pro, RespawnRoom is the ultimate tool for staying on top of your gaming library and connecting with the gaming community.
 
@@ -188,3 +189,25 @@ With help from:
 - Twitch API - https://dev.twitch.tv/docs/api/
 - Google API - https://developers.google.com/identity/sign-in/web/sign-in
 - IGDB - https://www.igdb.com/
+
+## Nickname Implementation
+
+The application uses Agora's Real-Time Messaging (RTM) SDK alongside RTC for implementing user nicknames. This approach ensures that user nicknames are properly displayed in real-time voice chats.
+
+### Implementation Details
+
+1. **RTM for User Metadata**: 
+   - User nicknames are stored as attributes in the RTM system
+   - The RTM client handles user presence and attribute management
+
+2. **Login Sequence**:
+   - RTM login occurs before RTC channel join
+   - Nickname is set as an RTM user attribute
+   - RTC join uses `joinChannelWithUserAccount` for proper identity linking
+
+3. **Nickname Retrieval**:
+   - When users join, their attributes are fetched via RTM
+   - A retry mechanism handles race conditions in attribute propagation
+   - Fallback to UID display if nickname retrieval fails
+
+This implementation ensures that nicknames are consistent across the application and properly displayed for all participants in a room.

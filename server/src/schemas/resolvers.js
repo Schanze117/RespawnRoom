@@ -223,6 +223,13 @@ export const resolvers = {
     // This mutation is used to add a new user
     addUser: async (_parent, { userName, email, password }) => {
       try {
+        // Check if password is the same as username or email
+        if (password === userName || password === email) {
+          throw new GraphQLError('Password cannot be the same as your username or email', {
+            extensions: { code: 'BAD_USER_INPUT' }
+          });
+        }
+        
         const user = await User.create({ userName, email, password });
       
         if (!user) {

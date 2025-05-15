@@ -75,41 +75,48 @@ export default function ProfileDropdown({ user, onLogout }) {
       </button>
       {/* Dropdown Menu */}
       {open && (
-        <div className="absolute right-0 mt-2 w-56 bg-surface-800 border border-surface-600 rounded-lg shadow-lg z-30">
-          <div className="px-4 py-3 border-b border-surface-600">
-            <div className="text-sm text-light font-semibold">{user?.email || 'No email'}</div>
+        <div className="absolute right-0 mt-2 w-56 bg-surface-800 border border-surface-700 rounded-md shadow-lg z-30">
+          <div className="px-3 py-2 border-b border-surface-700">
+            <p className="text-xs text-gray-400 mb-0.5">Signed in as</p>
+            <div 
+              className="text-xs text-light font-medium truncate" 
+              title={user?.email || 'No email available'}
+            >
+              {user?.email || 'No email available'}
+            </div>
           </div>
           <ul className="py-1">
             <li>
-              <button className="w-full flex items-center px-4 py-2 text-light hover:bg-surface-700 rounded transition-colors"
+              <button 
+                className="w-full flex items-center px-3 py-2 text-xs text-light hover:bg-surface-700 transition-colors duration-150 ease-in-out"
                 onClick={() => setShowPasswordModal(true)}
               >
-                <FaKey className="mr-2" />
+                <FaKey className="mr-2 text-gray-400" />
                 Change Password
               </button>
             </li>
             <li>
               <button
                 onClick={onLogout}
-                className="w-full flex items-center px-4 py-2 text-light hover:bg-red-600 rounded transition-colors"
+                className="w-full flex items-center px-3 py-2 text-xs text-light hover:bg-red-700 hover:text-white transition-colors duration-150 ease-in-out"
               >
-                <FaSignOutAlt className="mr-2" />
+                <FaSignOutAlt className="mr-2 text-gray-400" />
                 Log out
               </button>
             </li>
           </ul>
         </div>
       )}
-      {/* Change Password Modal */}
+      {/* Change Password Modal - Consider making this smaller too if desired */}
       {showPasswordModal && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-surface-900 p-6 rounded-lg shadow-lg w-full max-w-xs">
-            <h3 className="text-lg font-bold mb-4 text-light">Change Password</h3>
-            <form onSubmit={handlePasswordChange} className="space-y-3">
+          <div className="bg-surface-900 p-5 rounded-lg shadow-lg w-full max-w-xs">
+            <h3 className="text-base font-bold mb-3 text-light">Change Password</h3>
+            <form onSubmit={handlePasswordChange} className="space-y-2.5">
               <input
                 type="password"
                 placeholder="Old Password"
-                className="w-full p-2 rounded bg-surface-700 text-light border border-surface-600"
+                className="w-full p-1.5 text-sm rounded bg-surface-700 text-light border border-surface-600 focus:ring-primary-500 focus:border-primary-500"
                 value={oldPassword}
                 onChange={e => setOldPassword(e.target.value)}
                 required
@@ -117,17 +124,17 @@ export default function ProfileDropdown({ user, onLogout }) {
               <input
                 type="password"
                 placeholder="New Password"
-                className="w-full p-2 rounded bg-surface-700 text-light border border-surface-600"
+                className="w-full p-1.5 text-sm rounded bg-surface-700 text-light border border-surface-600 focus:ring-primary-500 focus:border-primary-500"
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 required
               />
-              {passwordError && <div className="text-red-500 text-sm">{passwordError}</div>}
-              {passwordSuccess && <div className="text-green-500 text-sm">{passwordSuccess}</div>}
-              <div className="flex justify-end space-x-2 mt-2">
+              {passwordError && <div className="text-red-500 text-xs">{passwordError}</div>}
+              {passwordSuccess && <div className="text-green-500 text-xs">{passwordSuccess}</div>}
+              <div className="flex justify-end space-x-2 mt-3">
                 <button
                   type="button"
-                  className="px-3 py-1 rounded bg-gray-600 text-light hover:bg-gray-700"
+                  className="px-2.5 py-1 text-xs rounded bg-gray-600 text-light hover:bg-gray-700"
                   onClick={() => {
                     setShowPasswordModal(false);
                     setPasswordError('');
@@ -139,7 +146,7 @@ export default function ProfileDropdown({ user, onLogout }) {
                 >Cancel</button>
                 <button
                   type="submit"
-                  className="px-3 py-1 rounded bg-primary-600 text-light hover:bg-primary-700"
+                  className="px-2.5 py-1 text-xs rounded bg-primary-600 text-light hover:bg-primary-700"
                   disabled={loading}
                 >{loading ? 'Saving...' : 'Save'}</button>
               </div>
