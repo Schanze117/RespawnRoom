@@ -72,7 +72,6 @@ const FriendsList = ({
     try {
       // Check if the friend object has required properties
       if (!friend || !friend._id) {
-        console.error("Invalid friend object:", friend);
         setChatError(true);
         return;
       }
@@ -92,7 +91,6 @@ const FriendsList = ({
         onMessageClick(friend);
       }
     } catch (error) {
-      console.error("Error opening chat:", error);
       setChatError(true);
     }
   };

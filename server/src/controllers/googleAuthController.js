@@ -59,7 +59,6 @@ export const handleGoogleAuth = async (profile) => {
     
     return { user, token };
   } catch (error) {
-    console.error('Error in Google authentication:', error);
     throw error;
   }
 };

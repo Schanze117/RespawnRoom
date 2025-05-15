@@ -105,8 +105,6 @@ export default function SavedGameCard() {
                 setShowModal(true);
             }
         } catch (error) {
-            console.error("Error fetching game details:", error);
-            // Fallback to just showing saved data
             setSelectedGame(game);
             setShowModal(true);
         }

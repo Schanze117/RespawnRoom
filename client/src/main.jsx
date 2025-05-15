@@ -17,8 +17,10 @@ const Login = lazy(() => import('./pages/loginPage.jsx'));
 const Saved = lazy(() => import('./pages/saved.jsx'));
 const Register = lazy(() => import('./pages/register.jsx'));
 const Friends = lazy(() => import('./pages/friends/index.jsx'));
-const RoomsRoutes = lazy(() => import('./pages/rooms/index.jsx'));
+const UnauthorizedAccess = lazy(() => import('./pages/UnauthorizedAccess.jsx'));
+// const RoomsRoutes = lazy(() => import('./pages/rooms/index.jsx')); // Removed as rooms feature is no longer used
 import { GameProvider } from './utils/GameContext.jsx';
+import { AuthProvider } from './utils/AuthContext.jsx';
 import ProtectedRoute from './utils/ProtectedRoute.jsx';
 
 // Create an HTTP link
@@ -48,13 +50,9 @@ const authLink = setContext((_, { headers }) => {
 const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
   if (graphQLErrors) {
     graphQLErrors.forEach(({ message, locations, path }) => {
-      console.error(
-        `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}, Operation: ${operation.operationName}`
-      );
     });
   }
   if (networkError) {
-    console.error(`[Network error]: ${networkError}`, operation);
   }
 });
 
@@ -211,6 +209,14 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: '/unauthorized',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <UnauthorizedAccess />
+          </Suspense>
+        ),
+      },
+      {
         // Redirect rooms/* route to homepage
         path: '/rooms/*',
         element: <Navigate to="/" replace />
@@ -227,7 +233,9 @@ const router = createBrowserRouter([
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ApolloProvider client={client}>
     <GameProvider>
-      <RouterProvider router={router} />
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
     </GameProvider>
   </ApolloProvider>
 );

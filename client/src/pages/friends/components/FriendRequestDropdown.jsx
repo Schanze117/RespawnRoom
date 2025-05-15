@@ -14,22 +14,16 @@ const FriendRequestDropdown = ({
   const onAcceptClick = (e, id) => {
     e.preventDefault();
     e.stopPropagation(); // Prevent event bubbling
-    console.log('Accept button clicked for:', id);
     if (handleAccept && typeof handleAccept === 'function') {
       handleAccept(id);
-    } else {
-      console.error('handleAccept is not available or not a function');
     }
   };
 
   const onDeclineClick = (e, id) => {
     e.preventDefault();
     e.stopPropagation(); // Prevent event bubbling
-    console.log('Decline button clicked for:', id);
     if (handleDecline && typeof handleDecline === 'function') {
       handleDecline(id);
-    } else {
-      console.error('handleDecline is not available or not a function');
     }
   };
 

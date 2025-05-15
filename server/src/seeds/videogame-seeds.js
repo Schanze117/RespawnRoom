@@ -39,6 +39,5 @@ export const seedVideoGames = async () => {
       }
     }
   } catch (err) {
-    console.error('Error seeding video games:', err);
   }
 };

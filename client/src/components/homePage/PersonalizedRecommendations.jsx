@@ -14,11 +14,7 @@ export default function PersonalizedRecommendations() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasTokens, setHasTokens] = useState(true);
-  const [debugInfo, setDebugInfo] = useState(null);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
-
-  // For immediate debugging visibility
-  const forceShowDebug = false; // Don't show debug info in production
 
   // Function to handle manual refresh
   const handleRefresh = () => {
@@ -110,24 +106,16 @@ export default function PersonalizedRecommendations() {
           // Get actual tokens from server
           tokens = await UserProfileManager.getProfileTokens();
         } catch (tokenError) {
-          console.error('Error getting tokens:', tokenError);
+          // Handle error silently
         }
         
         // Update state with token info
         const hasAnyTokens = Object.keys(tokens).filter(k => k !== '_source').length > 0;
         setHasTokens(hasAnyTokens);
-        setDebugInfo({ 
-          tokens, 
-          hasTokens: hasAnyTokens,
-          tokenSource: tokens._source === 'server' ? 'server' : 'fallback tokens',
-          tokenKeys: Object.keys(tokens).filter(key => key !== '_source'),
-          apiStatus: 'initializing'
-        });
         
         if (!hasAnyTokens) {
           // Show empty state instead of fallback games
           setLoading(false);
-          setDebugInfo(prev => ({ ...prev, apiStatus: 'no tokens' }));
           return;
         }
         
@@ -143,14 +131,12 @@ export default function PersonalizedRecommendations() {
           try {
             trendingGamesForMixing = await processTrendingGames();
           } catch (err) {
-            console.warn('Could not get trending games for mixing', err);
+            // Handle error silently
           }
         }
         
         // STEP 2: Try to get personalized recommendations from the server API
         try {
-          setDebugInfo(prev => ({ ...prev, apiStatus: 'fetching from server API' }));
-          
           // Get personalized games from server
           const personalizedGames = await getPersonalizedGames();
           
@@ -160,26 +146,12 @@ export default function PersonalizedRecommendations() {
             const mixedRecommendations = mixRecommendations(personalizedGames, trendingGamesForMixing);
             
             setRecommendations(mixedRecommendations);
-            setDebugInfo(prev => ({ 
-              ...prev, 
-              apiStatus: 'success - using mixed recommendations',
-              recommendationSource: 'server API + trending mix',
-              gameCount: mixedRecommendations.length,
-              trending: mixedRecommendations.filter(g => g.isTrending).map(g => g.name),
-              personalized: mixedRecommendations.filter(g => !g.isTrending).map(g => g.name)
-            }));
             setLoading(false);
             setInitialLoadComplete(true);
             return;
-          } else {
-            setDebugInfo(prev => ({ ...prev, apiStatus: 'no server recommendations, using trending games with token scoring' }));
           }
         } catch (apiError) {
-          setDebugInfo(prev => ({ 
-            ...prev, 
-            apiStatus: 'server API error, using trending games with token scoring',
-            apiError: apiError.message
-          }));
+          // Continue to fallback
         }
         
         // STEP 3: Fallback - Get trending games and score them locally
@@ -236,32 +208,16 @@ export default function PersonalizedRecommendations() {
           const finalMix = [...sortedGames, ...randomTrending].sort(() => 0.3 - Math.random());
           
           setRecommendations(finalMix);
-          setDebugInfo(prev => ({ 
-            ...prev, 
-            apiStatus: 'success - using locally scored trending games with random mix',
-            recommendationSource: 'trending games with token scoring + random trending',
-            gameCount: finalMix.length,
-            trending: finalMix.filter(g => g.isTrending).map(g => g.name),
-            personalized: finalMix.filter(g => !g.isTrending).map(g => g.name)
-          }));
           setInitialLoadComplete(true);
           setLoading(false);
           
         } catch (trendingError) {
-          console.error('Error processing trending games:', trendingError);
-          setDebugInfo(prev => ({ 
-            ...prev, 
-            apiStatus: 'trending API error, no recommendations available',
-            trendingError: trendingError.message 
-          }));
           setError('Unable to load recommendations. Please try again later.');
           setLoading(false);
         }
       } catch (error) {
-        console.error('Fatal error fetching personalized recommendations:', error);
         setError('Failed to load personalized recommendations');
         setLoading(false);
-        setDebugInfo(prev => ({ ...prev, apiStatus: 'fatal error', error: error.message }));
       }
     }
 

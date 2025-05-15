@@ -45,10 +45,6 @@ export const searchGames = async (game, page = 1, itemsPerPage = 25, filterByRev
     
     if (!countResponse.ok) {
       const errorText = await countResponse.text();
-      console.error(
-        `Count API Error: ${countResponse.status} ${countResponse.statusText}. Response: ${errorText}`
-      );
-      console.warn("Count query failed. Pagination might be inaccurate. Proceeding with main data fetch.");
       totalEstimatedCount = itemsPerPage * 2; // Fallback if count fails
     } else {
       const countData = await countResponse.json();
@@ -77,10 +73,6 @@ export const searchGames = async (game, page = 1, itemsPerPage = 25, filterByRev
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(
-        // Log the actual query string that was sent
-        `Main API Error: ${response.status} ${response.statusText}. Query: ${mainQueryString}. Response: ${errorText}`
-      );
       throw new Error(`API Error: ${response.status} ${response.statusText}. Details: ${errorText}`);
     }
     
@@ -111,7 +103,6 @@ export const searchGames = async (game, page = 1, itemsPerPage = 25, filterByRev
     };
     
   } catch (error) {
-    console.error("Error in searchGames function:", error.message, error.stack); // Log the full error
     throw error; // Re-throw the original error or a new one wrapping it
   }
 };
@@ -135,7 +126,6 @@ export const getGameVideo = async (id) => {
     return data;
   }
   catch (error) {
-    console.error("Error fetching game video data:", error);
     throw error;
   }
 }
@@ -226,7 +216,6 @@ export const filterGames = async (genres = [], playerPerspectives = [], themes =
     };
     
   } catch (error) {
-    console.error("Error fetching game data:", error);
     throw error;
   }
 };
@@ -251,7 +240,6 @@ export const getTrendingGames = async () => {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching trending games:', error);
     throw error;
   }
 };
@@ -276,7 +264,6 @@ export const getLatestReleases = async () => {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching latest releases:', error);
     throw error;
   }
 };
@@ -301,7 +288,6 @@ export const getTopRatedGames = async () => {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching top rated games:', error);
     throw error;
   }
 };
@@ -326,7 +312,6 @@ export const getUpcomingGames = async () => {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching upcoming games:', error);
     throw error;
   }
 };
@@ -354,7 +339,6 @@ export const getGameById = async (id) => {
     return game.length > 0 ? game[0] : null;
     
   } catch (error) {
-    console.error("Error fetching game data by ID:", error);
     throw error;
   }
 };
@@ -366,7 +350,6 @@ export const getTokens = async () => {
     // Get the auth token from local storage
     const token = localStorage.getItem('jwtToken');
     if (!token) {
-      console.warn('No auth token found, user may not be logged in');
       return getFallbackTokens();
     }
     
@@ -379,16 +362,13 @@ export const getTokens = async () => {
     });
     
     if (!response.ok) {
-      console.error(`Token API request failed with status ${response.status}: ${response.statusText}`);
       const errorText = await response.text();
-      console.error('Error response:', errorText);
       return getFallbackTokens();
     }
     
     const data = await response.json();
     return data.categoryTokens || {};
   } catch (error) {
-    console.error('Error fetching user tokens:', error);
     return getFallbackTokens();
   }
 };
@@ -419,7 +399,6 @@ export const updateTokens = async (categoryTokens) => {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error updating user tokens:', error);
     throw error;
   }
 };
@@ -431,7 +410,6 @@ export const getPersonalizedGames = async () => {
     // Get the auth token from local storage
     const token = localStorage.getItem('jwtToken');
     if (!token) {
-      console.warn('No auth token found, user may not be logged in');
       return [];
     }
     
@@ -445,15 +423,12 @@ export const getPersonalizedGames = async () => {
     
     // Handle different status codes
     if (response.status === 429) {
-      console.warn('IGDB API rate limit reached (429) - using client-side fallback');
       // Return empty array so the component can use the fallback logic
       return [];
     }
     
     if (!response.ok) {
-      console.error(`API request failed with status ${response.status}: ${response.statusText}`);
       const errorText = await response.text();
-      console.error('Error response:', errorText);
       throw new Error(`API request failed with status ${response.status}`);
     }
     
@@ -465,7 +440,6 @@ export const getPersonalizedGames = async () => {
       matchScore: game.matchScore || game.matchPercentage || (game.rating ? Math.min(95, Math.round(game.rating)) : 75)
     }));
   } catch (error) {
-    console.error('Error fetching personalized games:', error);
     throw error;
   }
 };
@@ -490,7 +464,6 @@ export const getAllCategorizedGames = async () => {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching all categorized games:', error);
     throw error;
   }
 };
@@ -516,7 +489,6 @@ export const getGamesByIds = async (ids) => {
     }
     return games;
   } catch (error) {
-    console.error("Error fetching games by IDs:", error);
     return []; // Return empty array on error
   }
 };

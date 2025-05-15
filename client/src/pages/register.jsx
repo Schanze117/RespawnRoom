@@ -27,11 +27,8 @@ export default function Register() {
     
     // Handle token in URL (e.g., from Google auth)
     if (token) {
-      console.log('Token found in URL params, processing login...');
-      
       // If we have a redirect parameter, save it before processing the token
       if (redirect) {
-        console.log('Saving redirect path from URL:', redirect);
         sessionStorage.setItem('redirectUrl', redirect);
       }
       
@@ -42,8 +39,6 @@ export default function Register() {
     
     // Check if user is already logged in
     if (Auth.loggedIn()) {
-      console.log('User already logged in, redirecting');
-      
       // Get redirect URL from session storage or default to home
       const redirectUrl = sessionStorage.getItem('redirectUrl') || '/';
       
@@ -115,7 +110,6 @@ export default function Register() {
       });
       Auth.login(data.addUser.token);
     } catch (err) {
-      console.error("Registration failed:", err);
       setError("Failed to register. Please try again.");
     }
   };

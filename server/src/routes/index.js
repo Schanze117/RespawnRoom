@@ -5,8 +5,7 @@ import { dirname } from 'path';
 import gameRoutes from './api/gameRoutes.js';
 import userRoutes from './api/userRoutes.js';
 import pubnubRoutes from './api/pubnub.js';
-import agoraVideoRoutes from './api/agoraVideo.js';
-import roomRoutes from './roomRoutes.js';
+import googleAuthRoutes from './api/googleAuthRoutes.js';
 
 // Create router
 const router = express.Router();
@@ -15,19 +14,13 @@ const router = express.Router();
 router.use('/api/games', gameRoutes);
 router.use('/api/user', userRoutes);
 router.use('/api/pubnub', pubnubRoutes);
-router.use('/api/agora', agoraVideoRoutes);
-router.use('/api/rooms', roomRoutes);
+router.use('/auth/google', googleAuthRoutes);
 
-// Check if api directory has files
 try {
-  // This is a placeholder for future API routes
-  // You can add more route imports as your application grows
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   
-  // Log for debugging
 } catch (error) {
-  console.error('Error setting up routes:', error);
 }
 
 export default router; 

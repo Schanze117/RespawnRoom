@@ -13,13 +13,11 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 const connectionString = process.env.MONGODB_URI;
 
 if (!connectionString) {
-  console.error('MONGODB_URI is not defined in environment variables');
   process.exit(1);
 }
 
 // Validate connection string format
 if (!connectionString.startsWith('mongodb://') && !connectionString.startsWith('mongodb+srv://')) {
-  console.error('Invalid MongoDB connection string format. Must start with mongodb:// or mongodb+srv://');
   process.exit(1);
 }
 
@@ -33,12 +31,11 @@ mongoose.connect(connectionString, {
 const db = mongoose.connection;
 
 db.on('error', (err) => {
-  console.error('MongoDB connection error:', err);
   process.exit(1);
 });
 
 db.once('open', () => {
-  console.log('Successfully connected to MongoDB.');
+  // Connection successful
 });
 
 export default db;

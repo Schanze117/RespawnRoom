@@ -13,7 +13,6 @@ export default function Saved() {
     }
 
     if (error) {
-        console.error("Error fetching saved games:", error);
         return <div className="text-center text-red-500 mt-20 md:ml-64">Failed to load saved games. Please try again later.</div>;
     }
 

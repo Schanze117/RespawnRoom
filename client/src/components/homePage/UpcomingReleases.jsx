@@ -31,8 +31,6 @@ export default function UpcomingReleases() {
     
     setDisplayGames(enhancedGames);
     
-    // Debug log
-    console.log(enhancedGames.length > 0 ? enhancedGames[0] : 'No games available');
       
     // Cleanup function to check unmounting
     return () => {

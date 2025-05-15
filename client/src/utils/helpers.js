@@ -57,7 +57,6 @@ export const formatTime = (timestamp) => {
 export const showNotification = async (title, options = {}) => {
   // Check if the browser supports notifications
   if (!("Notification" in window)) {
-    console.warn("This browser does not support desktop notifications");
     return false;
   }
   
@@ -74,7 +73,6 @@ export const showNotification = async (title, options = {}) => {
       
       return true;
     } catch (error) {
-      console.error("Error showing notification:", error);
       return false;
     }
   } 
@@ -95,7 +93,6 @@ export const showNotification = async (title, options = {}) => {
         return true;
       }
     } catch (error) {
-      console.error("Error requesting notification permission:", error);
     }
   }
   

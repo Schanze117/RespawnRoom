@@ -17,6 +17,48 @@ import cors from 'cors';
 import { handleGoogleAuth } from './controllers/googleAuthController.js';
 import User from './models/users.js';
 
+// Add a simple rate limiter
+const rateLimit = (maxRequests, windowMs) => {
+  const requestCounts = new Map();
+  const cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [ip, data] of requestCounts.entries()) {
+      if (now - data.timestamp > windowMs) {
+        requestCounts.delete(ip);
+      }
+    }
+  }, windowMs);
+
+  return (req, res, next) => {
+    const ip = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+    
+    if (!requestCounts.has(ip)) {
+      requestCounts.set(ip, { count: 1, timestamp: now });
+      return next();
+    }
+    
+    const data = requestCounts.get(ip);
+    if (now - data.timestamp > windowMs) {
+      // Reset if window expired
+      requestCounts.set(ip, { count: 1, timestamp: now });
+      return next();
+    }
+    
+    // Increment count
+    data.count++;
+    requestCounts.set(ip, data);
+    
+    if (data.count > maxRequests) {
+      return res.status(429).json({ 
+        error: 'Too many requests, please try again later'
+      });
+    }
+    
+    next();
+  };
+};
+
 // Setup __dirname for ES modules
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Configure dotenv to load from root directory
@@ -37,6 +79,17 @@ app.use(cors({
 
 // Ensure preflight requests are handled for all routes
 app.options('*', cors());
+
+// Add specific protection for GraphQL preflight requests
+app.options('/graphql', (req, res, next) => {
+  // Allow OPTIONS requests to proceed with CORS headers
+  // but add strict headers to prevent abuse
+  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Max-Age', '86400');
+  res.status(200).end();
+});
 
 // Add CORS headers to all responses
 app.use((req, res, next) => {
@@ -74,10 +127,25 @@ app.use(passport.initialize());
 const server = new ApolloServer({
   typeDefs,
   resolvers,
+  // Disable introspection in production
+  introspection: process.env.NODE_ENV !== 'production',
+  // Add better error handling
+  formatError: (err) => {
+    // Mask internal server errors in production
+    if (process.env.NODE_ENV === 'production' && err.message.includes('Internal server error')) {
+      return new Error('Internal server error');
+    }
+    return err;
+  },
 });
 
 // Start Apollo Server before applying middleware
 await server.start();
+
+// Add a direct block for any attempt to access /graphql directly from a browser
+app.get('/graphql', (req, res) => {
+  return res.status(401).send('Direct browser access to GraphQL is not allowed. Authentication required.');
+});
 
 app.get(
 '/auth/google',
@@ -104,7 +172,6 @@ async (req, res) => {
     const { token } = req.user;
     
     if (!token) {
-      console.error('No token returned from Google authentication');
       return res.redirect(`http://localhost:3000/login?error=google_auth_failed`);
     }
     
@@ -122,12 +189,9 @@ async (req, res) => {
       redirectUrl += `&redirect=${encodeURIComponent(redirectPath)}`;
     }
     
-    console.log('Google auth successful, redirecting to:', redirectUrl);
-    
     // Redirect with token and optional redirect path
     res.redirect(redirectUrl);
   } catch (error) {
-    console.error('Google callback error:', error);
     res.redirect(`http://localhost:3000/login?error=google_auth_failed`);
   }
 }
@@ -135,6 +199,19 @@ async (req, res) => {
 
 // Apply Apollo Server middleware with correct CORS handling
 app.use('/graphql', 
+  // Apply rate limiting - 50 requests per 1 minute window
+  rateLimit(50, 60 * 1000),
+  // Add authentication middleware to protect GraphQL endpoint
+  (req, res, next) => {
+    // Check if the request has valid authentication
+    const user = getUserFromToken(req);
+    if (!user) {
+      return res.status(401).json({ 
+        message: 'Authentication required to access GraphQL API'
+      });
+    }
+    next();
+  },
   expressMiddleware(server, {
     context: async ({ req }) => {
       // Get the user token from the headers
@@ -607,7 +684,7 @@ app.get('/api/games/all-categories', async (req, res) => {
     
     res.json(categorizedGames);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error', message: error.message, stack: error.stack });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -725,13 +802,19 @@ app.post("/api/game_videos", async (req, res) => {
   }
 });
 
-// For any request that doesn't match an API route, serve the React app
-// This should be at the end of all other routes
+// Add a catch-all route handler for any requests that don't match the above routes
+// This must be the last route
 app.get('*', (req, res) => {
+  // Prevent direct access to sensitive endpoints like GraphQL or API
+  if (req.path.includes('/graphql') || req.path.startsWith('/api/')) {
+    return res.status(401).json({ message: 'Unauthorized access. Please log in.' });
+  }
+  
+  // For all other routes that aren't API endpoints, serve the React app
   res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
 });
 
 // Start the server
 app.listen(PORT, () => {
-  // Server started successfully
+  // Server started
 });

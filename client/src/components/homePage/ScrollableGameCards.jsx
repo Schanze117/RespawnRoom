@@ -322,7 +322,6 @@ export default function ScrollableGameCards({ games, type, onToggleExpand, fixed
         });
       }, 2000);
     } catch (error) {
-      console.error('Error saving game:', error);
       setSavedGames(prev => ({
         ...prev,
         [game.id]: 'error'

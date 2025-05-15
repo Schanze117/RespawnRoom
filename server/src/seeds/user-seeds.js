@@ -13,6 +13,5 @@ export const seedUsers = async () => {
       await User.insertMany(users);
     }
   } catch (err) {
-    console.error('Error seeding users:', err);
   }
 };
