@@ -21,26 +21,25 @@ export default defineConfig(({ mode }) => {
     ],
     build: {
       sourcemap: !isProduction,
+      commonjsOptions: {
+        // This prevents issues with Apollo Client in production builds
+        transformMixedEsModules: true
+      },
       rollupOptions: {
         output: {
           manualChunks: (id) => {
-            // Core libraries
+            // Core libraries - Keep React all in one chunk to avoid compatibility issues
             if (id.includes('node_modules/react') || 
                 id.includes('node_modules/react-dom') || 
-                id.includes('node_modules/react-router-dom')) {
-              return 'vendor-react'
+                id.includes('node_modules/react-router-dom') ||
+                id.includes('node_modules/@apollo')) {
+              return 'vendor-core'
             }
             
             // UI libraries and icons
             if (id.includes('node_modules/react-icons') || 
                 id.includes('node_modules/lucide-react')) {
               return 'vendor-ui'
-            }
-            
-            // Apollo and GraphQL
-            if (id.includes('node_modules/@apollo') || 
-                id.includes('node_modules/graphql')) {
-              return 'vendor-apollo'
             }
             
             // Date formatting
@@ -57,6 +56,13 @@ export default defineConfig(({ mode }) => {
         }
       },
       chunkSizeWarningLimit: 1000
+    },
+    // Fix compatibility issues and provide better error reporting
+    esbuild: {
+      logOverride: { 'this-is-undefined-in-esm': 'silent' }
+    },
+    resolve: {
+      dedupe: ['react', 'react-dom']
     },
     server: {
       proxy: {

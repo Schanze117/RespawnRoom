@@ -114,20 +114,8 @@ export default function Register() {
     }
   };
 
-  // Generate Google auth URL with redirect state
-  const getGoogleAuthUrl = () => {
-    // Get any saved redirect URL from session storage
-    const redirectUrl = sessionStorage.getItem('redirectUrl') || '/';
-    
-    // Base Google auth URL
-    let googleUrl = "http://localhost:3001/auth/google";
-    
-    // Add state parameter with redirect URL
-    const encodedRedirect = encodeURIComponent(redirectUrl);
-    googleUrl += `?state=${encodedRedirect}`;
-    
-    return googleUrl;
-  };
+  // Define the Google login URL
+  let googleUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/google` : "http://localhost:3001/auth/google";
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#121827]">
@@ -234,7 +222,7 @@ export default function Register() {
         <div className="mt-6 text-center">
           <p className="text-gray-400 text-sm mb-4">OR</p>
           <a
-            href={getGoogleAuthUrl()}
+            href={googleUrl}
             className="flex items-center justify-center w-full bg-white hover:bg-gray-100 text-gray-800 font-medium py-3 rounded-md transition-colors"
           >
             <span className="mr-2">

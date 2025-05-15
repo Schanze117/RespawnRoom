@@ -99,22 +99,25 @@ export default function Login() {
     }
   }, [location, navigate]);
 
+  // Define the Google login URL
+  let googleUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/google` : "http://localhost:3001/auth/google";
+
   // Generate Google auth URL with redirect state
   const getGoogleAuthUrl = () => {
     // Get any saved redirect URL from session storage
     const redirectUrl = sessionStorage.getItem('redirectUrl');
     
     // Base Google auth URL
-    let googleUrl = "http://localhost:3001/auth/google";
+    const baseGoogleUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/google` : "http://localhost:3001/auth/google";
     
     // Add state parameter with redirect URL if available
     if (redirectUrl) {
       // URL encode the redirect path
       const encodedRedirect = encodeURIComponent(redirectUrl);
-      googleUrl += `?state=${encodedRedirect}`;
+      return `${baseGoogleUrl}?state=${encodedRedirect}`;
     }
     
-    return googleUrl;
+    return baseGoogleUrl;
   };
 
   return (

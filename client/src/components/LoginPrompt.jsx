@@ -2,6 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const LoginPrompt = () => {
+  // Define the Google login URL using environment variable with fallback
+  const googleUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/google` : "http://localhost:3001/auth/google";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-900 bg-opacity-95">
       <div className="w-full max-w-md p-6 bg-surface-800 rounded-lg shadow-xl border border-primary-600">
@@ -28,7 +31,7 @@ const LoginPrompt = () => {
           </div>
           
           <a 
-            href="http://localhost:3001/auth/google" 
+            href={googleUrl} 
             className="w-full block text-center text-white bg-red-600 hover:bg-red-700 py-3 px-4 rounded-lg font-medium transition-colors items-center justify-center"
           >
             <svg className="w-5 h-5 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 19">

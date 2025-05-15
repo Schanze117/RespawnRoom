@@ -9,6 +9,7 @@ import {
 } from '../../utils/mutations';
 import { getPrivateChannel, markChannelActive } from '../../utils/pubnubChat';
 import { refreshAllUnreadCounts } from '../../utils/MessageContext';
+import { SERVER_URL } from '../../utils/api';
 
 // Component imports
 import UserAvatar from './components/UserUtils';
@@ -364,7 +365,7 @@ export default function Friends() {
       if (!token) {
         throw new Error('Authentication token not found');
       }
-      const response = await fetch('http://localhost:3001/graphql', {
+      const response = await fetch(`${SERVER_URL}/graphql`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

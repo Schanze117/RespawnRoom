@@ -67,9 +67,14 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Set allowed origins based on environment
+const allowedOrigins = process.env.NODE_ENV === 'production' 
+  ? [process.env.CLIENT_URL || 'https://yourdomain.com'] 
+  : ['http://localhost:3000', 'http://localhost:5173'];
+
 // Apply CORS middleware globally
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173'],
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'cache-control', 'x-requested-with', 'apollo-require-preflight'],
@@ -84,7 +89,7 @@ app.options('*', cors());
 app.options('/graphql', (req, res, next) => {
   // Allow OPTIONS requests to proceed with CORS headers
   // but add strict headers to prevent abuse
-  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.header('Access-Control-Allow-Origin', allowedOrigins[0]);
   res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Max-Age', '86400');
@@ -93,7 +98,7 @@ app.options('/graphql', (req, res, next) => {
 
 // Add CORS headers to all responses
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.header('Access-Control-Allow-Origin', allowedOrigins[0]);
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, cache-control, x-requested-with, apollo-require-preflight');
@@ -172,11 +177,11 @@ async (req, res) => {
     const { token } = req.user;
     
     if (!token) {
-      return res.redirect(`http://localhost:3000/login?error=google_auth_failed`);
+      return res.redirect(`${allowedOrigins[0]}/login?error=google_auth_failed`);
     }
     
-    // Force client URL to localhost:3000 which is where the client is running
-    const clientUrl = 'http://localhost:3000';
+    // Use the configured client URL
+    const clientUrl = allowedOrigins[0];
     
     // Check if there's a saved redirect in the state parameter
     const redirectPath = req.query.state ? decodeURIComponent(req.query.state) : '';
@@ -192,7 +197,7 @@ async (req, res) => {
     // Redirect with token and optional redirect path
     res.redirect(redirectUrl);
   } catch (error) {
-    res.redirect(`http://localhost:3000/login?error=google_auth_failed`);
+    res.redirect(`${allowedOrigins[0]}/login?error=google_auth_failed`);
   }
 }
 );
@@ -222,7 +227,7 @@ app.use('/graphql',
     plugins: [],
     // Add explicit CORS options for Apollo
     cors: {
-      origin: ['http://localhost:3000', 'http://localhost:5173'],
+      origin: allowedOrigins,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
       allowedHeaders: ['Content-Type', 'Authorization', 'cache-control', 'x-requested-with', 'apollo-require-preflight'],
