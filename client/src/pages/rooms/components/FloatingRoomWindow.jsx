@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mic, MicOff, Video, VideoOff, Maximize, Minimize, X, Move } from 'lucide-react';
-import { useRoomContext } from '../../utils/RoomContext';
+import { useRoomContext } from '../../../utils/RoomContext';
 import Draggable from 'react-draggable';
 import './resizable.css';
 

@@ -2,7 +2,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, memo, useMemo } from 'react';
 import Header from './components/Header';
 import LoginPrompt from './components/LoginPrompt';
-import FloatingRoomWindow from './components/rooms/FloatingRoomWindow';
+import FloatingRoomWindow from './pages/rooms/components/FloatingRoomWindow';
 import { RoomProvider, useRoomContext } from './utils/RoomContext';
 import './App.css'
 import Auth from './utils/auth';
