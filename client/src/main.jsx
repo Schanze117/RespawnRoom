@@ -6,11 +6,11 @@ import { lazy, Suspense } from 'react';
 import './index.css';
 import { onError } from '@apollo/client/link/error';
 import { RetryLink } from '@apollo/client/link/retry';
+import { DotLoader } from './utils/LoadingSkeletons';
 
-import App from './App.jsx';
-// Import Home normally as it's the initial page users see
-import Home from './pages/home.jsx';
-// Lazy load other page components
+// Lazily load all components, including App
+const App = lazy(() => import('./App.jsx'));
+const Home = lazy(() => import('./pages/home.jsx'));
 const Search = lazy(() => import('./pages/search.jsx'));
 const Discover = lazy(() => import('./pages/discover.jsx'));
 const Login = lazy(() => import('./pages/loginPage.jsx'));
@@ -18,9 +18,11 @@ const Saved = lazy(() => import('./pages/saved.jsx'));
 const Register = lazy(() => import('./pages/register.jsx'));
 const Friends = lazy(() => import('./pages/friends/index.jsx'));
 const UnauthorizedAccess = lazy(() => import('./pages/UnauthorizedAccess.jsx'));
+const ErrorPage = lazy(() => import('./pages/ErrorPage.jsx'));
 // const RoomsRoutes = lazy(() => import('./pages/rooms/index.jsx')); // Removed as rooms feature is no longer used
 import { GameProvider } from './utils/GameContext.jsx';
 import { AuthProvider } from './utils/AuthContext.jsx';
+import { MessageProvider } from './utils/MessageContext.jsx';
 import ProtectedRoute from './utils/ProtectedRoute.jsx';
 
 // Create an HTTP link
@@ -139,10 +141,27 @@ const client = new ApolloClient({
 // Loading component that maintains the app's appearance
 const LoadingFallback = () => (
   <div className="flex items-center justify-center h-full min-h-[200px]">
-    <div className="animate-pulse flex space-x-2">
-      <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
-      <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
-      <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+    <DotLoader />
+  </div>
+);
+
+// Error loading component for when lazy components fail to load
+const ErrorFallback = () => (
+  <div className="flex flex-col items-center justify-center min-h-screen bg-surface-900 text-white p-4">
+    <div className="w-full max-w-md bg-surface-800 rounded-lg shadow-lg p-8 text-center">
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 text-red-500 mx-auto mb-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <h1 className="text-2xl font-bold mb-4">Failed to Load</h1>
+      <p className="text-gray-300 mb-6">We couldn't load the necessary resources for this page.</p>
+      <button 
+        onClick={() => window.location.reload()}
+        className="px-4 py-2 bg-primary-700 hover:bg-primary-600 text-white font-medium rounded-md transition-colors"
+      >
+        Reload Page
+      </button>
     </div>
   </div>
 );
@@ -150,13 +169,27 @@ const LoadingFallback = () => (
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <App />,
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <App />
+      </Suspense>
+    ),
+    errorElement: (
+      <Suspense fallback={<ErrorFallback />}>
+        <ErrorPage />
+      </Suspense>
+    ),
     children: [
       {
         index: true,
         element: (
           <Suspense fallback={<LoadingFallback />}>
             <ProtectedRoute><Home /></ProtectedRoute>
+          </Suspense>
+        ),
+        errorElement: (
+          <Suspense fallback={<ErrorFallback />}>
+            <ErrorPage />
           </Suspense>
         ),
       },
@@ -167,12 +200,22 @@ const router = createBrowserRouter([
             <ProtectedRoute><Search /></ProtectedRoute>
           </Suspense>
         ),
+        errorElement: (
+          <Suspense fallback={<ErrorFallback />}>
+            <ErrorPage />
+          </Suspense>
+        ),
       },
       {
         path: '/discover',
         element: (
           <Suspense fallback={<LoadingFallback />}>
             <ProtectedRoute><Discover /></ProtectedRoute>
+          </Suspense>
+        ),
+        errorElement: (
+          <Suspense fallback={<ErrorFallback />}>
+            <ErrorPage />
           </Suspense>
         ),
       },
@@ -183,12 +226,22 @@ const router = createBrowserRouter([
             <ProtectedRoute><Saved /></ProtectedRoute>
           </Suspense>
         ),
+        errorElement: (
+          <Suspense fallback={<ErrorFallback />}>
+            <ErrorPage />
+          </Suspense>
+        ),
       },
       {
         path: '/friends',
         element: (
           <Suspense fallback={<LoadingFallback />}>
             <ProtectedRoute><Friends /></ProtectedRoute>
+          </Suspense>
+        ),
+        errorElement: (
+          <Suspense fallback={<ErrorFallback />}>
+            <ErrorPage />
           </Suspense>
         ),
       },
@@ -199,6 +252,11 @@ const router = createBrowserRouter([
             <Login />
           </Suspense>
         ),
+        errorElement: (
+          <Suspense fallback={<ErrorFallback />}>
+            <ErrorPage />
+          </Suspense>
+        ),
       },
       {
         path: '/register',
@@ -207,12 +265,22 @@ const router = createBrowserRouter([
             <Register />
           </Suspense>
         ),
+        errorElement: (
+          <Suspense fallback={<ErrorFallback />}>
+            <ErrorPage />
+          </Suspense>
+        ),
       },
       {
         path: '/unauthorized',
         element: (
           <Suspense fallback={<LoadingFallback />}>
             <UnauthorizedAccess />
+          </Suspense>
+        ),
+        errorElement: (
+          <Suspense fallback={<ErrorFallback />}>
+            <ErrorPage />
           </Suspense>
         ),
       },
@@ -234,7 +302,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <ApolloProvider client={client}>
     <GameProvider>
       <AuthProvider>
-        <RouterProvider router={router} />
+        <MessageProvider>
+          <RouterProvider router={router} />
+        </MessageProvider>
       </AuthProvider>
     </GameProvider>
   </ApolloProvider>

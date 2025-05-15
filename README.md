@@ -27,6 +27,7 @@
 - [Tests](#tests)
 - [Credits/Contacts](#credits/contacts)
 - [Nickname Implementation](#nickname-implementation)
+- [Performance Optimization](#performance-optimization)
 
 ## Overview
 
@@ -211,3 +212,53 @@ The application uses Agora's Real-Time Messaging (RTM) SDK alongside RTC for imp
    - Fallback to UID display if nickname retrieval fails
 
 This implementation ensures that nicknames are consistent across the application and properly displayed for all participants in a room.
+
+## Performance Optimization
+
+### Bundle Analysis
+
+The application uses Vite with Rollup for bundling. To analyze the bundle size:
+
+1. Run the bundle analyzer:
+```bash
+cd client
+npm run build
+```
+
+This will automatically generate a bundle analysis report at `dist/stats.html` that you can open in your browser.
+
+### Code Splitting
+
+The application implements code splitting to reduce initial load time:
+
+- Route-based splitting for all major pages
+- Component-level splitting for large components like modals and chat popups
+- Vendor chunk optimization for third-party libraries
+
+### Performance Monitoring
+
+A simple performance monitoring utility is included in `client/src/utils/errorLogger.js`:
+
+```javascript
+// Measure component rendering time
+import { performance } from '../utils/errorLogger';
+
+// In a component:
+const result = performance.measureRender('ComponentName', () => {
+  // Your rendering logic
+  return <ActualComponent />;
+});
+
+// Or create custom performance measurements:
+const timer = performance.create('operation-name');
+timer.start();
+// ... perform operation
+const duration = timer.end(); // Returns duration in ms
+```
+
+### Further Optimizations
+
+- Use the Chrome DevTools Performance tab to identify slow components
+- Implement virtualized lists for large data sets
+- Use memoization for expensive calculations
+- Consider implementing Server-Side Rendering (SSR) for key landing pages

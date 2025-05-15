@@ -375,8 +375,16 @@ export const getTokens = async () => {
 
 // Fallback tokens function to use when server is unavailable
 function getFallbackTokens() {
+  // For production, we should log this failure for monitoring
+  // but still provide a minimal implementation that won't break the application
+  
+  // In production, you would add proper logging here like:
+  // logger.warn('Failed to fetch user tokens from server, using empty tokens');
+  
   return {
-    "_source": "fallback" // Marker to indicate these are fallback tokens
+    "_source": "empty", 
+    // Return an empty object with a source marker
+    // This will trigger the app to show the appropriate UI for users without preferences
   };
 }
 

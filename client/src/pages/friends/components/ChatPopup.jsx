@@ -20,6 +20,8 @@ import { formatTimeAgo, isValidDate } from '../../../utils/helpers';
 import { FaTimes, FaPaperPlane } from "react-icons/fa";
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import Avatar from '../../../components/Avatar';
+import { useMessageContext } from '../../../utils/MessageContext';
+import { logError, logWarning, createUserFriendlyError } from '../../../utils/errorLogger';
 
 const ChatPopup = ({ friend, onClose }) => {
   const [message, setMessage] = useState('');
@@ -37,6 +39,7 @@ const ChatPopup = ({ friend, onClose }) => {
   const messagesRef = useRef(messages);
   const chatCleanupRef = useRef(null);
   const [processedMessageIds, setProcessedMessageIds] = useState(new Set());
+  const { refetchUnreadCounts, markMessagesAsRead } = useMessageContext();
 
   // Keep messagesRef in sync with the messages state
   useEffect(() => {
@@ -51,19 +54,20 @@ const ChatPopup = ({ friend, onClose }) => {
         markAsRead({ 
           variables: { senderId: friend._id },
           onCompleted: () => {
-            // Force refetch of unread message counts globally
-            if (window.refetchAllUnreadCounts) {
-              window.refetchAllUnreadCounts();
-            }
+            // Use our context to update unread counts
+            markMessagesAsRead(friend._id);
+            refetchUnreadCounts();
           }
-        }).catch(() => {
-          // Handle error silently
+        }).catch((error) => {
+          // Log error but handle silently to avoid disrupting user experience
+          logError(error, 'ChatPopup.markAsRead', { friendId: friend._id });
         });
-      } catch {
-        // Handle error silently
+      } catch (error) {
+        // Log unexpected errors
+        logError(error, 'ChatPopup.markAsRead.uncaught', { friendId: friend._id });
       }
     }
-  }, [friend, markAsRead]);
+  }, [friend, markAsRead, refetchUnreadCounts, markMessagesAsRead]);
 
   // Query for initial messages with improved error handling
   const { loading, data, refetch } = useQuery(GET_MESSAGES, {
@@ -85,18 +89,21 @@ const ChatPopup = ({ friend, onClose }) => {
           try {
             markAsRead({ 
               variables: { senderId: friend._id }
-            }).catch(() => {
-              // Handle error silently
+            }).catch((error) => {
+              logError(error, 'ChatPopup.markMessagesAsReadAfterLoad', { friendId: friend._id });
             });
-          } catch {
-            // Handle error silently
+          } catch (error) {
+            logError(error, 'ChatPopup.markMessagesAsReadAfterLoad.uncaught', { friendId: friend._id });
           }
         }
-      } catch {
+      } catch (error) {
+        logError(error, 'ChatPopup.messageProcessing', { friendId: friend._id });
         setMessages([]);
       }
     },
-    onError: () => {
+    onError: (error) => {
+      // Log the error properly
+      logError(error, 'ChatPopup.GET_MESSAGES', { friendId: friend._id });
       // Handle the error gracefully and don't alarm the user unnecessarily
       setMessages([]);
     }
@@ -109,73 +116,83 @@ const ChatPopup = ({ friend, onClose }) => {
       return;
     }
 
-    // Function to check if user is near bottom - for deciding whether to auto-scroll
-    const isNearBottom = () => {
-      if (!chatContainerRef.current) return true;
-      const container = chatContainerRef.current;
-      const atBottom = container.scrollHeight - container.clientHeight - container.scrollTop < 50;
-      return atBottom;
-    };
-    
-    // Check if user was already at the bottom before adding the message
-    const shouldScrollToBottom = isNearBottom();
-    
-    // Construct a proper message ID from either the message.messageId, message.id or a fallback
-    const messageId = message.messageId || message.id || `pubnub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-    
-    // Check if we've already processed this message by ID (deduplication)
-    if (processedMessageIds.has(messageId)) {
-      return;
-    }
-    
-    // Create a message object for our UI
-    const newMessage = {
-      _id: messageId,
-      content: message.text || message.message || message.content || '',
-      senderId: message.senderId,
-      receiverId: message.senderId === currentUser?._id ? friend._id : currentUser?._id,
-      timestamp: message.timestamp || new Date().toISOString(),
-      sender: {
-        _id: message.senderId,
-        userName: message.senderId === currentUser?._id ? 'You' : friend.userName
+    try {
+      // Function to check if user is near bottom - for deciding whether to auto-scroll
+      const isNearBottom = () => {
+        if (!chatContainerRef.current) return true;
+        const container = chatContainerRef.current;
+        const atBottom = container.scrollHeight - container.clientHeight - container.scrollTop < 50;
+        return atBottom;
+      };
+      
+      // Check if user was already at the bottom before adding the message
+      const shouldScrollToBottom = isNearBottom();
+      
+      // Construct a proper message ID from either the message.messageId, message.id or a fallback
+      const messageId = message.messageId || message.id || `pubnub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      
+      // Check if we've already processed this message by ID (deduplication)
+      if (processedMessageIds.has(messageId)) {
+        return;
       }
-    };
-    
-    // Update the messages state
-    if (newMessage.content && typeof newMessage.content === 'string') {
-      setMessages(prevMessages => {
-        const updatedMessages = [...prevMessages];
+      
+      // Create a message object for our UI
+      const newMessage = {
+        _id: messageId,
+        content: message.text || message.message || message.content || '',
+        senderId: message.senderId,
+        receiverId: message.senderId === currentUser?._id ? friend._id : currentUser?._id,
+        timestamp: message.timestamp || new Date().toISOString(),
+        sender: {
+          _id: message.senderId,
+          userName: message.senderId === currentUser?._id ? 'You' : friend.userName
+        }
+      };
+      
+      // Update the messages state
+      if (newMessage.content && typeof newMessage.content === 'string') {
+        setMessages(prevMessages => {
+          const updatedMessages = [...prevMessages];
+          
+          // Final check for duplicates before adding
+          if (!updatedMessages.some(m => m._id === newMessage._id)) {
+            updatedMessages.push(newMessage);
+            
+            // Add to processed IDs set
+            setProcessedMessageIds(prev => new Set(prev).add(messageId));
+            
+            // Only scroll to bottom if user was already at the bottom
+            if (shouldScrollToBottom) {
+              setTimeout(() => {
+                messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+              }, 10);
+            }
+          }
+          
+          return updatedMessages;
+        });
         
-        // Final check for duplicates before adding
-        if (!updatedMessages.some(m => m._id === newMessage._id)) {
-          updatedMessages.push(newMessage);
-          
-          // Add to processed IDs set
-          setProcessedMessageIds(prev => new Set(prev).add(messageId));
-          
-          // Only scroll to bottom if user was already at the bottom
-          if (shouldScrollToBottom) {
-            setTimeout(() => {
-              messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-            }, 10);
+        // Mark message as read immediately if it's from our friend
+        if (message.senderId === friend._id) {
+          try {
+            markAsRead({ 
+              variables: { senderId: friend._id }
+            }).catch((error) => {
+              logError(error, 'ChatPopup.markAsReadOnNewMessage', { friendId: friend._id, messageId });
+            });
+            
+            // Also update the message context
+            markMessagesAsRead(friend._id);
+          } catch (error) {
+            logError(error, 'ChatPopup.markAsReadOnNewMessage.uncaught', { friendId: friend._id, messageId });
           }
         }
-        
-        return updatedMessages;
-      });
-      
-      // Mark message as read immediately if it's from our friend
-      if (message.senderId === friend._id) {
-        try {
-          markAsRead({ 
-            variables: { senderId: friend._id }
-          }).catch(() => {
-            // Handle error silently
-          });
-        } catch {
-          // Handle error silently
-        }
       }
+    } catch (error) {
+      logError(error, 'ChatPopup.handleNewMessage', { 
+        messageId: message.id || message.messageId,
+        senderId: message.senderId 
+      });
     }
   };
 
@@ -202,6 +219,10 @@ const ChatPopup = ({ friend, onClose }) => {
           
           if (!pubnub) {
             setChatError('Could not initialize chat. Please refresh the page.');
+            logError('PubNub initialization failed - null instance', 'ChatPopup.initChat', {
+              friendId: friend._id,
+              userId: currentUser._id
+            });
             return;
           }
           
@@ -221,12 +242,21 @@ const ChatPopup = ({ friend, onClose }) => {
               chatCleanupRef.current = channelSetup.cleanup;
             } else {
               setChatError('Could not initialize chat. Please refresh and try again.');
+              logError('Chat channel setup failed', 'ChatPopup.initChat.channelSetup', {
+                friendId: friend._id,
+                userId: currentUser._id,
+                channel: chatChannel
+              });
             }
           }
         } catch (error) {
           if (isMounted) {
             setChatError('Chat initialization failed. Please try again.');
             chatInitialized.current = false;
+            logError(error, 'ChatPopup.initChat', {
+              friendId: friend._id,
+              userId: currentUser._id
+            });
           }
         }
       };
@@ -374,7 +404,12 @@ const ChatPopup = ({ friend, onClose }) => {
           );
           realtimeSent = true;
         } catch (error) {
-          // Continue with GraphQL as fallback
+          // Log but continue with GraphQL as fallback
+          logWarning('PubNub message send failed, using GraphQL fallback', 'ChatPopup.handleSendMessage.pubnub', {
+            friendId: friend._id,
+            tempMessageId: tempId,
+            error: error.message
+          });
         }
       }
       
@@ -408,6 +443,9 @@ const ChatPopup = ({ friend, onClose }) => {
               timestamp: serverMessage.timestamp
             });
           } catch (error) {
+            logError(error, 'ChatPopup.handleSendMessage.fallbackRealtime', { 
+              messageId: serverMessage._id 
+            });
           }
         }
         
@@ -430,17 +468,22 @@ const ChatPopup = ({ friend, onClose }) => {
         try {
           markAsRead({ 
             variables: { senderId: friend._id }
-          }).catch(() => {
-            // Handle error silently
+          }).catch((error) => {
+            logError(error, 'ChatPopup.markAsReadAfterSend', { friendId: friend._id });
           });
-        } catch {
-          // Handle error silently
+        } catch (error) {
+          logError(error, 'ChatPopup.markAsReadAfterSend.uncaught', { friendId: friend._id });
         }
       } else {
         throw new Error("Invalid response from server");
       }
     } catch (error) {
-      setChatError('Failed to send message. Please try again.');
+      // Show user-friendly error and log actual error
+      setChatError(createUserFriendlyError(
+        error, 
+        'Failed to send message. Please try again.',
+        'Unable to deliver your message. Try again later.'
+      ));
       
       // Remove pending message
       setMessages(prev => prev.filter(msg => msg._id !== tempId));
@@ -467,6 +510,7 @@ const ChatPopup = ({ friend, onClose }) => {
       
       if (!pubnub) {
         setChatError("Failed to connect to chat service. Please try again.");
+        logError('PubNub reconnect failed - null instance', 'ChatPopup.handleReconnect');
         return;
       }
       
@@ -487,9 +531,11 @@ const ChatPopup = ({ friend, onClose }) => {
         setTimeout(() => setChatError(null), 3000);
       } else {
         setChatError("Failed to reconnect. Please try again.");
+        logError('Chat channel setup failed on reconnect', 'ChatPopup.handleReconnect');
       }
     } catch (error) {
       setChatError("Failed to reconnect. Please refresh the page.");
+      logError(error, 'ChatPopup.handleReconnect');
     }
   };
 
