@@ -27,7 +27,7 @@ import ProtectedRoute from './utils/ProtectedRoute.jsx';
 
 // Create an HTTP link
 const httpLink = createHttpLink({
-  uri: 'http://localhost:3001/graphql',
+  uri: import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:3001/graphql',
   credentials: 'include',
   fetchOptions: {
     mode: 'cors',
@@ -136,6 +136,10 @@ const client = new ApolloClient({
       errorPolicy: 'all',
     },
   },
+  // Add cache for compatibility
+  assumeImmutableResults: true,
+  // Restore classic cache behavior to prevent issues
+  connectToDevTools: import.meta.env.DEV
 });
 
 // Loading component that maintains the app's appearance

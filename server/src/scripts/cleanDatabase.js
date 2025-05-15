@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 // MongoDB connection string (using same as in connection.js)
-const connectionString = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/respawnroom';
+const connectionString = process.env.MONGODB_URI ;
 
 // Database connection
 async function connectToDatabase() {

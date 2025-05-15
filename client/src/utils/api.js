@@ -1,5 +1,5 @@
 export const API_BASE_URL = "https://api.igdb.com/v4"; 
-export const SERVER_URL = "http://localhost:3001";
+export const SERVER_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 // Search for games by name with pagination
 export const searchGames = async (game, page = 1, itemsPerPage = 25, filterByReviewCount = false) => {
