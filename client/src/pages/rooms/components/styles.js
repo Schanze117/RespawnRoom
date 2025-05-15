@@ -1,69 +1,56 @@
 // Extracted CSS styles for room components
-export const videoContainerStyles = `
-  .video-container {
-    min-height: 180px;
-    border: 2px solid transparent;
+export const audioContainerStyles = `
+  .audio-container {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
     transition: all 0.3s ease;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-    overflow: hidden;
-    border-radius: 12px;
-    position: relative;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    background-color: rgba(var(--color-surface-800), 0.9);
+    border: 1px solid rgba(var(--color-surface-700), 0.6);
   }
 
-  .video-container:hover {
-    border-color: rgba(var(--color-primary-500), 0.7);
-    transform: scale(1.01);
-    z-index: 5;
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  .audio-container:hover {
+    border-color: rgba(var(--color-primary-500), 0.4);
+    background-color: rgba(var(--color-surface-700), 0.9);
   }
 
-  .user-label {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    background: rgba(0, 0, 0, 0.6);
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .media-indicator {
-    position: absolute;
-    bottom: 10px;
-    display: flex;
-    gap: 8px;
-    background: rgba(0, 0, 0, 0.6);
-    padding: 4px 12px;
-    border-radius: 20px;
-    z-index: 10;
-  }
-
-  .media-indicator-left {
-    left: 10px;
-  }
-
-  .media-indicator-right {
-    right: 10px;
-  }
-
-  .avatar-placeholder {
-    width: 100px;
-    height: 100px;
+  .participant-avatar {
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #2a2a3a 0%, #141420 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 32px;
-    font-weight: bold;
-    color: white;
-    text-transform: uppercase;
+    font-size: 1rem;
+    font-weight: 500;
+    margin-right: 0.75rem;
+  }
+
+  .local-participant-avatar {
+    background-color: rgba(var(--color-green-500), 0.2);
+    border: 1px solid rgba(var(--color-green-500), 0.3);
+  }
+
+  .remote-participant-avatar {
+    background-color: rgba(var(--color-blue-500), 0.2);
+    border: 1px solid rgba(var(--color-blue-500), 0.3);
+  }
+
+  .mic-status {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mic-on {
+    background-color: rgba(var(--color-green-500), 0.2);
+  }
+
+  .mic-off {
+    background-color: rgba(var(--color-red-500), 0.2);
   }
 
   /* Control panel styling */
@@ -71,14 +58,13 @@ export const videoContainerStyles = `
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 16px;
-    padding: 16px;
+    gap: 1rem;
+    padding: 1rem;
     background: rgba(30, 30, 40, 0.7);
     backdrop-filter: blur(10px);
-    border-radius: 16px;
+    border-radius: 1rem;
     margin: 0 auto;
     width: fit-content;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   }
 
   .control-button {
@@ -93,7 +79,7 @@ export const videoContainerStyles = `
   }
 
   .control-button:hover {
-    transform: scale(1.1);
+    transform: scale(1.05);
   }
 
   .control-button.danger {
@@ -132,20 +118,46 @@ export const videoContainerStyles = `
     animation: pulse 1.5s infinite ease-in-out;
   }
 
+  .participants-header {
+    display: flex;
+    align-items: center;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(var(--color-surface-700), 0.6);
+    margin-bottom: 0.75rem;
+  }
+
+  .participant-count {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+  }
+
+  .status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+  }
+
+  .status-live {
+    background-color: rgba(var(--color-green-500), 1);
+  }
+
   @media (max-width: 640px) {
-    .video-container {
-      min-height: 150px;
-    }
-    
-    .avatar-placeholder {
-      width: 60px;
-      height: 60px;
-      font-size: 24px;
-    }
-    
     .control-button {
       width: 45px;
       height: 45px;
+    }
+    
+    .participant-avatar {
+      width: 36px;
+      height: 36px;
+      font-size: 0.875rem;
+    }
+    
+    .mic-status {
+      width: 28px;
+      height: 28px;
     }
   }
 `;

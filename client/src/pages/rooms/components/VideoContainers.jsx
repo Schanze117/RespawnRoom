@@ -1,38 +1,22 @@
 import React from 'react';
-import { Mic, MicOff, Video, VideoOff } from 'lucide-react';
+import { Mic, MicOff } from 'lucide-react';
 
-const LocalVideoContainer = ({ 
-  mode, 
-  isVideoOff, 
-  isMuted, 
+const LocalAudioContainer = ({ 
+  isMuted,
   uniqueRemoteUsers
 }) => {
   return (
     <div 
-      className="bg-surface-800 rounded-lg overflow-hidden relative flex items-center justify-center transition-all duration-300 video-container"
+      className="bg-surface-800 rounded-lg overflow-hidden relative flex items-center justify-center transition-all duration-300 audio-container"
       style={{ 
         gridArea: uniqueRemoteUsers.length === 0 ? 'a' : 'a',
       }}
     >
-      {mode === 'video' ? (
-        isVideoOff ? (
-          <div className="flex items-center justify-center h-full w-full bg-surface-700/70">
-            <div className="avatar-placeholder">
-              {localStorage.getItem('username')?.charAt(0) || 'Y'}
-            </div>
-          </div>
-        ) : (
-          <div id="local-video" className="h-full w-full bg-surface-700/70 flex items-center justify-center object-cover">
-            {/* Video will be inserted here by Agora */}
-          </div>
-        )
-      ) : (
-        <div className="flex items-center justify-center h-full w-full bg-surface-700/70">
-          <div className="avatar-placeholder">
-            {localStorage.getItem('username')?.charAt(0) || 'Y'}
-          </div>
+      <div className="flex items-center justify-center h-full w-full bg-surface-700/70">
+        <div className="avatar-placeholder">
+          {localStorage.getItem('username')?.charAt(0) || 'Y'}
         </div>
-      )}
+      </div>
       
       {/* Participant label */}
       <div className="user-label">
@@ -40,23 +24,13 @@ const LocalVideoContainer = ({
         {localStorage.getItem('username') || 'You'}
       </div>
       
-      <div className="media-indicator media-indicator-left">
+      <div className="media-indicator media-indicator-center">
         {isMuted ? (
           <MicOff size={16} className="text-red-400" />
         ) : (
           <Mic size={16} className="text-green-400" />
         )}
       </div>
-
-      {mode === 'video' && (
-        <div className="media-indicator media-indicator-right">
-          {isVideoOff ? (
-            <VideoOff size={16} className="text-red-400" />
-          ) : (
-            <Video size={16} className="text-green-400" />
-          )}
-        </div>
-      )}
 
       {uniqueRemoteUsers.length === 0 && (
         <div className="absolute bottom-3 py-1 px-3 bg-surface-900/80 rounded-full text-xs text-gray-300 left-1/2 transform -translate-x-1/2">
@@ -67,14 +41,12 @@ const LocalVideoContainer = ({
   );
 };
 
-const RemoteVideoContainer = ({ 
+const RemoteAudioContainer = ({ 
   user, 
-  index, 
-  mode 
+  index
 }) => {
   // Assign grid areas based on index: b, c, d, etc.
   const gridArea = String.fromCharCode(98 + index); // 98 is ASCII for 'b'
-  const hasActiveVideo = user.videoTrack && user.video;
   
   // Get display name - use username if available, fallback to uid or generic name
   const displayName = user.username || localStorage.getItem('username') || `User ${user.uid?.toString()?.slice(-4)}`;
@@ -82,20 +54,14 @@ const RemoteVideoContainer = ({
   return (
     <div 
       key={user.uid} 
-      className="bg-surface-800 rounded-lg overflow-hidden relative flex items-center justify-center transition-all duration-300 video-container"
+      className="bg-surface-800 rounded-lg overflow-hidden relative flex items-center justify-center transition-all duration-300 audio-container"
       style={{ gridArea }}
     >
-      {hasActiveVideo ? (
-        <div id={`remote-video-${user.uid}`} className="h-full w-full bg-surface-700/70 flex items-center justify-center object-cover">
-          {/* Video will be inserted here by Agora */}
+      <div className="flex items-center justify-center h-full w-full bg-surface-700/70">
+        <div className="avatar-placeholder">
+          {displayName.charAt(0).toUpperCase()}
         </div>
-      ) : (
-        <div className="flex items-center justify-center h-full w-full bg-surface-700/70">
-          <div className="avatar-placeholder">
-            {displayName.charAt(0).toUpperCase()}
-          </div>
-        </div>
-      )}
+      </div>
       
       {/* Participant label */}
       <div className="user-label">
@@ -103,31 +69,18 @@ const RemoteVideoContainer = ({
         {displayName}
       </div>
       
-      <div className="media-indicator media-indicator-left">
+      <div className="media-indicator media-indicator-center">
         {!user.hasAudio || !user.audioTrack ? (
           <MicOff size={16} className="text-red-400" />
         ) : (
           <Mic size={16} className="text-green-400" />
         )}
       </div>
-
-      {/* Video status indicator - only show in video mode */}
-      {mode === 'video' && (
-        <div className="media-indicator media-indicator-right">
-          {!hasActiveVideo ? (
-            <VideoOff size={16} className="text-red-400" />
-          ) : (
-            <Video size={16} className="text-green-400" />
-          )}
-        </div>
-      )}
     </div>
   );
 };
 
-const VideoGrid = ({ 
-  mode, 
-  isVideoOff, 
+const AudioGrid = ({ 
   isMuted, 
   uniqueRemoteUsers, 
   totalUniqueParticipants, 
@@ -144,24 +97,21 @@ const VideoGrid = ({
       }}
     >
       {/* Local user */}
-      <LocalVideoContainer 
-        mode={mode}
-        isVideoOff={isVideoOff}
+      <LocalAudioContainer 
         isMuted={isMuted}
         uniqueRemoteUsers={uniqueRemoteUsers}
       />
       
       {/* Remote users */}
       {uniqueRemoteUsers.map((user, index) => (
-        <RemoteVideoContainer 
+        <RemoteAudioContainer 
           key={user.uid}
           user={user}
           index={index}
-          mode={mode}
         />
       ))}
     </div>
   );
 };
 
-export { VideoGrid, LocalVideoContainer, RemoteVideoContainer }; 
+export { AudioGrid, LocalAudioContainer, RemoteAudioContainer }; 

@@ -1,7 +1,6 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, memo, useMemo } from 'react';
 import Header from './components/Header';
-import LoginPrompt from './components/LoginPrompt';
 import FloatingRoomWindow from './pages/rooms/components/FloatingRoomWindow';
 import { RoomProvider, useRoomContext } from './utils/RoomContext';
 import './App.css'
@@ -25,28 +24,54 @@ const LocationListener = memo(function LocationListener() {
   return null;
 });
 
-const AppContent = memo(function AppContent() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-
+// Hook to handle URL token processing - this ensures we only do it once at the initial load
+function useProcessUrlToken() {
+  const [processed, setProcessed] = useState(false);
+  
   useEffect(() => {
+    // Only run this once
+    if (processed) return;
+    
     // Process token from URL if present
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
+    const redirectParam = params.get('redirect');
     
     if (token) {
-      // Store token and redirect (page will reload)
+      console.log('[App] Token found in URL, processing login...');
+      
+      // Set redirect URL if available
+      if (redirectParam) {
+        console.log('[App] Redirect path found:', redirectParam);
+        sessionStorage.setItem('redirectUrl', redirectParam);
+      }
+      
+      // Process login (this will redirect and reload the page)
+      console.log('[App] Calling Auth.login with token...');
       Auth.login(token);
       
-      // Clear URL parameters
+      // Mark as processed to prevent re-runs
+      setProcessed(true);
+    }
+  }, [processed]);
+  
+  return processed;
+}
+
+const AppContent = memo(function AppContent() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Process any tokens in the URL (using our custom hook)
+  const tokenProcessed = useProcessUrlToken();
+  
+  // Clear URL parameters if token was processed (cleanup)
+  useEffect(() => {
+    if (tokenProcessed && window.location.search) {
+      console.log('[App] Cleaning up URL parameters after token processing');
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-
-    // Show login prompt if not on login/register page and not logged in
-    const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-    setShowLoginPrompt(!isAuthPage && !Auth.loggedIn());
-  }, [navigate, location]);
+  }, [tokenProcessed]);
 
   const handleClearDataAndCache = () => {
     if (window.confirm(
@@ -72,10 +97,12 @@ const AppContent = memo(function AppContent() {
       <Header />
       <div className="flex flex-1 relative">
         <main className="flex-1 w-full z-10 relative">
-          {showLoginPrompt ? <LoginPrompt /> : <Outlet />}
+          <Outlet />
         </main>
       </div>
       {/* <Footer /> */}
+      {/* Clear Cache & Data button hidden as requested, but functionality preserved */}
+      {/* 
       <div className="fixed bottom-4 right-4 z-50">
         <button
           onClick={handleClearDataAndCache}
@@ -85,6 +112,7 @@ const AppContent = memo(function AppContent() {
           Clear Cache & Data
         </button>
       </div>
+      */}
       <FloatingRoomWindow />
     </div>
   );

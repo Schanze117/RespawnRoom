@@ -128,40 +128,48 @@ const ChatPopup = ({ friend, onClose }) => {
 
   // Improve message listener function to better handle incoming real-time messages
   const handleNewMessage = (message) => {
-    console.log('[PubNub] Received message:', message);
+    console.log('[ChatPopup] New message received:', message);
+
+    // Ignore system messages with non-matching sender ID
+    if (message.senderId !== friend._id && message.senderId !== currentUser?._id) {
+      return;
+    }
+
+    // Function to check if user is near bottom - for deciding whether to auto-scroll
+    const isNearBottom = () => {
+      if (!chatContainerRef.current) return true;
+      const container = chatContainerRef.current;
+      const atBottom = container.scrollHeight - container.clientHeight - container.scrollTop < 50;
+      return atBottom;
+    };
     
-    // Extract message ID with fallbacks
-    const messageId = message.id || `pubnub-${Date.now()}`;
+    // Check if user was already at the bottom before adding the message
+    const shouldScrollToBottom = isNearBottom();
     
-    // Check if we've already processed this message - check both state and refs
-    if (processedMessageIds.has(messageId) || 
-        messagesRef.current.some(msg => msg._id === messageId)) {
-      console.log('[PubNub] Ignoring duplicate message by ID:', message);
+    // Construct a proper message ID from either the message.messageId, message.id or a fallback
+    const messageId = message.messageId || message.id || `pubnub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    
+    // Check if we've already processed this message by ID (deduplication)
+    if (processedMessageIds.has(messageId)) {
+      console.log(`[ChatPopup] Skipping duplicate message with ID: ${messageId}`);
       return;
     }
     
-    // Check if message is from the current chat partner or current user
-    if (message.senderId === friend._id || message.senderId === currentUser._id) {
-      // Ensure we have a valid timestamp
-      const timestamp = message.timestamp && isValidDate(message.timestamp) 
-        ? message.timestamp 
-        : new Date().toISOString();
-      
-      // Create a message object in our app's format
-      const newMessage = {
-        _id: messageId,
-        senderId: message.senderId,
-        receiverId: message.senderId === currentUser._id ? friend._id : currentUser._id,
-        content: message.text,
-        timestamp: timestamp,
-        read: message.senderId === friend._id ? true : false,
-        sender: { 
-          _id: message.senderId, 
-          userName: message.senderId === currentUser._id ? 'You' : friend.userName 
-        }
-      };
-      
-      // Add message to UI and to our processed set
+    // Create a message object for our UI
+    const newMessage = {
+      _id: messageId,
+      content: message.text || message.message || message.content || '',
+      senderId: message.senderId,
+      receiverId: message.senderId === currentUser?._id ? friend._id : currentUser?._id,
+      timestamp: message.timestamp || new Date().toISOString(),
+      sender: {
+        _id: message.senderId,
+        userName: message.senderId === currentUser?._id ? 'You' : friend.userName
+      }
+    };
+    
+    // Update the messages state
+    if (newMessage.content && typeof newMessage.content === 'string') {
       setMessages(prevMessages => {
         const updatedMessages = [...prevMessages];
         
@@ -172,10 +180,12 @@ const ChatPopup = ({ friend, onClose }) => {
           // Add to processed IDs set
           setProcessedMessageIds(prev => new Set(prev).add(messageId));
           
-          // Force scroll to bottom in next tick
-          setTimeout(() => {
-            messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-          }, 10);
+          // Only scroll to bottom if user was already at the bottom
+          if (shouldScrollToBottom) {
+            setTimeout(() => {
+              messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 10);
+          }
         }
         
         return updatedMessages;
@@ -275,15 +285,41 @@ const ChatPopup = ({ friend, onClose }) => {
     };
   }, [friend?._id, currentUser?._id]); // Simplified dependency array
 
-  // Improve scroll handling useEffect to be more aggressive
+  // Improve scroll handling useEffect to be more intelligent - don't auto-scroll when user has scrolled up
   useEffect(() => {
-    // Ensure messages scroll to bottom whenever messages change
-    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Add a flag to track if user has manually scrolled up
+    let userHasScrolledUp = false;
     
-    // Create a mutation observer to watch for new messages and scroll
+    // Function to check if user is near bottom
+    const isNearBottom = () => {
+      if (!chatContainerRef.current) return true;
+      
+      const container = chatContainerRef.current;
+      const atBottom = container.scrollHeight - container.clientHeight - container.scrollTop < 50;
+      return atBottom;
+    };
+    
+    // Only scroll to bottom if user hasn't manually scrolled up or if they're already near bottom
+    if (isNearBottom()) {
+      messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Add scroll event listener to detect when user manually scrolls up
+    const handleScroll = () => {
+      userHasScrolledUp = !isNearBottom();
+    };
+    
+    const container = chatContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+    }
+    
+    // Create a mutation observer to watch for new messages but only scroll if user is already at bottom
     if (chatContainerRef.current) {
       const observer = new MutationObserver(() => {
-        messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (!userHasScrolledUp) {
+          messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
       });
       
       observer.observe(chatContainerRef.current, { 
@@ -293,16 +329,11 @@ const ChatPopup = ({ friend, onClose }) => {
         attributes: true
       });
       
-      // Also set up a fallback timer to ensure scrolling happens
-      const scrollInterval = setInterval(() => {
-        if (messagesRef.current.length > 0) {
-          messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 500);
-      
       return () => {
         observer.disconnect();
-        clearInterval(scrollInterval);
+        if (container) {
+          container.removeEventListener('scroll', handleScroll);
+        }
       }
     }
   }, [messages]);
@@ -320,6 +351,17 @@ const ChatPopup = ({ friend, onClose }) => {
     
     // Clear input immediately for better UX
     setMessage('');
+    
+    // Function to check if user is near bottom - for deciding whether to auto-scroll
+    const isNearBottom = () => {
+      if (!chatContainerRef.current) return true;
+      const container = chatContainerRef.current;
+      const atBottom = container.scrollHeight - container.clientHeight - container.scrollTop < 50;
+      return atBottom;
+    };
+    
+    // Check if user was already at the bottom before adding the message
+    const shouldScrollToBottom = isNearBottom();
     
     try {
       // Create a temporary message for immediate UI feedback
@@ -340,10 +382,12 @@ const ChatPopup = ({ friend, onClose }) => {
       // Add temporary message to UI immediately
       setMessages(prev => {
         const updatedMessages = [...prev, tempMessage];
-        // Force scroll to bottom
-        setTimeout(() => {
-          messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 10);
+        // Only scroll to bottom if the user was already at the bottom
+        if (shouldScrollToBottom) {
+          setTimeout(() => {
+            messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 10);
+        }
         return updatedMessages;
       });
       

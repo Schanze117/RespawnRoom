@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mic, MicOff, Video, VideoOff, Maximize, Minimize, X, Move } from 'lucide-react';
+import { Mic, MicOff, Maximize, Minimize, X, Move } from 'lucide-react';
 import { useRoomContext } from '../../../utils/RoomContext';
 import Draggable from 'react-draggable';
 import './resizable.css';
@@ -131,11 +131,6 @@ export default function FloatingRoomWindow() {
                           <Mic size={14} className="text-green-500" />
                         ) : (
                           <MicOff size={14} className="text-red-500" />
-                        )}
-                        {participant.hasVideo ? (
-                          <Video size={14} className="text-green-500" />
-                        ) : (
-                          <VideoOff size={14} className="text-red-500" />
                         )}
                       </div>
                     </div>

@@ -76,12 +76,14 @@ export default function Aside({ asideOpen }) {
                                 <span className="ml-2">Saved</span>
                             </Link>
                         </li>
+                        {/* Rooms link commented out as requested - code is preserved but not displayed
                         <li>
                             <Link to="/rooms" className={`flex items-center p-2 rounded-lg ${location.pathname === '/rooms' ? 'bg-surface-600' : 'hover:bg-surface-600'} transition-colors duration-200`}>
                                 <span className="flex items-center justify-center w-8 h-8"><LuDoorOpen className="w-5 h-5" /></span>
                                 <span className="ml-2">Rooms</span>
                             </Link>
                         </li>
+                        */}
                         <li>
                             <Link 
                                 to="/friends" 

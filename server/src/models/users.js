@@ -10,6 +10,7 @@ const userSchema = new Schema(
       type: String,
       required: true, // Ensure username is required
       unique: true,   // Enforce uniqueness
+      maxlength: [12, 'Username cannot exceed 12 characters'],
     },
     password: {
       type: String,

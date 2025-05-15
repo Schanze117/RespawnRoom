@@ -27,7 +27,7 @@ export default function Login() {
     
     try {
       const { data } = await loginUser({
-        variables: { userName: loginData.userName, password: loginData.password },
+        variables: { email: loginData.email, password: loginData.password },
       });
       
       if (data && data.login && data.login.token) {
@@ -42,79 +42,191 @@ export default function Login() {
     }
   };
 
-  // Check for token in URL (Google auth token)
+  // Verify and handle redirects/authentication
   useEffect(() => {
+    // Parse URL parameters first
     const query = new URLSearchParams(location.search);
     const token = query.get('token');
     const authError = query.get('error');
+    const redirect = query.get('redirect');
+    const justLoggedOut = query.get('just_logged_out') === 'true';
     
+    // Check if we came from a protected route redirect
+    const cameFromProtectedRoute = location.state?.from === 'protectedRoute';
+    
+    console.log('[Login] URL parameters checked:', { 
+      token: token ? 'present' : 'none', 
+      authError, 
+      redirect, 
+      justLoggedOut 
+    });
+    
+    // Handle token in URL (e.g., from Google auth) before anything else
     if (token) {
-      Auth.login(token);
+      console.log('[Login] Token found in URL params, processing login...');
+      
+      // If we have a redirect parameter, save it before processing the token
+      if (redirect) {
+        console.log('[Login] Saving redirect path from URL:', redirect);
+        sessionStorage.setItem('redirectUrl', redirect);
+      }
+      
+      // Process the token - this will redirect and reload the page
+      setTimeout(() => {
+        console.log('[Login] Calling Auth.login with token after brief delay...');
+        Auth.login(token);
+      }, 100); // Small delay to ensure sessionStorage is set
+      
+      return; // Stop further execution
+    }
+    
+    // If user just logged out, clear any redirect URLs to ensure they stay on login page
+    if (justLoggedOut) {
+      console.log('[Login] User just logged out, clearing redirect URLs');
+      sessionStorage.removeItem('redirectUrl');
+    } 
+    // If a specific redirect is provided in the URL, save it
+    else if (redirect && !justLoggedOut) {
+      console.log('[Login] Saving redirect URL from query parameter:', redirect);
+      sessionStorage.setItem('redirectUrl', redirect);
+    }
+    // If we came from a protected route and have a 'from' in the state
+    else if (cameFromProtectedRoute && location.state?.from) {
+      console.log('[Login] Protected route redirect detected, path:', location.state.from);
+      if (!sessionStorage.getItem('redirectUrl')) {
+        sessionStorage.setItem('redirectUrl', location.state.from);
+      }
+    }
+    
+    // Check if user is already logged in
+    if (Auth.loggedIn()) {
+      console.log('[Login] User already logged in, redirecting');
+      
+      // Get redirect URL from session storage or default to home
+      const redirectUrl = sessionStorage.getItem('redirectUrl') || '/';
+      
+      // Don't redirect to login page again
+      if (redirectUrl !== '/login') {
+        navigate(redirectUrl);
+      } else {
+        // If redirect would go back to login, go to home instead
+        navigate('/');
+      }
     }
     
     if (authError) {
       setError('Authentication failed. Please try again.');
     }
-    
-    // We're no longer redirecting from login page when already logged in
-    // This allows the AuthWrapper to handle all redirects
   }, [location, navigate]);
 
+  // Generate Google auth URL with redirect state
+  const getGoogleAuthUrl = () => {
+    // Get any saved redirect URL from session storage
+    const redirectUrl = sessionStorage.getItem('redirectUrl');
+    
+    // Base Google auth URL
+    let googleUrl = "http://localhost:3001/auth/google";
+    
+    // Add state parameter with redirect URL if available
+    if (redirectUrl) {
+      // URL encode the redirect path
+      const encodedRedirect = encodeURIComponent(redirectUrl);
+      googleUrl += `?state=${encodedRedirect}`;
+    }
+    
+    return googleUrl;
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center mt-35">
-        <div className="w-full max-w-sm p-4 border border-surface-600 rounded-lg shadow-sm sm:p-6 md:p-8 bg-tonal-900">
-            <form className="space-y-6" onSubmit={handleSubmit}>
-                <h5 className="text-xl font-medium text-light">RespawnRoom // Login</h5>
-                <div>
-                    <label htmlFor="email" className="block mb-2 text-sm font-medium text-light">Email</label>
-                    <input 
-                    type="email" 
-                    name="email" 
-                    onChange={handleChange}
-                    value={loginData.email} 
-                    placeholder="Enter Your Email"
-                    className="bg-surface-600 border border-tonal-400 text-light text-sm rounded-lg focus:outline-2 focus:outline-primary-400 focus:outline-offset-2 focus:border-primary-400 block w-full p-2.5" 
-                    required
-                    />
-                </div>
-                <div>
-                    <label htmlFor="password" className="block mb-2 text-sm font-medium text-light">Password</label>
-                    <input 
-                    type="password" 
-                    name="password" 
-                    onChange={handleChange}
-                    value={loginData.password} 
-                    placeholder="Enter Your Password" 
-                    className="bg-surface-600 border border-tonal-400 text-light text-sm rounded-lg focus:outline-2 focus:outline-primary-400 focus:outline-offset-2 focus:border-primary-400 block w-full p-2.5"
-                    required
-                    />
-                </div>
-                {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
-                <button type="submit" className="w-full text-white focus:ring-4 bg-primary-600 hover:bg-primary-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center focus:ring-primary-900">
-                  {loading ? 'Logging in...' : 'Login to your account'}
-                </button>
-                
-                <div className="relative my-4">
-                    <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-gray-600"></div>
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                        <span className="px-2 bg-tonal-900 text-gray-400">Or</span>
-                    </div>
-                </div>
-                
-                <a href="http://localhost:3001/auth/google" className="w-full flex justify-center items-center text-white bg-red-600 hover:bg-red-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center mb-4">
-                    <svg className="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 19">
-                        <path fillRule="evenodd" d="M8.842 18.083a8.8 8.8 0 0 1-8.65-8.948 8.841 8.841 0 0 1 8.8-8.652h.153a8.464 8.464 0 0 1 5.7 2.257l-2.193 2.038A5.27 5.27 0 0 0 9.09 3.4a5.882 5.882 0 0 0-.2 11.76h.124a5.091 5.091 0 0 0 5.248-4.057L14.3 11H9V8h8.34c.066.543.095 1.09.088 1.636-.086 5.053-3.463 8.449-8.4 8.449l-.186-.002Z" clipRule="evenodd"/>
-                    </svg>
-                    Sign in with Google
-                </a>
-                
-                <div className="text-sm font-medium text-gray-300">
-                    Not registered? <Link to="/register" className="text-primary-800 hover:underline">Create account</Link>
-                </div>
-            </form>
-        </div>  
+    <div className="flex items-center justify-center min-h-screen bg-[#121827]">
+      <div className="w-full max-w-md p-8 mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-green-500 mb-2">RespawnRoom</h1>
+          <p className="text-gray-400">Log in to continue</p>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+          
+          <div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                </svg>
+              </span>
+              <input
+                type="email"
+                name="email"
+                value={loginData.email}
+                onChange={handleChange}
+                placeholder="Email address"
+                className="bg-[#1b2435] text-white w-full pl-10 pr-4 py-3 rounded-md focus:outline-none"
+                required
+              />
+            </div>
+          </div>
+          
+          <div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+              </span>
+              <input
+                type="password"
+                name="password"
+                value={loginData.password}
+                onChange={handleChange}
+                placeholder="Password"
+                className="bg-[#1b2435] text-white w-full pl-10 pr-4 py-3 rounded-md focus:outline-none"
+                required
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 rounded-md transition-colors"
+            disabled={loading}
+          >
+            {loading ? "Logging in..." : "Log In"}
+          </button>
+        </form>
+        
+        <div className="mt-6 text-center">
+          <p className="text-gray-400 text-sm mb-4">OR</p>
+          <a
+            href={getGoogleAuthUrl()}
+            className="flex items-center justify-center w-full bg-white hover:bg-gray-100 text-gray-800 font-medium py-3 rounded-md transition-colors"
+          >
+            <span className="mr-2">
+              <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+              </svg>
+            </span>
+            Continue with Google
+          </a>
+        </div>
+        
+        <div className="mt-8 text-center">
+          <Link to="/register" className="text-white hover:text-green-400 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+            </svg>
+            Don't have an account? Sign up
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

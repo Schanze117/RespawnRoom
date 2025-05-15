@@ -11,6 +11,7 @@ export const RoomProvider = ({ children }) => {
   const [activeRoom, setActiveRoom] = useState(null);
   const [isMinimized, setIsMinimized] = useState(false);
   const [participantCount, setParticipantCount] = useState(0);
+  const [participants, setParticipants] = useState([]);
   const [position, setPosition] = useState({ x: null, y: null });
   const [size, setSize] = useState({ width: 300, height: 250 });
   const [showFloatingWindow, setShowFloatingWindow] = useState(false);
@@ -91,11 +92,21 @@ export const RoomProvider = ({ children }) => {
     setShowFloatingWindow(shouldShow);
   }, [activeRoom]);
 
+  // Update participants list
+  const updateParticipants = useCallback((newParticipants) => {
+    setParticipants(newParticipants);
+    // Update participant count as well
+    setParticipantCount(newParticipants.length);
+    // Update activeRoom with new participants if room exists
+    setActiveRoom(prev => prev ? { ...prev, participants: newParticipants } : null);
+  }, []);
+
   // Context value with memoized callbacks
   const contextValue = {
     activeRoom,
     isMinimized,
     participantCount,
+    participants,
     position,
     size,
     showFloatingWindow,
@@ -104,6 +115,7 @@ export const RoomProvider = ({ children }) => {
     exitRoom,
     toggleMinimize,
     updateParticipantCount,
+    updateParticipants,
     updatePosition,
     updateSize,
     resetPosition,

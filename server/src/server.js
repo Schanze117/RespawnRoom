@@ -81,8 +81,19 @@ await server.start();
 
 app.get(
 '/auth/google',
-passport.authenticate('google', { scope: ['profile', 'email'] })
-);
+(req, res, next) => {
+  // Pass the state parameter if provided
+  const options = { 
+    scope: ['profile', 'email']
+  };
+  
+  // If state parameter exists, preserve it
+  if (req.query.state) {
+    options.state = req.query.state;
+  }
+  
+  passport.authenticate('google', options)(req, res, next);
+});
 
 app.get(
 '/auth/google/callback',
@@ -91,10 +102,33 @@ async (req, res) => {
   try {
     // req.user is now { user, token }
     const { token } = req.user;
-    const redirectUrl = process.env.CLIENT_URL ;
-    res.redirect(`${redirectUrl}?token=${token}`);
+    
+    if (!token) {
+      console.error('No token returned from Google authentication');
+      return res.redirect(`http://localhost:3000/login?error=google_auth_failed`);
+    }
+    
+    // Force client URL to localhost:3000 which is where the client is running
+    const clientUrl = 'http://localhost:3000';
+    
+    // Check if there's a saved redirect in the state parameter
+    const redirectPath = req.query.state ? decodeURIComponent(req.query.state) : '';
+    
+    // Build the redirect URL with token and optional redirect path
+    let redirectUrl = `${clientUrl}?token=${token}`;
+    
+    // Add redirect path if available
+    if (redirectPath && redirectPath !== '/login' && redirectPath !== '/register') {
+      redirectUrl += `&redirect=${encodeURIComponent(redirectPath)}`;
+    }
+    
+    console.log('Google auth successful, redirecting to:', redirectUrl);
+    
+    // Redirect with token and optional redirect path
+    res.redirect(redirectUrl);
   } catch (error) {
-    res.redirect(`${process.env.CLIENT_URL}`);
+    console.error('Google callback error:', error);
+    res.redirect(`http://localhost:3000/login?error=google_auth_failed`);
   }
 }
 );

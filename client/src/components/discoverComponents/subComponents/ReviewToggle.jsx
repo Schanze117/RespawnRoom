@@ -28,7 +28,7 @@ const ReviewToggle = () => {
     <FilterToggle 
       enabled={showHighReviewsOnly} 
       setEnabled={handleToggleChange}
-      label="Show games with 5+ reviews only" 
+      label="+5 reviews" 
     />
   );
 };

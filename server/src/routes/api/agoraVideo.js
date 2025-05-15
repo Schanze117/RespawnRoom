@@ -1,6 +1,6 @@
 import express from 'express';
 import pkg from 'agora-access-token';
-const { RtcTokenBuilder, RtcRole } = pkg;
+const { RtcTokenBuilder, RtcRole, RtmTokenBuilder } = pkg;
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -66,7 +66,7 @@ router.get('/token', (req, res) => {
     const tokenUid = parseInt(uid) || Math.floor(Math.random() * 100000);
     
     // Build the token with RTC publisher privileges
-    const token = RtcTokenBuilder.buildTokenWithUid(
+    const rtcToken = RtcTokenBuilder.buildTokenWithUid(
       APP_ID,
       APP_CERTIFICATE,
       channel,
@@ -75,37 +75,38 @@ router.get('/token', (req, res) => {
       privilegeExpiredTs
     );
     
-    console.log('Token generated successfully:', {
+    // Also generate an RTM token with the same UID
+    const rtmToken = RtmTokenBuilder.buildToken(
+      APP_ID,
+      APP_CERTIFICATE,
+      tokenUid.toString(),
+      privilegeExpiredTs
+    );
+    
+    console.log('Tokens generated successfully:', {
       channel,
       uid: tokenUid,
-      hasToken: !!token,
+      hasRtcToken: !!rtcToken,
+      hasRtmToken: !!rtmToken,
       appIdLength: APP_ID?.length,
-      tokenLength: token?.length,
+      tokenLength: rtcToken?.length,
       appId: APP_ID,
       certificateLength: APP_CERTIFICATE?.length
     });
     
-    // Return the token to the client
+    // Return both tokens to the client
     return res.json({
       success: true,
-      token,
+      token: rtcToken,
+      rtmToken: rtmToken,
       appId: APP_ID,
       channel,
       uid: tokenUid,
       expiresIn: expirationTimeInSeconds
     });
   } catch (error) {
-    console.error('Error generating Agora video token:', error, {
-      channel,
-      uid,
-      appIdPresent: !!APP_ID,
-      certificatePresent: !!APP_CERTIFICATE,
-      errorMessage: error.message,
-      errorStack: error.stack,
-      appId: APP_ID,
-      certificateLength: APP_CERTIFICATE?.length
-    });
-    return res.status(500).json({ success: false, message: 'Failed to generate token' });
+    console.error('Error generating token:', error);
+    return res.status(500).json({ success: false, message: 'Error generating token' });
   }
 });
 

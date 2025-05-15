@@ -1,5 +1,5 @@
 import ReactDOM from 'react-dom/client';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import { lazy, Suspense } from 'react';
@@ -19,6 +19,7 @@ const Register = lazy(() => import('./pages/register.jsx'));
 const Friends = lazy(() => import('./pages/friends/index.jsx'));
 const RoomsRoutes = lazy(() => import('./pages/rooms/index.jsx'));
 import { GameProvider } from './utils/GameContext.jsx';
+import ProtectedRoute from './utils/ProtectedRoute.jsx';
 
 // Create an HTTP link
 const httpLink = createHttpLink({
@@ -155,13 +156,17 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Home />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ProtectedRoute><Home /></ProtectedRoute>
+          </Suspense>
+        ),
       },
       {
         path: '/search',
         element: (
           <Suspense fallback={<LoadingFallback />}>
-            <Search />
+            <ProtectedRoute><Search /></ProtectedRoute>
           </Suspense>
         ),
       },
@@ -169,7 +174,7 @@ const router = createBrowserRouter([
         path: '/discover',
         element: (
           <Suspense fallback={<LoadingFallback />}>
-            <Discover />
+            <ProtectedRoute><Discover /></ProtectedRoute>
           </Suspense>
         ),
       },
@@ -177,7 +182,7 @@ const router = createBrowserRouter([
         path: '/saved',
         element: (
           <Suspense fallback={<LoadingFallback />}>
-            <Saved />
+            <ProtectedRoute><Saved /></ProtectedRoute>
           </Suspense>
         ),
       },
@@ -185,7 +190,7 @@ const router = createBrowserRouter([
         path: '/friends',
         element: (
           <Suspense fallback={<LoadingFallback />}>
-            <Friends />
+            <ProtectedRoute><Friends /></ProtectedRoute>
           </Suspense>
         ),
       },
@@ -206,12 +211,14 @@ const router = createBrowserRouter([
         ),
       },
       {
+        // Redirect rooms/* route to homepage
         path: '/rooms/*',
-        element: (
-          <Suspense fallback={<LoadingFallback />}>
-            <RoomsRoutes />
-          </Suspense>
-        ),
+        element: <Navigate to="/" replace />
+      },
+      {
+        // Catch-all for any unmatched routes
+        path: '*',
+        element: <Navigate to="/login" replace />
       },
     ],
   },

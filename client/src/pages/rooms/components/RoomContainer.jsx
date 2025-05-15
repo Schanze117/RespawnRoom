@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import AgoraRTC from 'agora-rtc-sdk-ng';
+import AgoraRTM from 'agora-rtm-sdk';
 import { useRoomContext } from '../../../utils/RoomContext';
 
 // Import components
 import RoomHeader from './RoomHeader';
-import { VideoGrid } from './VideoContainers';
+import { AudioGrid } from './AudioContainers';
 import ControlPanel from './ControlPanel';
 import ShareModal from './ShareModal';
 import JoiningOverlay from './JoiningOverlay';
 import ConnectionError from './ConnectionError';
 import useRoomHandlers from './useRoomHandlers';
-import { videoContainerStyles, getGridLayout, MAX_PARTICIPANTS } from './styles';
+import { audioContainerStyles, getGridLayout, MAX_PARTICIPANTS } from './styles';
 
 const RoomContainer = () => {
   console.log("Room component initialized");
@@ -22,7 +23,8 @@ const RoomContainer = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  const mode = queryParams.get('mode') || 'voice'; // Default to voice only
+  // Force voice mode only, ignoring URL params
+  const mode = 'voice'; // Fixed to voice only
   console.log("Room mode:", mode);
 
   // Room context for floating window
@@ -32,12 +34,13 @@ const RoomContainer = () => {
     updateParticipantCount,
     startJoining,
     completeJoining,
+    updateParticipants
   } = useRoomContext();
 
   const [localTracks, setLocalTracks] = useState([]);
   const [remoteUsers, setRemoteUsers] = useState({});
   const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(mode === 'voice');
+  const [isVideoOff, setIsVideoOff] = useState(true);
   const [joining, setJoining] = useState(true);
   const [copied, setCopied] = useState(false);
   const [roomIdCopied, setRoomIdCopied] = useState(false);
@@ -47,6 +50,7 @@ const RoomContainer = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [roomFull, setRoomFull] = useState(false);
   const [roomCreationTime, setRoomCreationTime] = useState(null);
+  const [userNickname, setUserNickname] = useState('');
   
   // Use a more deterministic UID when using tokens
   const uid = useRef(Math.floor(Math.random() * 100000));
@@ -54,6 +58,7 @@ const RoomContainer = () => {
 
   // Create client ref inside the component to avoid issues with hooks
   const clientRef = useRef(null);
+  const rtmClientRef = useRef(null); // Add RTM client reference
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const maxConnectionAttempts = 3;
 
@@ -71,97 +76,186 @@ const RoomContainer = () => {
     handleUserJoined
   } = useRoomHandlers(setRemoteUsers);
 
+  // Define our custom implementation of handleUserPublishedBase
+  const customHandleUserPublishedBase = async (user, mediaType, clientRef) => {
+    console.log('Remote user published media type:', mediaType, 'User ID:', user.uid);
+    
+    // First ensure we're tracking this user
+    setRemoteUsers(prev => {
+      // Skip if we're already tracking, just update
+      if (prev[user.uid]) {
+        const updatedUser = {
+          ...prev[user.uid]
+        };
+        
+        // Update tracks based on mediaType
+        if (mediaType === 'audio') {
+          updatedUser.audioTrack = user.audioTrack;
+          updatedUser.hasAudio = true;
+        } else if (mediaType === 'video') {
+          updatedUser.videoTrack = user.videoTrack;
+          updatedUser.hasVideo = true;
+        }
+        
+        return { ...prev, [user.uid]: updatedUser };
+      }
+      
+      // New user we haven't seen before
+      return {
+        ...prev,
+        [user.uid]: {
+          uid: user.uid,
+          audioTrack: mediaType === 'audio' ? user.audioTrack : null,
+          videoTrack: mediaType === 'video' ? user.videoTrack : null,
+          hasAudio: mediaType === 'audio',
+          hasVideo: mediaType === 'video',
+          // Try to get stored username from sessionStorage
+          username: window.sessionStorage.getItem(`rtc_user_${user.uid}`) || null
+        }
+      };
+    });
+    
+    // Subscribe to the track immediately
+    if (clientRef.current) {
+      await clientRef.current.subscribe(user, mediaType);
+      console.log(`Subscribed to ${mediaType} track of user ${user.uid}`);
+      
+      // Immediately try to fetch user attributes if we have a new user
+      setTimeout(() => fetchUserAttributes(user.uid), 300);
+    }
+  };
+
   // Wrap handleUserPublished to include the clientRef
   const handleUserPublished = async (user, mediaType) => {
-    await handleUserPublishedBase(user, mediaType, clientRef);
+    // Use our custom implementation instead of the original
+    await customHandleUserPublishedBase(user, mediaType, clientRef);
+    
+    // After a user joins, try to get their attributes via RTM
+    try {
+      fetchRtmUserAttributes(user.uid.toString());
+    } catch (error) {
+      console.warn('Error getting published user attributes:', error);
+    }
   };
+
+  // Helper function to fetch user attributes
+  const fetchUserAttributes = async (uid) => {
+    if (!clientRef.current || !clientRef.current.getUserAttributes) {
+      console.warn('getUserAttributes is not available');
+      return;
+    }
+    
+    try {
+      const userAttributes = await clientRef.current.getUserAttributes(uid, ['username']);
+      if (userAttributes && userAttributes.username) {
+        console.log(`Got attributes for user ${uid}:`, userAttributes);
+        
+        // Update the remote user with the username
+        setRemoteUsers(prevUsers => {
+          if (prevUsers[uid]) {
+            return { 
+              ...prevUsers, 
+              [uid]: {
+                ...prevUsers[uid],
+                username: userAttributes.username
+              }
+            };
+          }
+          return prevUsers;
+        });
+        
+        // Store in session storage
+        window.sessionStorage.setItem(`rtc_user_${uid}`, userAttributes.username);
+        return userAttributes.username;
+      }
+    } catch (error) {
+      console.warn(`Error getting attributes for user ${uid}:`, error);
+    }
+    return null;
+  };
+
+  // Rename this function to avoid conflict with the imported handleUserJoined
+  const handleUserJoinedWithAttributes = async (user) => {
+    console.log('User joined with attributes:', user.uid);
+    // Attempt to get their attributes via RTM
+    fetchRtmUserAttributes(user.uid.toString());
+  };
+
+  // Effect to load nickname from localStorage
+  useEffect(() => {
+    const storedNickname = localStorage.getItem('nickname');
+    if (storedNickname) {
+      setUserNickname(storedNickname);
+    } else {
+      // Fallback if no nickname is set, though homepage should enforce it
+      setUserNickname('Guest'); 
+    }
+  }, []);
 
   // Clean up resources
   const cleanup = async () => {
-    isExplicitlyLeavingRef.current = true; // Signal that this is an explicit leave action
-    console.log("Performing cleanup (explicit leave)");
+    console.log('Cleaning up room...');
     
-    // Clear any token renewal timeouts
-    if (tokenDetails && tokenDetails.renewalTimeoutId) {
-      clearTimeout(tokenDetails.renewalTimeoutId);
-    }
+    // Set flag to prevent automatic rejoins
+    isExplicitlyLeavingRef.current = true;
     
-    // Close local tracks properly
-    if (localTracks.length > 0) {
-      for (const track of localTracks) {
+    try {
+      // Clean up RTM client
+      if (rtmClientRef.current) {
         try {
-          // Stop playing the track
-          track.stop();
-          // Close the track to release resources
-          track.close();
-          console.log(`Closed ${track.trackMediaType} track`);
-        } catch (e) {
-          console.error(`Error closing track:`, e);
+          console.log('Logging out of RTM...');
+          await rtmClientRef.current.logout();
+          console.log('RTM logout successful');
+        } catch (rtmError) {
+          console.error('Error during RTM logout:', rtmError);
         }
       }
       
-      // Clear local tracks array
-      setLocalTracks([]);
-    }
-    
-    // Check if client exists before cleanup
-    if (clientRef.current) {
-      // Remove all event listeners
-      clientRef.current.removeAllListeners();
+      // Unpublish and close all local tracks
+      if (localTracks.length > 0) {
+        console.log('Unpublishing and closing local tracks...');
+        for (const track of localTracks) {
+          // Stop playing in case it's still playing
+          try {
+            if (track.trackMediaType === 'video') track.stop();
+          } catch (e) {
+            // Ignore errors from stopping
+          }
+          
+          try {
+            await clientRef.current?.unpublish(track);
+          } catch (e) {
+            console.error('Error unpublishing track:', e);
+          }
+          
+          // Close the track
+          try {
+            await track.close();
+          } catch (e) {
+            console.error('Error closing track:', e);
+          }
+        }
+        
+        // Clear local tracks state
+        setLocalTracks([]);
+      }
       
-      // Leave the channel
-      try {
-        await clientRef.current.leave();
-        console.log("Successfully left channel");
-      } catch (err) {
-        console.log("No channel to leave:", err);
-      }
-    }
-    
-    // Clear the user's session in this room
-    try {
-      const userId = localStorage.getItem('user_id');
-      if (userId && roomId) {
-        // Only clear if this is the active instance
-        const currentInstance = sessionStorage.getItem(`room_${roomId}_instance`);
-        if (currentInstance === instanceId) {
-          localStorage.removeItem(`user_${userId}_in_room_${roomId}`);
-          sessionStorage.removeItem(`room_${roomId}_instance`);
+      // Leave channel if we have an active client
+      if (clientRef.current) {
+        console.log('Leaving Agora channel...');
+        
+        try {
+          await clientRef.current.leave();
+          console.log('Successfully left Agora channel');
+        } catch (err) {
+          console.error('Error leaving Agora channel:', err);
         }
       }
-    } catch (e) {
-      console.error('Error clearing session data:', e);
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+    } finally {
+      console.log('Cleanup completed');
     }
-    
-    // Log out user activity for audit purposes
-    try {
-      const token = localStorage.getItem('auth_token');
-      if (token && roomId) {
-        const baseUrl = import.meta.env.VITE_API_BASE_URL;
-        if (baseUrl) {
-          fetch(`${baseUrl}/api/user/activity/log`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              action: 'leave_room',
-              roomId,
-              timestamp: Date.now()
-            })
-          }).catch(e => console.error('Failed to log activity:', e));
-        }
-      }
-    } catch (e) {
-      console.error('Error during activity logging:', e);
-    }
-    
-    // Notify context that we're exiting the room
-    exitRoom();
-    
-    // Navigate away for a clean exit
-    navigate('/rooms');
   };
 
   // Fetch token from server with better error handling
@@ -286,10 +380,28 @@ const RoomContainer = () => {
     }
   };
 
-  // Modified join function with preflight check and better error handling
+  // Modified join function with no video support
   const join = async () => {
-    console.log('Starting join process for room:', roomId);
     try {
+      console.log('Starting join process for room:', roomId);
+      
+      // Check if nickname is set
+      const storedNickname = localStorage.getItem('nickname');
+      if (!storedNickname) {
+        console.error('Nickname not set. Cannot join room.');
+        setConnectionError('Please set your nickname before joining a room.');
+        setJoining(false);
+        return;
+      }
+      
+      // Make sure we have the nickname set properly
+      if (!userNickname) {
+        setUserNickname(storedNickname);
+      }
+      
+      // Prepare display name (preferred: nickname from localStorage, fallback: uid)
+      const displayName = storedNickname || `user-${uid.current}`;
+
       // Check network connectivity first
       const isOnline = navigator.onLine;
       if (!isOnline) {
@@ -307,51 +419,13 @@ const RoomContainer = () => {
         return;
       }
       
-      // Check if this user is already in this room in another tab/window
-      try {
-        const username = localStorage.getItem('username');
-        const userId = localStorage.getItem('user_id');
-        
-        if (username && userId) {
-          // First, store this instance in session storage to mark this tab as the active one
-          sessionStorage.setItem(`room_${roomId}_instance`, instanceId);
-          
-          // Then check if this user already has an active session in this room
-          // Using localStorage for cross-tab communication
-          const existingSession = localStorage.getItem(`user_${userId}_in_room_${roomId}`);
-          
-          if (existingSession && existingSession !== instanceId) {
-            // Get timestamp to check if the session is still recent (within 2 minutes)
-            const sessionData = JSON.parse(existingSession);
-            const timeElapsed = Date.now() - sessionData.timestamp;
-            
-            // If the session is recent, prevent joining
-            if (timeElapsed < 120000) { // 2 minutes
-              console.error('User already in this room in another tab/window');
-              setConnectionError('You are already in this room in another tab or window. Please close that session first.');
-              setJoining(false);
-              return;
-            }
-          }
-          
-          // Store this user's session in localStorage with timestamp
-          localStorage.setItem(`user_${userId}_in_room_${roomId}`, JSON.stringify({
-            instanceId,
-            timestamp: Date.now()
-          }));
-          
-          // Add event listener to clean up the session when tab/window is closed
-          window.addEventListener('beforeunload', () => {
-            // Only clear if this is the active instance
-            const currentInstance = sessionStorage.getItem(`room_${roomId}_instance`);
-            if (currentInstance === instanceId) {
-              localStorage.removeItem(`user_${userId}_in_room_${roomId}`);
-            }
-          });
-        }
-      } catch (e) {
-        // If there's an error checking sessions, log it but proceed with joining
-        console.error('Error checking for duplicate sessions:', e);
+      // Check if we have a valid App ID
+      const appId = import.meta.env.VITE_AGORA_APP_ID;
+      if (!appId) {
+        console.error('Agora App ID not configured');
+        setConnectionError('Agora App ID not configured properly. Please check your environment variables.');
+        setJoining(false);
+        return;
       }
       
       // IMPORTANT: Always ensure we leave any existing channel first
@@ -370,7 +444,11 @@ const RoomContainer = () => {
       clientRef.current.on('user-published', handleUserPublished);
       clientRef.current.on('user-unpublished', handleUserUnpublished);
       clientRef.current.on('user-left', handleUserLeft);
-      clientRef.current.on('user-joined', handleUserJoined);
+      clientRef.current.on('user-joined', (user) => {
+        // Call both handlers - first the original one, then our custom one for attributes
+        handleUserJoined(user);
+        handleUserJoinedWithAttributes(user);
+      });
       
       // Set up connection state change listener
       clientRef.current.on('connection-state-change', (curState, prevState) => {
@@ -386,149 +464,117 @@ const RoomContainer = () => {
           setJoining(false);
         }
       });
-        
-      // Check if we have a valid App ID
-      const appId = import.meta.env.VITE_AGORA_APP_ID;
-      if (!appId) {
-        console.error('Agora App ID not configured');
-        setConnectionError('Agora App ID not configured properly. Please check your environment variables.');
-        setJoining(false);
-        return;
-      }
-        
-      console.log('Getting token for channel:', roomId);
+      
       // Get token for the channel
+      console.log('Getting token for channel:', roomId);
       const tokenData = await fetchToken(roomId);
       console.log('Token received, proceeding to join channel');
       
-      // Preflight check for media permissions
+      // STEP 1: First, set up and login to RTM
+      if (rtmClientRef.current) {
+        try {
+          // Clean up any existing RTM connection
+          try {
+            await rtmClientRef.current.logout();
+            console.log('Logged out of RTM successfully');
+          } catch (err) {
+            // This is expected if we weren't logged in
+            console.log('No previous RTM session to log out from');
+          }
+          
+          // Login to RTM with the same UID as RTC or user account
+          const rtmLoginSuccess = await loginRtmUser(tokenData.uid || uid.current, tokenData.rtmToken);
+          
+          if (rtmLoginSuccess) {
+            console.log('RTM login successful, joining RTM channel');
+            // Join the RTM channel with the same name as the RTC channel
+            const rtmChannel = await joinRtmChannel(roomId);
+            
+            if (rtmChannel) {
+              console.log('RTM channel joined, setting user attributes');
+              // Set the user's nickname as an attribute
+              await setRtmUserAttributes([{ key: 'nickname', value: displayName }]);
+              console.log('User attributes set in RTM');
+            }
+          }
+        } catch (rtmError) {
+          console.error('Error setting up RTM:', rtmError);
+          // Continue anyway - this is not a critical error
+        }
+      }
+      
+      // Preflight check for microphone permissions only
       try {
-        // Request permissions first to catch any issues
+        // Only request audio permissions for voice-only mode
         const permissionsStream = await navigator.mediaDevices.getUserMedia({ 
-          audio: true, 
-          // Only request video in video mode
-          video: mode === 'video' 
+          audio: true,
+          video: false // No video permissions needed
         });
         
         // We got permissions, clean this up right away (we'll create proper tracks later)
         permissionsStream.getTracks().forEach(track => track.stop());
-        console.log('Media permissions granted');
+        console.log('Audio permissions granted');
       } catch (permError) {
-        console.error('Media permissions denied:', permError);
-        setConnectionError('Unable to access your camera or microphone. Please check your browser permissions.');
+        console.error('Audio permissions denied:', permError);
+        setConnectionError('Unable to access your microphone. Please check your browser permissions.');
         setJoining(false);
         return;
       }
       
-      // Get username from localStorage for identifying the user
-      const username = localStorage.getItem('username') || 'User';
-      console.log('Joining as:', username);
+      console.log('Joining as:', displayName);
       
-      // Set up channel attributes to share username with others
+      // Now join the RTC channel with userAccount (after RTM setup is complete)
       try {
-        // Try to set a channel attribute with our username before joining
-        if (username) {
-          console.log('Setting channel attribute for username');
-          // We'll use a custom attribute format to avoid conflicts
-          const userAttr = {
-            key: `user_${tokenData.uid || uid.current}`,
-            value: username
-          };
+        console.log('Joining channel with userAccount:', {
+          appId: tokenData.appId || appId ? 'present' : 'missing',
+          token: tokenData.token ? 'present' : 'missing',
+          channel: roomId,
+          userAccount: displayName
+        });
+        
+        // First, try using joinChannelWithUserAccount
+        try {
+          // Join with userAccount
+          await clientRef.current.joinChannelWithUserAccount(
+            tokenData.token,
+            roomId,
+            displayName
+          );
           
-          // Store our UID-username mapping for later retrieval
-          window.sessionStorage.setItem(`rtc_user_${tokenData.uid || uid.current}`, username);
-        }
-      } catch (attrError) {
-        console.error('Error setting channel attribute:', attrError);
-        // Continue anyway - this is not critical
-      }
-      
-      // Join the channel
-      console.log('Joining channel with appId and token:', {
-        appId: appId ? 'present' : 'missing',
-        token: tokenData.token ? 'present' : 'missing',
-        channel: roomId,
-        uid: tokenData.uid || uid.current
-      });
-      
-      // Set user properties before joining
-      try {
-        // Store user info in client options
-        const clientOptions = {
-          // User properties to identify the user
-          userProperties: {
-            username: username
-          }
-        };
-        
-        await clientRef.current.join(
-          tokenData.appId || appId,
-          roomId,
-          tokenData.token,
-          tokenData.uid || uid.current,
-          clientOptions // Pass the options with username
-        );
-        
-        console.log('Successfully joined channel as', username);
-        
-        // After successful join, update the client with our metadata
-        if (clientRef.current && clientRef.current.setLocalUserAttributes) {
-          try {
-            await clientRef.current.setLocalUserAttributes([{ key: 'username', value: username }]);
-            console.log('Set local user attribute for username');
-          } catch (e) {
-            console.warn('Failed to set local user attributes:', e);
-          }
+          console.log('Successfully joined channel with userAccount');
+        } catch (userAccountError) {
+          console.error('Failed to join with userAccount:', userAccountError);
+          
+          // Fallback to regular join method
+          console.log('Falling back to regular join method with UID');
+          await clientRef.current.join(
+            tokenData.appId || appId,
+            roomId,
+            tokenData.token,
+            tokenData.uid || uid.current
+          );
         }
       } catch (joinError) {
-        console.error('Error joining channel with options:', joinError);
-        // Fallback to join without options if there's an error
-        await clientRef.current.join(
-          tokenData.appId || appId,
-          roomId,
-          tokenData.token,
-          tokenData.uid || uid.current
-        );
+        console.error('Error joining channel:', joinError);
+        throw joinError;
       }
       
-      console.log('Successfully joined channel, creating media tracks');
+      console.log('Successfully joined channel, creating audio track');
       
-      // Create tracks
-      let audioTrack, videoTrack;
+      // Create only audio track, no video in voice-only mode
+      let audioTrack;
       
       try {
         audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
         console.log('Audio track created successfully');
       } catch (audioError) {
         console.error('Failed to create audio track:', audioError);
-      }
-          
-      // Only create video track in video mode
-      if (mode === 'video') {
-        try {
-          videoTrack = await AgoraRTC.createCameraVideoTrack({
-            encoderConfig: {
-              width: { min: 640, ideal: 1280, max: 1920 },
-              height: { min: 360, ideal: 720, max: 1080 },
-              frameRate: 24
-            }
-          });
-          console.log('Video track created successfully');
-          setIsVideoOff(false);
-        } catch (videoError) {
-          console.error('Failed to create video track:', videoError);
-          setIsVideoOff(true);
-        }
-      } else {
-        // In voice-only mode, ensure video is off
-        setIsVideoOff(true);
-        console.log('Voice-only mode, skipping video track creation');
+        throw new Error('Could not create audio track');
       }
       
-      // Only add tracks that were successfully created
+      // Only add audio track
       const tracks = [];
       if (audioTrack) tracks.push(audioTrack);
-      if (videoTrack) tracks.push(videoTrack);
           
       if (tracks.length === 0) {
         console.error('No tracks were created');
@@ -539,14 +585,14 @@ const RoomContainer = () => {
       setLocalTracks(tracks);
           
       // Publish tracks
-      console.log('Publishing tracks to channel:', tracks.length);
+      console.log('Publishing audio track to channel');
       for (const track of tracks) {
         console.log(`Publishing ${track.trackMediaType} track`);
         await clientRef.current.publish(track);
       }
           
       console.log('All tracks published, joining complete');
-      // Set joining to false to show the video interface
+      // Set joining to false to show the interface
       setJoining(false);
       
     } catch (error) {
@@ -575,6 +621,25 @@ const RoomContainer = () => {
             enableCloudProxy: false // Enable if network conditions are difficult
           });
           console.log('Agora client initialized successfully');
+          
+          // Initialize the RTM client
+          try {
+            console.log('Initializing Agora RTM client...');
+            const appId = import.meta.env.VITE_AGORA_APP_ID;
+            rtmClientRef.current = AgoraRTM.createInstance(appId);
+            console.log('Agora RTM client initialized successfully');
+            
+            // Set up RTM client event listeners
+            rtmClientRef.current.on('ConnectionStateChanged', (newState, reason) => {
+              console.log(`RTM Connection state changed to ${newState} because of ${reason}`);
+            });
+            
+            rtmClientRef.current.on('MessageFromPeer', ({ text }, peerId) => {
+              console.log(`Message from peer ${peerId}: ${text}`);
+            });
+          } catch (rtmError) {
+            console.error('Failed to initialize Agora RTM client:', rtmError);
+          }
           
           // Set up connection state change listener
           clientRef.current.on('connection-state-change', (curState, prevState) => {
@@ -631,6 +696,13 @@ const RoomContainer = () => {
             console.error('Agora exception:', event);
           });
           
+          // Add listener for user-info-updated events to get attributes from other users
+          clientRef.current.on('user-info-updated', async (uid, msg) => {
+            console.log(`User info updated for uid ${uid}:`, msg);
+            // Use the helper function to fetch and update user attributes
+            fetchUserAttributes(uid);
+          });
+          
         } catch (err) {
           console.error('Failed to initialize Agora client:', err);
           setConnectionError('Failed to initialize video call system. Please try again later.');
@@ -663,36 +735,27 @@ const RoomContainer = () => {
     // Update room info in context
     const participants = Object.values(remoteUsers).map((user) => ({
       uid: user.uid,
-      name: user.username || localStorage.getItem('username') || `User ${user.uid?.toString()?.slice(-4)}`,
-      hasAudio: user.audio && !user.audioTrack?.muted,
-      hasVideo: user.video && user.videoTrack
+      // Try to get username from user object, then from session storage, then fallback to generic
+      name: user.username || 
+            window.sessionStorage.getItem(`rtc_user_${user.uid}`) || 
+            `User ${user.uid?.toString()?.slice(-4)}`,
+      hasAudio: user.audioTrack && !user.audioTrack?.muted // More robust check
     }));
     
     // Add local user
-    const localUsername = localStorage.getItem('username') || 'You';
+    const localDisplayName = userNickname || localStorage.getItem('nickname') || 'You'; // Use nickname from state or localStorage
     participants.unshift({
       uid: uid.current,
-      name: localUsername,
-      hasAudio: !isMuted,
-      hasVideo: !isVideoOff && mode === 'video'
+      name: localDisplayName,
+      hasAudio: !isMuted && localTracks.some(track => track.trackMediaType === 'audio')
     });
     
-    // Set active room in context
-    enterRoom({
-      id: roomId,
-      name: roomName,
-      participants
-    });
+    // Update the context with participant info
+    updateParticipants(participants);
     
-    // Clean up on unmount or when dependencies change significantly
-    return () => {
-      // Only call exitRoom from context if this is an explicit leave.
-      // If navigating away for floating window, activeRoom should persist.
-      if (isExplicitlyLeavingRef.current) {
-        exitRoom();
-      }
-    };
-  }, [remoteUsers, isMuted, isVideoOff, roomId, roomName, enterRoom, exitRoom, updateParticipantCount]);
+    console.log(`Updated participant list in context. Total: ${participants.length}`);
+    console.log('Participants:', participants.map(p => `${p.name} (${p.uid})`).join(', '));
+  }, [remoteUsers, isMuted, localTracks, updateParticipantCount, updateParticipants, userNickname]); // Added userNickname dependency
 
   // Update the local user rendering to handle duplicate display issues
   useEffect(() => {
@@ -742,29 +805,34 @@ const RoomContainer = () => {
     if (joining) return;
     
     Object.values(remoteUsers).forEach(user => {
+      console.log(`[RoomContainer] Checking remote user ${user.uid} for video rendering. Has video: ${!!user.videoTrack && user.video}`);
       if (user.videoTrack && user.video) {
-        // Get the container element
         const containerId = `remote-video-${user.uid}`;
         const container = document.getElementById(containerId);
+        console.log(`[RoomContainer] Remote user ${user.uid} has videoTrack and video=true. Container:`, container ? "found" : "not found");
         
         if (container) {
-          // Stop first if already playing
           try {
             user.videoTrack.stop();
           } catch (e) {
             // Ignore errors from stopping
           }
           
-          // Play with proper fit mode
           try {
+            console.log(`[RoomContainer] Attempting to play video for remote user ${user.uid} in container ${containerId}`);
             user.videoTrack.play(containerId, { 
               fit: 'contain',
               mirror: false
             });
+            console.log(`[RoomContainer] Successfully called play for remote user ${user.uid}`);
           } catch (error) {
-            // Ignore errors
+            console.error(`[RoomContainer] Error playing video for remote user ${user.uid}:`, error);
           }
+        } else {
+          console.warn(`[RoomContainer] Video container ${containerId} not found for user ${user.uid}. Video will not be played yet.`);
         }
+      } else {
+        console.log(`[RoomContainer] Remote user ${user.uid} either no videoTrack or video is false. Skipping video play.`);
       }
     });
   }, [remoteUsers, joining]);
@@ -852,17 +920,178 @@ const RoomContainer = () => {
   const uniqueRemoteUsers = Object.values(remoteUsers).filter(user => user.uid !== uid.current);
   const totalUniqueParticipants = uniqueRemoteUsers.length + 1; // +1 for local user
 
-  // If connection error, show error screen
-  if (connectionError) {
-    return <ConnectionError connectionError={connectionError} navigate={navigate} />;
-  }
+  // Set active room in context when joining and cleanup on leave
+  useEffect(() => {
+    if (!joining && !connectionError) {
+      // Set active room in context
+      enterRoom({
+        id: roomId,
+        name: roomName,
+        mode: 'voice'
+      });
+    }
+    
+    // Clean up on unmount
+    return () => {
+      // Only call exitRoom from context if this is an explicit leave.
+      // If navigating away for floating window, activeRoom should persist.
+      if (isExplicitlyLeavingRef.current) {
+        exitRoom();
+      }
+    };
+  }, [joining, connectionError, roomId, roomName, enterRoom, exitRoom]);
+
+  // Add debugging before the return
+  console.log("Rendering RoomContainer with state:", {
+    connectionError: !!connectionError,
+    joining,
+    localTracks: localTracks.length,
+    remoteUsers: Object.keys(remoteUsers).length,
+    uniqueRemoteUsers: uniqueRemoteUsers?.length || 0,
+    totalUniqueParticipants
+  });
+
+  // Add RTM helper methods
+  const loginRtmUser = async (uid, token) => {
+    if (!rtmClientRef.current) {
+      console.error('RTM client not initialized');
+      return false;
+    }
+    
+    try {
+      console.log(`Logging into RTM as user: ${uid}`);
+      // Use token if available, or pass null for testing (not recommended for production)
+      await rtmClientRef.current.login({ uid: uid.toString(), token: token || null });
+      console.log('RTM login successful');
+      return true;
+    } catch (error) {
+      console.error('Failed to login to RTM:', error);
+      return false;
+    }
+  };
+  
+  const joinRtmChannel = async (channelName) => {
+    if (!rtmClientRef.current) {
+      console.error('RTM client not initialized');
+      return null;
+    }
+    
+    try {
+      console.log(`Joining RTM channel: ${channelName}`);
+      const channel = rtmClientRef.current.createChannel(channelName);
+      
+      // Set up channel event listeners
+      channel.on('ChannelMessage', (message, memberId) => {
+        console.log(`Channel message from ${memberId}:`, message);
+      });
+      
+      channel.on('MemberJoined', (memberId) => {
+        console.log(`Member ${memberId} joined the channel`);
+        // Try to get member attributes after they join
+        setTimeout(() => fetchRtmUserAttributes(memberId), 300);
+      });
+      
+      channel.on('MemberLeft', (memberId) => {
+        console.log(`Member ${memberId} left the channel`);
+      });
+      
+      // Join the channel
+      await channel.join();
+      console.log('Successfully joined RTM channel');
+      return channel;
+    } catch (error) {
+      console.error('Failed to join RTM channel:', error);
+      return null;
+    }
+  };
+  
+  const setRtmUserAttributes = async (attributes) => {
+    if (!rtmClientRef.current) {
+      console.error('RTM client not initialized');
+      return false;
+    }
+    
+    try {
+      console.log('Setting RTM user attributes:', attributes);
+      await rtmClientRef.current.setLocalUserAttributes(attributes);
+      console.log('RTM user attributes set successfully');
+      return true;
+    } catch (error) {
+      console.error('Failed to set RTM user attributes:', error);
+      return false;
+    }
+  };
+  
+  const fetchRtmUserAttributes = async (userId) => {
+    if (!rtmClientRef.current) {
+      console.error('RTM client not initialized');
+      return null;
+    }
+    
+    try {
+      console.log(`Fetching RTM attributes for user: ${userId}`);
+      const userAttributes = await rtmClientRef.current.getUserAttributes(userId);
+      console.log(`Retrieved attributes for user ${userId}:`, userAttributes);
+      
+      if (userAttributes && userAttributes.nickname) {
+        // Update the remote user in state with the nickname
+        setRemoteUsers(prevUsers => {
+          if (prevUsers[userId]) {
+            return {
+              ...prevUsers,
+              [userId]: {
+                ...prevUsers[userId],
+                username: userAttributes.nickname
+              }
+            };
+          }
+          return prevUsers;
+        });
+        
+        // Store in session storage for persistence
+        window.sessionStorage.setItem(`rtc_user_${userId}`, userAttributes.nickname);
+        return userAttributes.nickname;
+      }
+    } catch (error) {
+      console.error(`Failed to get attributes for user ${userId}:`, error);
+    }
+    
+    // If the first attempt fails, retry after a delay
+    setTimeout(async () => {
+      try {
+        const retryAttributes = await rtmClientRef.current.getUserAttributes(userId);
+        if (retryAttributes && retryAttributes.nickname) {
+          setRemoteUsers(prevUsers => {
+            if (prevUsers[userId]) {
+              return {
+                ...prevUsers,
+                [userId]: {
+                  ...prevUsers[userId],
+                  username: retryAttributes.nickname
+                }
+              };
+            }
+            return prevUsers;
+          });
+          
+          window.sessionStorage.setItem(`rtc_user_${userId}`, retryAttributes.nickname);
+        }
+      } catch (retryError) {
+        console.error(`Retry failed for user ${userId} attributes:`, retryError);
+      }
+    }, 500);
+    
+    return null;
+  };
 
   return (
-    <div className="page-container flex-1 pt-20 md:pl-64">
-      <div className="mx-auto px-2 sm:px-4 h-[calc(100vh-80px)]">
-        <div className="bg-surface-900 border-2 rounded-lg border-tonal-800 shadow-lg overflow-hidden h-full flex flex-col">
+    <div className="flex flex-col h-screen bg-surface-900 text-white">
+      {connectionError ? (
+        <ConnectionError error={connectionError} />
+      ) : (
+        <div className="flex flex-col h-full">
           {/* Inject our custom CSS */}
-          <style>{videoContainerStyles}</style>
+          <style>{audioContainerStyles}</style>
           
           {/* Room Header */}
           <RoomHeader 
@@ -870,41 +1099,36 @@ const RoomContainer = () => {
             mode={mode}
             totalUniqueParticipants={totalUniqueParticipants}
             MAX_PARTICIPANTS={MAX_PARTICIPANTS}
-            roomId={roomId}
-            roomIdCopied={roomIdCopied}
-            setRoomIdCopied={setRoomIdCopied}
+            cleanup={cleanup}
             setShowShareModal={setShowShareModal}
           />
           
-          {/* Main content with videos */}
+          {/* Audio Grid */}
           <div className="flex-grow flex overflow-hidden">
-            <div className="flex-grow p-2 sm:p-4 overflow-auto w-full">
-              <VideoGrid 
-                mode={mode}
-                isVideoOff={isVideoOff}
+            <div className="flex-grow p-4 sm:p-6 overflow-auto w-full">
+              <AudioGrid 
                 isMuted={isMuted}
                 uniqueRemoteUsers={uniqueRemoteUsers}
-                totalUniqueParticipants={totalUniqueParticipants}
+                totalUniqueParticipants={uniqueRemoteUsers.length + 1}
                 getGridLayout={getGridLayout}
+                userNickname={userNickname}
               />
+              {showShareModal && <ShareModal setShowShareModal={setShowShareModal} roomId={roomId} />}
             </div>
           </div>
         
-          {/* Controls Panel */}
-          <ControlPanel 
-            isMuted={isMuted}
-            setIsMuted={setIsMuted}
-            isVideoOff={isVideoOff}
-            setIsVideoOff={setIsVideoOff}
-            localTracks={localTracks}
-            setLocalTracks={setLocalTracks}
-            mode={mode}
-            setShowShareModal={setShowShareModal}
-            cleanup={cleanup}
-            clientRef={clientRef}
-          />
+          {/* Control Panel */}
+          {!joining && !connectionError && (
+            <ControlPanel 
+              isMuted={isMuted} 
+              setIsMuted={setIsMuted} 
+              localTracks={localTracks} 
+              setShowShareModal={setShowShareModal}
+              cleanup={cleanup}
+            />
+          )}
         </div>
-      </div>
+      )}
       
       {/* Share Room Modal */}
       <ShareModal 
