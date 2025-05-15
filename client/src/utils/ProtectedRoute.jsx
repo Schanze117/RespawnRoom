@@ -11,7 +11,6 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     // Check authentication status
     const authStatus = Auth.loggedIn();
-    console.log('ProtectedRoute - Authentication status:', authStatus);
     setIsAuthenticated(authStatus);
     setIsLoading(false);
     
@@ -24,14 +23,19 @@ const ProtectedRoute = ({ children }) => {
       if (!isAuthPath && location.pathname !== '/') {
         // Save non-root, non-auth paths for future redirect
         sessionStorage.setItem('redirectUrl', location.pathname);
-        console.log('Saved redirect URL:', location.pathname);
       } else if (location.pathname === '/' && !sessionStorage.getItem('redirectUrl')) {
         // For home page, only save if we don't already have a better redirect
         sessionStorage.setItem('redirectUrl', '/');
-        console.log('Saved home as fallback redirect URL');
       }
     }
   }, [location.pathname]);
+  
+  // Block direct access to API endpoints through client routes
+  if (location.pathname.includes('/graphql') || 
+      location.pathname.includes('/api/') || 
+      location.pathname.startsWith('/api')) {
+    return <Navigate to="/unauthorized" state={{ from: location.pathname }} replace />;
+  }
   
   // Show a minimal loading state
   if (isLoading) {
@@ -40,13 +44,11 @@ const ProtectedRoute = ({ children }) => {
   
   // If not authenticated, redirect to login
   if (!isAuthenticated) {
-    console.log('ProtectedRoute - User not authenticated, redirecting to login');
     // Redirect to login if not authenticated - pass state to indicate we're coming from ProtectedRoute
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
   
   // If authenticated, render the protected content
-  console.log('ProtectedRoute - User authenticated, showing protected content');
   return children;
 };
 

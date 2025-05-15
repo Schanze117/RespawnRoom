@@ -36,7 +36,6 @@ export default function HomePageCard({ games, type }) {
 
   // Handle game click to show modal
   const handleGameClick = async (game) => {
-    console.log('HomePageCard: Game clicked:', game);
     
     try {
       // Show a loading state
@@ -45,7 +44,6 @@ export default function HomePageCard({ games, type }) {
       
       // Fetch detailed game data including ratings
       const detailedGame = await getGameById(game.id);
-      console.log('Detailed game data:', detailedGame);
       
       // Create an enhanced game object with all data
       const enhancedGame = {
@@ -58,14 +56,10 @@ export default function HomePageCard({ games, type }) {
       setSelectedGame(enhancedGame);
       
     } catch (error) {
-      console.error('Error fetching detailed game data:', error);
-      
       // Calculate the rating from all possible sources as fallback
       const calculatedRating = game.total_rating ? parseFloat(game.total_rating) : 
                           (game.rating ? parseFloat(game.rating) : 
                           (game.aggregated_rating ? parseFloat(game.aggregated_rating) : null));
-      
-      console.log('HomePageCard: Raw calculated rating:', calculatedRating);
       
       // Create a new game object with all original properties
       const gameWithRating = { 
@@ -75,12 +69,10 @@ export default function HomePageCard({ games, type }) {
       
       // Only add the rating if we actually have one
       if (calculatedRating !== null) {
-        console.log('HomePageCard: Setting rating on game:', Math.round(calculatedRating));
         // Ensure the rating is on both properties for consistency
         gameWithRating.total_rating = calculatedRating;
         gameWithRating.rating = calculatedRating;
       } else {
-        console.log('HomePageCard: No rating found for this game');
         // Set a "no rating available" indicator
         gameWithRating.no_rating_available = true;
       }
@@ -164,7 +156,6 @@ export default function HomePageCard({ games, type }) {
         });
       }, 2000);
     } catch (error) {
-      console.error('Error saving game:', error);
       // Set the game as having an error when saving
       setSavedGames(prev => ({
         ...prev,

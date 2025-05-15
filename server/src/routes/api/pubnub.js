@@ -20,7 +20,6 @@ router.get('/config', (req, res) => {
       publishKey: PUBNUB_PUBLISH_KEY
     });
   } catch (error) {
-    console.error('Error returning PubNub configuration:', error);
     return res.status(500).json({ success: false, message: 'Failed to get PubNub configuration' });
   }
 });
@@ -47,7 +46,6 @@ router.get('/user-info', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error processing PubNub user info request:', error);
     return res.status(500).json({ success: false, message: 'Failed to process request' });
   }
 });

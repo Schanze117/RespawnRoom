@@ -21,7 +21,6 @@ export default function MovieClip({ videoId }) {
         opts={opts}
         className="w-full h-full"
         iframeClassName="w-full h-full rounded-lg"
-        onError={(e) => console.error('YouTube Player Error:', e)}
       />
     </div>
   );

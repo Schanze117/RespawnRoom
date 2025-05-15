@@ -12,8 +12,6 @@
   "dependencies": {
     "@apollo/client": "^3.13.8",
     "@tailwindcss/vite": "^4.0.9",
-    "agora-rtc-sdk-ng": "^4.23.3",
-    "agora-rtm-sdk": "^2.2.2",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "jsonwebtoken": "^9.0.2",

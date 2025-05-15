@@ -20,8 +20,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "agora-access-token": "^2.0.4",
-    "agora-rtc-sdk-ng": "^4.23.3",
     "apollo-server-express": "^3.13.0",
     "bcrypt": "^5.1.1",
     "date-fns": "^4.1.0",

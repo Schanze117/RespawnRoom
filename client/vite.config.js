@@ -44,9 +44,6 @@ export default defineConfig(({ mode }) => {
       },
       port: 3000,
       open: true
-    },
-    define: {
-      'import.meta.env.AGORA_APP_ID': JSON.stringify(env.AGORA_APP_ID)
     }
   }
 })

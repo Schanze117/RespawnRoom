@@ -120,7 +120,6 @@ export default function GameCard({ games, showRating = true }) {
     };
 
     const handleGameClick = async (game) => {
-        console.log('Game clicked:', game);
         
         try {
             // Show a loading state
@@ -129,7 +128,6 @@ export default function GameCard({ games, showRating = true }) {
             
             // Fetch detailed game data including ratings
             const detailedGame = await getGameById(game.id);
-            console.log('Detailed game data:', detailedGame);
             
             // Create an enhanced game object with all data
             const enhancedGame = {
@@ -142,7 +140,6 @@ export default function GameCard({ games, showRating = true }) {
             setSelectedGame(enhancedGame);
             
         } catch (error) {
-            console.error('Error fetching detailed game data:', error);
             
             // Calculate the rating from all possible sources as fallback
             const calculatedRating = game.total_rating ? parseFloat(game.total_rating) : 
@@ -157,12 +154,10 @@ export default function GameCard({ games, showRating = true }) {
             
             // Only add the rating if we actually have one
             if (calculatedRating !== null) {
-                console.log('Setting rating on gameWithRating:', Math.round(calculatedRating));
                 // Ensure the rating is on both properties for consistency
                 gameWithRating.total_rating = calculatedRating;
                 gameWithRating.rating = calculatedRating;
             } else {
-                console.log('No rating found for this game');
                 // Set a "no rating available" indicator
                 gameWithRating.no_rating_available = true;
             }
@@ -255,7 +250,6 @@ export default function GameCard({ games, showRating = true }) {
                 });
             }, 2000);
         } catch (error) {
-            console.error('Error saving game:', error);
             setSavedGames(prev => ({
                 ...prev,
                 [game.id]: 'error'
@@ -298,7 +292,6 @@ export default function GameCard({ games, showRating = true }) {
                     const rating = game.total_rating ? Math.round(game.total_rating) : 
                                  (game.rating ? Math.round(game.rating) : null);
                     
-                    console.log(`Game ${game.name} has rating:`, rating);
                     
                     return (
                         <div

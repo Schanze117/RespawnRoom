@@ -7,6 +7,5 @@ regenerateTokensForAllUsers()
     process.exit(0);
   })
   .catch(error => {
-    console.error('Token regeneration failed:', error);
     process.exit(1);
   }); 

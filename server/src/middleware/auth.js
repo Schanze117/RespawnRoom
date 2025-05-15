@@ -18,7 +18,6 @@ export function authenticateToken(req, res, next) {
     
     // If no user found, return unauthorized
     if (!user) {
-      console.warn('No valid token found in request');
       return res.status(401).json({ message: 'Unauthorized' });
     }
     
@@ -28,7 +27,6 @@ export function authenticateToken(req, res, next) {
     // Continue to next middleware
     next();
   } catch (error) {
-    console.error('Authentication error:', error);
     return res.status(401).json({ message: 'Unauthorized' });
   }
 }
@@ -58,7 +56,6 @@ export function getUserFromToken(req) {
     const decoded = jwt.verify(token, JWT_SECRET);
     return decoded;
   } catch (err) {
-    console.error('Invalid token:', err.message);
     return null;
   }
 }

@@ -10,7 +10,6 @@ import {
   addMessageListener, 
   removeMessageListener, 
   sendChatMessage, 
-  testPubNubConnection, 
   getPrivateChannel, 
   setupChatChannel, 
   markChannelActive, 
@@ -34,9 +33,7 @@ const ChatPopup = ({ friend, onClose }) => {
   const chatInitialized = useRef(false);
   const pubnubRef = useRef(null);
   const currentUser = Auth.getProfile();
-  const [showDebug, setShowDebug] = useState(false);
   const channelRef = useRef(null);
-  const connectionAttempts = useRef(0);
   const messagesRef = useRef(messages);
   const chatCleanupRef = useRef(null);
   const [processedMessageIds, setProcessedMessageIds] = useState(new Set());
@@ -67,27 +64,6 @@ const ChatPopup = ({ friend, onClose }) => {
       }
     }
   }, [friend, markAsRead]);
-
-  // Function to test PubNub connection
-  const runPubNubTest = async () => {
-    try {
-      setChatError('Running PubNub connection test...');
-      const success = await testPubNubConnection();
-      if (success) {
-        setChatError('PubNub test connection successful!');
-        setTimeout(() => setChatError(null), 3000);
-      } else {
-        setChatError('PubNub test connection failed. Check console for details.');
-      }
-    } catch (error) {
-      setChatError(`PubNub test failed: ${error.message || 'Unknown error'}`);
-    }
-  };
-  
-  // Toggle debug panel
-  const toggleDebug = () => {
-    setShowDebug(!showDebug);
-  };
 
   // Query for initial messages with improved error handling
   const { loading, data, refetch } = useQuery(GET_MESSAGES, {
@@ -128,8 +104,6 @@ const ChatPopup = ({ friend, onClose }) => {
 
   // Improve message listener function to better handle incoming real-time messages
   const handleNewMessage = (message) => {
-    console.log('[ChatPopup] New message received:', message);
-
     // Ignore system messages with non-matching sender ID
     if (message.senderId !== friend._id && message.senderId !== currentUser?._id) {
       return;
@@ -151,7 +125,6 @@ const ChatPopup = ({ friend, onClose }) => {
     
     // Check if we've already processed this message by ID (deduplication)
     if (processedMessageIds.has(messageId)) {
-      console.log(`[ChatPopup] Skipping duplicate message with ID: ${messageId}`);
       return;
     }
     
@@ -213,7 +186,6 @@ const ChatPopup = ({ friend, onClose }) => {
     
     // Ensure we have required data before continuing
     if (friend && friend._id && currentUser && currentUser._id && !chatInitialized.current) {
-      console.log(`[ChatPopup] Setting up chat with ${friend.userName}`);
       
       // Create a unique channel for this conversation
       const chatChannel = getPrivateChannel(currentUser._id, friend._id);
@@ -229,7 +201,6 @@ const ChatPopup = ({ friend, onClose }) => {
           pubnubRef.current = pubnub;
           
           if (!pubnub) {
-            console.error('[ChatPopup] Could not get PubNub instance');
             setChatError('Could not initialize chat. Please refresh the page.');
             return;
           }
@@ -243,19 +214,16 @@ const ChatPopup = ({ friend, onClose }) => {
           // Check if component still mounted before updating state
           if (isMounted) {
             if (channelSetup) {
-              console.log('[ChatPopup] Chat channel setup successful');
               chatInitialized.current = true;
               setChatError(null);
               
               // Store cleanup function
               chatCleanupRef.current = channelSetup.cleanup;
             } else {
-              console.error('[ChatPopup] Failed to set up chat channel');
               setChatError('Could not initialize chat. Please refresh and try again.');
             }
           }
         } catch (error) {
-          console.error('[ChatPopup] Error initializing chat:', error);
           if (isMounted) {
             setChatError('Chat initialization failed. Please try again.');
             chatInitialized.current = false;
@@ -277,7 +245,6 @@ const ChatPopup = ({ friend, onClose }) => {
       
       // Clean up the PubNub subscription when unmounting
       if (chatCleanupRef.current) {
-        console.log('[ChatPopup] Cleaning up PubNub subscription');
         chatCleanupRef.current();
         chatCleanupRef.current = null;
       }
@@ -396,7 +363,6 @@ const ChatPopup = ({ friend, onClose }) => {
       
       // Send message via PubNub first for real-time delivery
       if (chatInitialized.current && channelRef.current && pubnubRef.current) {
-        console.log('[PubNub] Sending message via PubNub');
         try {
           await sendChatMessage(
             channelRef.current, 
@@ -406,10 +372,8 @@ const ChatPopup = ({ friend, onClose }) => {
               id: tempId
             }
           );
-          console.log('[PubNub] Message sent successfully');
           realtimeSent = true;
         } catch (error) {
-          console.error('[PubNub] Error sending message:', error);
           // Continue with GraphQL as fallback
         }
       }
@@ -444,7 +408,6 @@ const ChatPopup = ({ friend, onClose }) => {
               timestamp: serverMessage.timestamp
             });
           } catch (error) {
-            console.error("[PubNub] Error with manual message handling:", error);
           }
         }
         
@@ -478,7 +441,6 @@ const ChatPopup = ({ friend, onClose }) => {
       }
     } catch (error) {
       setChatError('Failed to send message. Please try again.');
-      console.error('[ChatPopup] Error sending message:', error);
       
       // Remove pending message
       setMessages(prev => prev.filter(msg => msg._id !== tempId));
@@ -492,7 +454,6 @@ const ChatPopup = ({ friend, onClose }) => {
 
   // Run this function when the user clicks "Reconnect" in the connection status bar
   const handleReconnect = async () => {
-    connectionAttempts.current = 0;
     setChatError("Reconnecting to real-time chat...");
     
     try {
@@ -528,7 +489,6 @@ const ChatPopup = ({ friend, onClose }) => {
         setChatError("Failed to reconnect. Please try again.");
       }
     } catch (error) {
-      console.error('[ChatPopup] Reconnection error:', error);
       setChatError("Failed to reconnect. Please refresh the page.");
     }
   };
@@ -540,14 +500,6 @@ const ChatPopup = ({ friend, onClose }) => {
         <div className="flex items-center">
           <UserAvatar username={friend.userName} status={friend.status} size="sm" />
           <h3 className="ml-2 font-medium text-white">{friend.userName}</h3>
-          
-          {/* Hidden debug trigger (double click) */}
-          <span 
-            className="ml-2 text-xs cursor-default select-none" 
-            onDoubleClick={toggleDebug}
-          >
-            {/* Invisible trigger */}
-          </span>
         </div>
         <button
           className="w-8 h-8 rounded-full text-gray-400 hover:text-white hover:bg-surface-700 flex items-center justify-center"
@@ -574,44 +526,6 @@ const ChatPopup = ({ friend, onClose }) => {
           </button>
         }
       </div>
-      
-      {/* Debug panel */}
-      {showDebug && (
-        <div className="p-2 bg-gray-900 border-b border-gray-700">
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-400">Debug Tools</span>
-            <button 
-              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
-              onClick={runPubNubTest}
-            >
-              Test PubNub Connection
-            </button>
-          </div>
-          <div className="mt-1 text-xs text-gray-400">
-            <p>Channel: {channelRef.current || 'Not connected'}</p>
-            <p>Status: {chatInitialized.current ? 'Connected' : 'Disconnected'}</p>
-            <p>Messages in state: {messages.length}</p>
-            <p>Connection attempts: {connectionAttempts.current}/3</p>
-            <div className="mt-2 flex space-x-2">
-              <button 
-                className="text-xs bg-gray-700 text-white px-2 py-1 rounded"
-                onClick={() => console.log('[Debug] Current messages:', messages)}
-              >
-                Log Messages
-              </button>
-              <button 
-                className="text-xs bg-gray-700 text-white px-2 py-1 rounded"
-                onClick={() => {
-                  console.log('[Debug] Environment variables:', import.meta.env);
-                  console.log('[Debug] PubNub Channel:', channelRef.current);
-                }}
-              >
-                Log Env Vars
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       
       {/* Error banner */}
       {chatError && (

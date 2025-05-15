@@ -58,7 +58,6 @@ export const resolvers = {
 
         return user.friends;
       } catch (err) {
-        console.error('Error fetching friends:', err);
         throw new GraphQLError('Failed to fetch friends', {
           extensions: { code: 'INTERNAL_SERVER_ERROR' }
         });
@@ -93,7 +92,6 @@ export const resolvers = {
 
         return formattedRequests;
       } catch (err) {
-        console.error('Error fetching friend requests:', err);
         throw new GraphQLError('Failed to fetch friend requests', {
           extensions: { code: 'INTERNAL_SERVER_ERROR' }
         });
@@ -142,7 +140,6 @@ export const resolvers = {
 
         return filteredUsers;
       } catch (err) {
-        console.error('Error searching users:', err);
         throw new GraphQLError('Failed to search users', {
           extensions: { code: 'INTERNAL_SERVER_ERROR' }
         });
@@ -197,7 +194,6 @@ export const resolvers = {
         // Reverse the array to show messages in ascending order (oldest first)
         return formattedMessages.reverse();
       } catch (error) {
-        console.error("Error getting messages:", error);
         // Return an empty array instead of throwing an error
         return [];
       }
@@ -241,8 +237,6 @@ export const resolvers = {
         const token = signToken(user.userName, user.email, user._id);
         return { token, user };
       } catch (err) {
-        console.error('Error creating user:', err);
-        
         // Handle duplicate email error
         if (err.code === 11000) {
           throw new GraphQLError('Email or username already exists', {
@@ -296,7 +290,6 @@ export const resolvers = {
         const token = signToken(user.userName, user.email, user._id);
         return { token, user };
       } catch (err) {
-        console.error('Login error:', err);
         throw new GraphQLError(err.message || 'Login failed', {
           extensions: { code: err.extensions?.code || 'INTERNAL_SERVER_ERROR' }
         });
@@ -326,7 +319,6 @@ export const resolvers = {
 
         return updatedUser;
       } catch (err) {
-        console.error('Error saving game:', err);
         throw new GraphQLError(err.message || 'Failed to save game', {
           extensions: { code: 'INTERNAL_SERVER_ERROR' }
         });
@@ -356,7 +348,6 @@ export const resolvers = {
 
         return updatedUser;
       } catch (err) {
-        console.error('Error removing game:', err);
         throw new GraphQLError(err.message || 'Failed to remove game', {
           extensions: { code: 'INTERNAL_SERVER_ERROR' }
         });
@@ -429,7 +420,6 @@ export const resolvers = {
 
         return await User.findById(context.user._id);
       } catch (err) {
-        console.error('Error sending friend request:', err);
         throw new GraphQLError(err.message || 'Failed to send friend request', {
           extensions: { code: err.extensions?.code || 'INTERNAL_SERVER_ERROR' }
         });
@@ -484,7 +474,6 @@ export const resolvers = {
         // Return updated user with populated friends
         return await User.findById(context.user._id).populate('friends');
       } catch (err) {
-        console.error('Error accepting friend request:', err);
         throw new GraphQLError(err.message || 'Failed to accept friend request', {
           extensions: { code: err.extensions?.code || 'INTERNAL_SERVER_ERROR' }
         });
@@ -531,7 +520,6 @@ export const resolvers = {
         // Return updated user with populated friend requests
         return await User.findById(context.user._id).populate('friendRequests');
       } catch (err) {
-        console.error('Error declining friend request:', err);
         throw new GraphQLError(err.message || 'Failed to decline friend request', {
           extensions: { code: err.extensions?.code || 'INTERNAL_SERVER_ERROR' }
         });
@@ -583,7 +571,6 @@ export const resolvers = {
         // Return updated user with populated friends
         return await User.findById(context.user._id).populate('friends');
       } catch (err) {
-        console.error('Error removing friend:', err);
         throw new GraphQLError(err.message || 'Failed to remove friend', {
           extensions: { code: err.extensions?.code || 'INTERNAL_SERVER_ERROR' }
         });
@@ -625,7 +612,6 @@ export const resolvers = {
 
         return updatedUser;
       } catch (err) {
-        console.error('Error updating status:', err);
         throw new GraphQLError(err.message || 'Failed to update status', {
           extensions: { code: err.extensions?.code || 'INTERNAL_SERVER_ERROR' }
         });
@@ -687,7 +673,6 @@ export const resolvers = {
           }
         };
       } catch (error) {
-        console.error('Error sending message:', error);
         throw new Error(`Failed to send message: ${error.message}`);
       }
     },

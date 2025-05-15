@@ -41,7 +41,6 @@ export const UserProfileManager = {
       
       return normalizedTokens;
     } catch (error) {
-      console.error('Error fetching user profile tokens:', error);
       return {};
     }
   },
@@ -75,7 +74,6 @@ export const UserProfileManager = {
       
       return updatedTokens;
     } catch (error) {
-      console.error('Error updating user profile tokens:', error);
       throw error;
     }
   },
@@ -122,7 +120,6 @@ export const UserProfileManager = {
       
       return decayedTokens;
     } catch (error) {
-      console.error('Error decaying tokens:', error);
       throw error;
     }
   },
@@ -235,7 +232,6 @@ export async function getPersonalizedRecommendations(candidateGames, alpha = 2) 
     
     return selectedGames;
   } catch (error) {
-    console.error('Error getting personalized recommendations:', error);
     throw error;
   }
 } 

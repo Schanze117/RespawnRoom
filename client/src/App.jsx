@@ -1,28 +1,10 @@
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect, memo, useMemo } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useLocation, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import Header from './components/Header';
-import FloatingRoomWindow from './pages/rooms/components/FloatingRoomWindow';
-import { RoomProvider, useRoomContext } from './utils/RoomContext';
-import './App.css'
+import { useAuth } from './utils/AuthContext.jsx';
 import Auth from './utils/auth';
+import './App.css';
 // import Footer from './components/Footer';
-
-// This component is just to track location changes and notify the room context
-const LocationListener = memo(function LocationListener() {
-  const location = useLocation();
-  const { activeRoom, checkPathAndToggleWindow } = useRoomContext();
-  
-  // Update when either location changes
-  useEffect(() => {
-    // Only process if we have a pathname
-    if (location.pathname) {
-      checkPathAndToggleWindow(location.pathname);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]); // Removed activeRoom and checkPathAndToggleWindow from dependencies
-  
-  return null;
-});
 
 // Hook to handle URL token processing - this ensures we only do it once at the initial load
 function useProcessUrlToken() {
@@ -38,16 +20,12 @@ function useProcessUrlToken() {
     const redirectParam = params.get('redirect');
     
     if (token) {
-      console.log('[App] Token found in URL, processing login...');
-      
       // Set redirect URL if available
       if (redirectParam) {
-        console.log('[App] Redirect path found:', redirectParam);
         sessionStorage.setItem('redirectUrl', redirectParam);
       }
       
       // Process login (this will redirect and reload the page)
-      console.log('[App] Calling Auth.login with token...');
       Auth.login(token);
       
       // Mark as processed to prevent re-runs
@@ -58,9 +36,11 @@ function useProcessUrlToken() {
   return processed;
 }
 
-const AppContent = memo(function AppContent() {
+const App = React.memo(function App() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, loading } = useAuth(); // Get user and loading state
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   
   // Process any tokens in the URL (using our custom hook)
   const tokenProcessed = useProcessUrlToken();
@@ -68,7 +48,6 @@ const AppContent = memo(function AppContent() {
   // Clear URL parameters if token was processed (cleanup)
   useEffect(() => {
     if (tokenProcessed && window.location.search) {
-      console.log('[App] Cleaning up URL parameters after token processing');
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [tokenProcessed]);
@@ -80,15 +59,11 @@ const AppContent = memo(function AppContent() {
     )) {
       try {
         localStorage.clear();
-        console.log("Local storage cleared successfully.");
         alert("Local storage has been cleared. The page will now perform a hard reload to attempt to clear cached assets for this page.");
         window.location.reload(true); // true forces a reload from the server, bypassing cache for the current page
       } catch (error) {
-        console.error("Error clearing local storage or reloading:", error);
-        alert("An error occurred while trying to clear data. Please check the console.");
+        alert("An error occurred while trying to clear data. Please try again.");
       }
-    } else {
-      console.log("User cancelled clearing data.");
     }
   };
 
@@ -113,18 +88,8 @@ const AppContent = memo(function AppContent() {
         </button>
       </div>
       */}
-      <FloatingRoomWindow />
     </div>
   );
 });
 
-function App() {
-  return (
-    <RoomProvider>
-      <LocationListener />
-      <AppContent />
-    </RoomProvider>
-  );
-}
-
-export default App
+export default App;

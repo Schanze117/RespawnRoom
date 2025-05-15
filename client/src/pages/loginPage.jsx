@@ -37,7 +37,6 @@ export default function Login() {
         throw new Error('Login failed');
       }
     } catch (err) {
-      console.error('Failed to login:', err);
       setError('Failed to login. Please check your credentials and try again.');
     }
   };
@@ -54,45 +53,29 @@ export default function Login() {
     // Check if we came from a protected route redirect
     const cameFromProtectedRoute = location.state?.from === 'protectedRoute';
     
-    console.log('[Login] URL parameters checked:', { 
-      token: token ? 'present' : 'none', 
-      authError, 
-      redirect, 
-      justLoggedOut 
-    });
-    
     // Handle token in URL (e.g., from Google auth) before anything else
     if (token) {
-      console.log('[Login] Token found in URL params, processing login...');
-      
       // If we have a redirect parameter, save it before processing the token
       if (redirect) {
-        console.log('[Login] Saving redirect path from URL:', redirect);
         sessionStorage.setItem('redirectUrl', redirect);
       }
-      
       // Process the token - this will redirect and reload the page
       setTimeout(() => {
-        console.log('[Login] Calling Auth.login with token after brief delay...');
         Auth.login(token);
       }, 100); // Small delay to ensure sessionStorage is set
-      
       return; // Stop further execution
     }
     
     // If user just logged out, clear any redirect URLs to ensure they stay on login page
     if (justLoggedOut) {
-      console.log('[Login] User just logged out, clearing redirect URLs');
       sessionStorage.removeItem('redirectUrl');
     } 
     // If a specific redirect is provided in the URL, save it
     else if (redirect && !justLoggedOut) {
-      console.log('[Login] Saving redirect URL from query parameter:', redirect);
       sessionStorage.setItem('redirectUrl', redirect);
     }
     // If we came from a protected route and have a 'from' in the state
     else if (cameFromProtectedRoute && location.state?.from) {
-      console.log('[Login] Protected route redirect detected, path:', location.state.from);
       if (!sessionStorage.getItem('redirectUrl')) {
         sessionStorage.setItem('redirectUrl', location.state.from);
       }
@@ -100,11 +83,8 @@ export default function Login() {
     
     // Check if user is already logged in
     if (Auth.loggedIn()) {
-      console.log('[Login] User already logged in, redirecting');
-      
       // Get redirect URL from session storage or default to home
       const redirectUrl = sessionStorage.getItem('redirectUrl') || '/';
-      
       // Don't redirect to login page again
       if (redirectUrl !== '/login') {
         navigate(redirectUrl);

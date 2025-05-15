@@ -18,7 +18,6 @@ let isChatFocused = true;
 // Export functions to track active channels
 export const markChannelActive = (channel) => {
   if (channel) {
-    console.log(`[PubNub] Marking channel as active: ${channel}`);
     activeChannels.add(channel);
     return true;
   }
@@ -27,7 +26,6 @@ export const markChannelActive = (channel) => {
 
 export const markChannelInactive = (channel) => {
   if (channel) {
-    console.log(`[PubNub] Marking channel as inactive: ${channel}`);
     activeChannels.delete(channel);
     return true;
   }
@@ -42,12 +40,10 @@ export const isChannelActive = (channel) => {
 if (typeof window !== 'undefined') {
   window.addEventListener('focus', () => {
     isChatFocused = true;
-    console.log('[PubNub] Window focused');
   });
   
   window.addEventListener('blur', () => {
     isChatFocused = false;
-    console.log('[PubNub] Window blurred');
   });
 }
 
@@ -70,14 +66,7 @@ export const getPubNub = async () => {
                       import.meta.env.VITE_subscribeKey || 
                       'sub-c-c1e9f51e-1ebe-4d20-8ace-b862d2ac1903';
     
-    console.log('[PubNub] Using PubNub keys for connection');
-    
-    // Log connection info without exposing full keys
-    console.log(`[PubNub] Using publish key: ${publishKey.substring(0, 10)}...`);
-    console.log(`[PubNub] Using subscribe key: ${subscribeKey.substring(0, 10)}...`);
-    
     // Create PubNub connection with more verbose logging
-    console.log('[PubNub] Creating new PubNub instance');
     connectionState = 'connecting';
     
     pubnubConnection = new PubNub({
@@ -94,11 +83,9 @@ export const getPubNub = async () => {
     // Set up a global listener for connection issues
     pubnubConnection.addListener({
       status: function(status) {
-        console.log(`[PubNub] Global status event:`, status.category);
         
         if (status.category === 'PNConnectedCategory') {
           connectionState = 'connected';
-          console.log('[PubNub] Connected to PubNub network');
           
           // Clear any pending reconnect timers
           if (reconnectTimer) {
@@ -110,12 +97,10 @@ export const getPubNub = async () => {
                  status.category === 'PNNetworkDownCategory' ||
                  status.category === 'PNReconnectedCategory') {
           
-          console.log('[PubNub] Network issues detected, will attempt to recover...');
           
           // Set up a reconnection timer if not already running
           if (!reconnectTimer) {
             reconnectTimer = setTimeout(() => {
-              console.log('[PubNub] Attempting to reconnect...');
               // Try to reconnect by requesting network info
               pubnubConnection.reconnect();
               reconnectTimer = null;
@@ -127,7 +112,6 @@ export const getPubNub = async () => {
     
     return pubnubConnection;
   } catch (error) {
-    console.error('[PubNub] Initialization error:', error);
     connectionState = 'disconnected';
     pubnubConnection = null;
     throw error;
@@ -149,7 +133,6 @@ export const connectPubNub = async (userId) => {
     
     // Set the UUID for this PubNub instance
     pubnub.setUUID(userId);
-    console.log(`[PubNub] Set UUID to: ${userId}`);
     
     // If we're already connected with this user ID, return the connection
     if (pubnub.getUUID() === userId) {
@@ -158,7 +141,6 @@ export const connectPubNub = async (userId) => {
     
     return pubnub;
   } catch (error) {
-    console.error('[PubNub] Connect error:', error);
     throw error;
   }
 };
@@ -185,7 +167,6 @@ export const closePubNub = async () => {
       pubnubConnection = null;
       return true;
     } catch (error) {
-      console.error('[PubNub] Close error:', error);
       connectionState = 'disconnected';
       pubnubConnection = null;
     }
@@ -206,12 +187,9 @@ const activeListeners = new Map();
 // Subscribe to a channel and set up message listener
 export const setupChatChannel = (channel, callback) => {
   if (!pubnubConnection) {
-    console.error('[PubNub] Cannot set up channel: No PubNub connection');
     return null;
   }
 
-  console.log(`[PubNub] Setting up channel: ${channel}`);
-  
   // Mark this channel as active
   markChannelActive(channel);
   
@@ -227,13 +205,10 @@ export const setupChatChannel = (channel, callback) => {
       },
       (status, response) => {
         if (status.error) {
-          console.error("[PubNub] Error fetching history:", status);
           return;
         }
         
         if (response && response.channels && response.channels[channel]) {
-          console.log(`[PubNub] Fetched ${response.channels[channel].length} historical messages`);
-          
           // Mark this channel as having had history fetched
           historyFetchedForChannels.add(channel);
           
@@ -246,8 +221,6 @@ export const setupChatChannel = (channel, callback) => {
         }
       }
     );
-  } else {
-    console.log(`[PubNub] Skipping history fetch for channel ${channel} - already loaded`);
   }
 
   // Subscribe to the channel for real-time updates
@@ -259,8 +232,6 @@ export const setupChatChannel = (channel, callback) => {
   // Set up the listener for new messages and presence events
   const messageHandler = (messageEvent) => {
     if (messageEvent.channel === channel) {
-      console.log(`[PubNub] Message received on ${messageEvent.channel}:`, messageEvent.message);
-      
       // First check if we should generate a notification for this message
       const message = messageEvent.message;
       const currentUserId = localStorage.getItem('user_id');
@@ -283,7 +254,6 @@ export const setupChatChannel = (channel, callback) => {
               senderName = friend.userName;
             }
           } catch (error) {
-            console.error('[PubNub] Error getting sender name:', error);
           }
           
           // Show browser notification
@@ -297,10 +267,7 @@ export const setupChatChannel = (channel, callback) => {
               senderId: message.senderId
             }
           }).catch(error => {
-            console.error('[PubNub] Error showing notification:', error);
           });
-        } else {
-          console.log(`[PubNub] Not showing notification for active channel: ${channel}`);
         }
       }
       
@@ -314,15 +281,12 @@ export const setupChatChannel = (channel, callback) => {
     message: messageHandler,
     presence: (presenceEvent) => {
       if (presenceEvent.channel === channel) {
-        console.log(`[PubNub] Presence event on ${presenceEvent.channel}:`, presenceEvent);
       }
       // Handle presence events (join, leave, etc.) if needed
     },
     status: (statusEvent) => {
       if (statusEvent.category === "PNConnectedCategory") {
-        console.log(`[PubNub] Connected to ${channel}`);
       } else if (statusEvent.category === "PNReconnectedCategory") {
-        console.log(`[PubNub] Reconnected to ${channel}`);
         
         // Fetch missed messages on reconnection, but only if needed
         pubnubConnection.fetchMessages(
@@ -332,8 +296,6 @@ export const setupChatChannel = (channel, callback) => {
           },
           (status, response) => {
             if (!status.error && response && response.channels && response.channels[channel]) {
-              console.log(`[PubNub] Fetched ${response.channels[channel].length} messages after reconnection`);
-              
               // Process missed messages
               response.channels[channel]
                 .sort((a, b) => a.timetoken - b.timetoken)
@@ -353,7 +315,6 @@ export const setupChatChannel = (channel, callback) => {
   return {
     // Function to unsubscribe and clean up
     cleanup: () => {
-      console.log(`[PubNub] Unsubscribing from channel: ${channel}`);
       pubnubConnection.removeListener(listener);
       pubnubConnection.unsubscribe({
         channels: [channel],
@@ -367,12 +328,10 @@ export const setupChatChannel = (channel, callback) => {
 // Enhanced message sending with better error handling and deduplication
 export const sendChatMessage = async (channel, text, metadata = {}) => {
   if (!pubnubConnection) {
-    console.error('[PubNub] Cannot send message: No PubNub connection');
     return Promise.reject(new Error('PubNub connection not initialized'));
   }
 
   if (!channel || !text) {
-    console.error('[PubNub] Missing channel or message text');
     return Promise.reject(new Error('Missing channel or message text'));
   }
 
@@ -386,8 +345,6 @@ export const sendChatMessage = async (channel, text, metadata = {}) => {
     ...metadata,
   };
 
-  console.log(`[PubNub] Publishing to channel ${channel}:`, messagePayload);
-
   return new Promise((resolve, reject) => {
     pubnubConnection.publish(
       {
@@ -396,10 +353,8 @@ export const sendChatMessage = async (channel, text, metadata = {}) => {
       },
       (status, response) => {
         if (status.error) {
-          console.error('[PubNub] Publish error:', status);
           reject(status);
         } else {
-          console.log('[PubNub] Message published successfully:', response);
           resolve(response);
         }
       }
@@ -410,8 +365,6 @@ export const sendChatMessage = async (channel, text, metadata = {}) => {
 // Test PubNub connection
 export const testPubNubConnection = async () => {
   try {
-    console.log('[PubNub] Running connection test...');
-    
     // Use a test user ID
     const testUserId = `test-${Date.now()}`;
     const testChannel = `test-channel-${Date.now()}`;
@@ -421,7 +374,6 @@ export const testPubNubConnection = async () => {
     const pubnub = await getPubNub();
     
     if (!pubnub) {
-      console.error('[PubNub] Test failed: Could not get PubNub instance');
       return false;
     }
     
@@ -432,32 +384,15 @@ export const testPubNubConnection = async () => {
     return new Promise((resolve) => {
       pubnub.time((status) => {
         if (!status.error) {
-          console.log('[PubNub] Test successful: Server time received');
-          
-          // Try publishing a message as an additional test
-          pubnub.publish({
-            channel: testChannel,
-            message: { text: "Test message", timestamp: new Date().toISOString() }
-          }, (status) => {
-            if (!status.error) {
-              console.log('[PubNub] Test publish successful');
-              connectionState = 'connected';
-              resolve(true);
-            } else {
-              console.error('[PubNub] Test publish failed:', status.error);
-              connectionState = 'disconnected';
-              resolve(false);
-            }
-          });
+          connectionState = 'connected';
+          resolve(true);
         } else {
-          console.error('[PubNub] Test failed:', status.error);
           connectionState = 'disconnected';
           resolve(false);
         }
       });
     });
   } catch (error) {
-    console.error('[PubNub] Test failed with error:', error);
     connectionState = 'disconnected';
     return false;
   }
@@ -470,7 +405,6 @@ export const getPubNubState = () => {
 
 // For backwards compatibility with existing code
 export const addMessageListener = (channel, callback) => {
-  console.log(`[PubNub] Using addMessageListener (legacy) for channel: ${channel}`);
   const setup = setupChatChannel(channel, callback);
   if (setup) {
     // Store the cleanup function in a global registry
@@ -482,7 +416,6 @@ export const addMessageListener = (channel, callback) => {
 
 // For backwards compatibility with existing code
 export const removeMessageListener = (channel) => {
-  console.log(`[PubNub] Using removeMessageListener (legacy) for channel: ${channel}`);
   const cleanup = activeListeners.get(channel);
   if (cleanup) {
     cleanup();
@@ -503,7 +436,6 @@ export const shouldShowNotification = (channel, message) => {
   
   // Don't show notifications if the chat is active and the window is focused
   if (isChannelActive(channel) && isChatFocused) {
-    console.log(`[PubNub] Not showing notification for active channel: ${channel}`);
     return false;
   }
   

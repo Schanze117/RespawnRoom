@@ -19,7 +19,6 @@ const seedAll = async () => {
 
     process.exit(0);
   } catch (err) {
-    console.error('Error seeding database', err);
     process.exit(1);
   }
 };

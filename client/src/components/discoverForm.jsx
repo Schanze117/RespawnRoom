@@ -168,7 +168,6 @@ export default function DiscoverForm() {
             if (page === 1) setDiscoverForm({ genre: [], playerPerspective: [], themes: [], modes: [] }); // Reset form only on initial submit
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
-            console.error("Error filtering games:", error);
             setDisplay(displayError("Error searching games. Please try again."));
         } finally {
             setLoading(false);

@@ -10,38 +10,29 @@ const FriendCard = ({
   onMessageClick,
   unreadCount = 0
 }) => {
-  console.log('[FriendCard] Rendering for friend:', friend?.userName, 'ID:', friend?._id);
-  console.log('[FriendCard] Props received:', { friend, activeDropdown, handleRemoveFriendExists: !!handleRemoveFriend });
-
   // Safety check to prevent rendering issues
   if (!friend || !friend._id || !friend.userName) {
-    console.error('[FriendCard] Invalid friend object:', friend);
     return null; // Don't render this card
   }
 
   // Create memoized handlers to prevent unnecessary re-renders
   const handleDropdownToggle = useCallback(() => {
-    console.log('[FriendCard] handleDropdownToggle for:', friend._id);
     setActiveDropdown(prev => prev === friend._id ? null : friend._id);
   }, [friend._id, setActiveDropdown]);
 
   const handleMessageUser = useCallback(() => {
-    console.log('[FriendCard] handleMessageUser for:', friend.userName);
     onMessageClick(friend);
   }, [friend, onMessageClick]);
 
   const handleRemoveClick = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('[FriendCard] handleRemoveClick for:', friend._id);
     // Close dropdown first to avoid event handling issues
     setActiveDropdown(null);
     // Small timeout to ensure dropdown close happens before removal
     setTimeout(() => {
       if (handleRemoveFriend) {
         handleRemoveFriend(friend._id);
-      } else {
-        console.error('[FriendCard] handleRemoveFriend function is not available');
       }
     }, 50);
   }, [friend._id, handleRemoveFriend, setActiveDropdown]);

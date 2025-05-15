@@ -53,12 +53,10 @@ export default function SearchForm() {
     };
 
     const fetchData = async (searchTerm, page, filterByReview) => {
-        console.log(`SearchForm: fetchData called with searchTerm: ${searchTerm}, page: ${page}, filterByReview: ${filterByReview}`);
         setLoading(true);
         setDisplay(<LoadingSpinner />); 
         try {
             const results = await searchGames(searchTerm, page, 25, filterByReview);
-            console.log("SearchForm: searchGames results:", results);
             if (results.games.length === 0) {
                 setDisplay(displayError(filterByReview ? "No games with 5+ reviews found" : "No results found"));
                 setSearchResults({ games: [], pagination: { totalItems: 0, totalPages: 1, currentPage: page, itemsPerPage: 25 } });
@@ -68,9 +66,6 @@ export default function SearchForm() {
             }
             if (page === 1) window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
-            console.error("SearchForm: Error in fetchData:", error);
-            console.error("SearchForm: Error message:", error.message);
-            console.error("SearchForm: Error stack:", error.stack);
             setDisplay(
                 <div className="text-red-500 py-1 px-5 text-center">
                     <p>Error searching games. Please try again.</p>
@@ -89,7 +84,6 @@ export default function SearchForm() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log("SearchForm: handleSubmit called with searchForm.search:", searchForm.search);
         if (searchForm.search === '') {
             setDisplay(displayError("Please enter a valid name"));
             return;
