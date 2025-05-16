@@ -1,264 +1,156 @@
 # RespawnRoom
 
-## Badges
-
-![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen)
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Test Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-blue)
-![GitHub Repo stars](https://img.shields.io/github/stars/Schanze117/RespawnRoom?style=flat)
-![GitHub forks](https://img.shields.io/github/forks/Schanze117/RespawnRoom?style=flat)
-![GitHub last commit](https://img.shields.io/github/last-commit/Schanze117/RespawnRoom)
-![GitHub repo size](https://img.shields.io/badge/Insights-Pulse-blue)
-![Contributors](https://img.shields.io/badge/contributors-5-brightgreen)
+**Live Project:** [RespawnRoom](https://respawnroom-client.onrender.com/)
 
 ## Table of Contents
-- [Badges](#badges)
 - [Overview](#overview)
 - [Description](#description)
-- [Screenshot & Project Link](#screenshot&project-link)
+- [Screenshot & Project Link](#screenshot--project-link)
 - [Key Features](#key-features)
+- [Tech Stack](#tech-stack)
 - [Installation](#installation)
 - [Usage](#usage)
-- [License](#license)
-- [What Did We Learn](#what-did-we-learn)
 - [Roadmap](#roadmap)
+- [What We Learned](#what-we-learned)
+- [Project Highlights](#project-highlights)
+- [Areas for Improvement](#areas-for-improvement)
 - [How to Contribute](#how-to-contribute)
-- [Tests](#tests)
-- [Credits/Contacts](#credits/contacts)
-- [Nickname Implementation](#nickname-implementation)
-- [Performance Optimization](#performance-optimization)
+- [Credits/Team](#creditsteam)
+- [License](#license)
 
 ## Overview
 
-RespawnRoom is your all-in-one gaming hub, designed to streamline the way you discover, organize, and manage your gaming collection. Whether you're looking for your next favorite title, curating a personalized wishlist, tracking your backlog, staying connected with friends, or tracking friends progress on what type of games they have played. RespawnRoom makes it easy to stay on top of it all.
+RespawnRoom is your all-in-one gaming hub that streamlines discovering, organizing, and managing your gaming collection. Find new titles, curate wishlists, track your backlog and connect with friends.
 
 ## Description
 
-RespawnRoom offers a seamless, user-friendly platform for all your gaming needs. With features like game discovery, wishlist management, it's the ultimate tool for gamers who want to keep their gaming journey organized and connected. Whether you're an avid gamer exploring new titles or managing your growing backlog, RespawnRoom enhances your entire gaming experience beyond just playing games. Respawn rooms allows you to stay connected with other avid gamers on the socail network platform. 
+Built with the MERN stack (MongoDB, Express, React, Node.js) and GraphQL, RespawnRoom offers a seamless platform for gamers featuring game discovery, social networking, and collection management. It integrates with IGDB for comprehensive game data and implements a token-based recommendation system that improves personalized suggestions over time.
 
-## SCREENSHOT 
+Security is prioritized through JWT authentication, password hashing with bcrypt, and CORS protection. The social networking component enables real-time messaging via PubNub, creating a community where sharing recommendations and tracking friends' gaming activities becomes effortless.
 
-<img width="951" alt="image" src="https://github.com/user-attachments/assets/1de82e68-2dd5-4cd6-8aa1-ac0cfe2e4e78" />
+## Screenshot & Project Link
 
-
-## LINK TO PROJECT
-https://respawnroom-client.onrender.com/
+<img width="951" alt="RespawnRoom Screenshot" src="https://github.com/user-attachments/assets/1de82e68-2dd5-4cd6-8aa1-ac0cfe2e4e78" />
 
 ## Key Features
 
-Game Discovery: Search for and explore a vast collection of video games across different platforms, genres, and release dates. RespawnRoom makes it easier than ever to find your next favorite game with advanced search filters and personalized recommendations.
+- **User Authentication**: Secure login with email/password or Google OAuth integration
+- **Game Discovery**: Search the IGDB database for games with cover art and details
+- **Game Collection**: Save favorite games to your personal collection
+- **Social Networking**: Add friends, accept/decline friend requests
+- **Real-time Chat**: Message friends through PubNub integration
+- **GraphQL API**: Efficient data fetching with Apollo Client/Server
+- **Responsive Design**: Mobile-friendly UI built with React and Tailwind CSS
+- **Security**: JWT authentication, password encryption, and rate limiting
 
-Wishlist Management: Create and maintain a personalized wishlist of games you'd like to buy or play in the future. Stay organized by tracking games you are interested in, with notifications for price drops, sales, or new updates.
+## Tech Stack
 
-Personalized Profiles: Customize your gaming profile with your gaming preferences, achievements, and backlogs. Show off your favorite games, what you've played, and what's on your radar. Your profile serves as a hub for everything related to your gaming journey.
+### Frontend
+- React, Vite, Apollo Client, React Router, Tailwind CSS
+- PubNub for real-time messaging, JWT for authentication
+- Lazy loading and code splitting for optimized performance
 
-Game Backlog Tracker: Keep track of the games you own, those you've completed, and those still on your to-play list. RespawnRoom helps you stay organized and focused, ensuring no game gets left behind.
+### Backend
+- Node.js, Express, Apollo Server (GraphQL)
+- MongoDB with Mongoose for data modeling
+- JWT, Passport.js with Google OAuth, bcrypt for security
+- CORS and rate limiting for protection
 
-Social Integration: Connect with fellow gamers, share your gaming experiences, and discover what others are playing. Engage in discussions, share game reviews, and get recommendations from a community of like-minded players.
-
-Seamless User Experience: With its sleek, intuitive design, RespawnRoom provides a fluid and enjoyable experience for both casual and hardcore gamers. Whether you're browsing games, updating your wishlist, or managing your backlog, the platform ensures an effortless journey.
-
-Whether you're new to gaming or a seasoned pro, RespawnRoom is the ultimate tool for staying on top of your gaming library and connecting with the gaming community.
+### External APIs
+- IGDB for game data
+- Google OAuth for authentication
+- PubNub for real-time messaging
 
 ## Installation
 
-To get started with RespawnRoom, follow these steps:
+```bash
+# Clone and navigate
+git clone https://github.com/Schanze117/RespawnRoom.git
+cd RespawnRoom
 
-1. **Clone the Repository:**
-   ```bash
-   git clone https://github.com/Schanze117/RespawnRoom.git
-   ```
-2. **Navigate to the Project Directory:**
-   ```bash
-   cd RespawnRoom
-   ```
-3. **Install Dependencies:**
-   ```bash
-   npm install  # for Node.js projects
-   pip install -r requirements.txt  # for Python projects
-   ```
-4. **Run the Application:**
-   ```bash
-   npm start  # or the appropriate command for your setup
-   ```
+# Install dependencies
+npm install
+
+# Set up .env with required variables
+
+# Start development server
+npm run start:dev
+```
 
 ## Usage
 
-Once the application is running, you can:
+- **Find Games**: Search the IGDB database for titles
+- **Save Games**: Add games to your personal collection
+- **Connect**: Add friends and chat in real-time
+- **Authenticate**: Sign in with email or Google account
+- **Browse**: Explore game recommendations on the home page
 
-- Search for video games by title.
-- Add games to your wishlist.
-- Manage and customize your user profile.
+
+## What We Learned
+
+- GraphQL provides more efficient data fetching than REST
+- Authentication security requires multiple protection layers
+- Real-time features present unique scalability challenges
+- MongoDB schema design needs careful planning for performance
+- Modern React patterns improve maintainability and performance
+- API integration requires handling rate limits and data formatting
+- Collaborative development demands clear communication
+
+## Project Highlights
+
+### Technical Excellence
+- **Dual Authentication**: Implementation of both JWT and Google OAuth
+- **GraphQL API**: Well-structured schemas and resolvers
+- **Real-time Messaging**: PubNub integration for friend chat
+- **Component Architecture**: Modular React components with lazy loading
+- **MongoDB Integration**: Efficient data models with Mongoose
+
+### Dev Skills
+- **Full-Stack Development**: Proficiency across React, Node.js, GraphQL, and MongoDB
+- **Security Implementation**: Authentication, encryption, and API protection
+- **Third-Party Integration**: IGDB, Google OAuth, and PubNub APIs
+- **Modern Frontend**: React with Hooks, Context API, and Tailwind CSS
+- **Clean Code**: Organized directory structure and consistent patterns
+
+## Areas for Improvement
+
+- Expand test coverage for better reliability
+- Add internationalization support
+- Integrate analytics for usage insights
+- Add content moderation for user communications
+
+## How to Contribute
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature-name`)
+3. Commit changes (`git commit -m 'Add feature'`)
+4. Push to branch (`git push origin feature-name`)
+5. Open a Pull Request
+
+## Credits/Team
+
+- **Jonathan Correa** - [GitHub](https://github.com/xPandemonium)  
+  UX/UI Design • React/Tailwind • YouTube Integration • API Integration • Documentation Research
+
+- **Saleh Farah** - [GitHub](https://github.com/sfar93)  
+  Authentication • Twitch API Integration • API Security • Testing/QA
+
+- **James Boulden** - [GitHub](https://github.com/JamixB97)  
+  Search & Discover Functionality • Game Saving • MongoDB/GraphQL Migration • Database Administration
+
+- **Aaron Schanzenbach** - [GitHub](https://github.com/Schanze117)  
+  Project Management • Authentication • Sprint Planning • Timeline Management • Team Coordination
+
+- **Mahdi Ghaleb** - [GitHub](https://github.com/Mahdi-196)  
+  Google Auth Integration • AWS Deployment • Home Page Logic and Design • PubNub Real-Time Chat • Performance Optimization • Documentation
+
+### External Resources
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Twitch API](https://dev.twitch.tv/docs/api/)
+- [Google API](https://developers.google.com/identity/sign-in/web/sign-in)
+- [IGDB](https://www.igdb.com/)
+- [PubNub](https://www.pubnub.com/)
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
-## What Did We Learn?
-
-During the development of RespawnRoom, I gained valuable insights into:
-
-1. **Game Search Implementation** - Learned how to integrate external APIs to enable seamless game search functionality.
-2. **Efficient Data Management** - Explored methods for handling user data and wishlists efficiently.
-3. **UI/UX Enhancements** - Focused on improving user experience with clean design principles.
-4. **Version Control & Collaboration** - Strengthened my skills in using Git for managing project versions and collaborating with others.
-5. **Feature Development** - Worked on adding interactive features that enhance user engagement.
-6. Read Docs more thoroughly.
-
-## Roadmap
-
-✅ Phase 1: Core Features (Current Progress)
- - User authentication & profiles
- - Game collection management (add, edit, delete games)
- - Wishlist & backlog tracking
- - Basic search and filtering for game discovery
- - Responsive UI with Tailwind
- - Advanced Filtering & Sorting (by genre, platform, completion status, etc.)
-
-🔄 Phase 2: Enhancements & User Experience Improvements (Near Future)
- - Dark Mode & UI customization options
- - Game Progress Tracking (track hours played, completion percentage)
- - Cloud Sync & Cross-Device Support
-
-🌍 Phase 3: Community & Social Features (Mid-Term Goals)
- - User Reviews & Ratings for games
- - Friends & Game Recommendations based on interests
- - Public & Private Lists (share your collections)
- - Activity Feed (track what friends are playing)
-
-🔥 Phase 4: Expansion & Advanced Features (Long-Term Goals)
- - Game Deals & Price Tracking integration
- - Backlog Challenge Mode (gamify backlog completion)
- - AI-Powered Game Suggestions
- - Mod & DLC Tracking for games
-
-
-## How to Contribute
-
-We welcome collaborators! Join us in improving the project. 🚀 To contribute:
-
-1. **Fork the repository.**
-2. **Create a new branch:**
-   ```bash
-   git checkout -b feature-branch
-   ```
-3. **Commit your changes:**
-   ```bash
-   git commit -m 'Add new feature'
-   ```
-4. **Push the branch:**
-   ```bash
-   git push origin feature-branch
-   ```
-5. **Open a Pull Request.**
-
-## Tests
-
-To run tests, use the following command:
-
-```bash
-npm test  # or the appropriate command for your setup
-```
-
-To check test coverage, run:
-
-```bash
-npm run test:coverage
-```
-## Credits/Contact
-
-Project Team
-
-- Jonathan Correa - https://github.com/xPandemonium
-   UX/UI Designer: Leads the design of visual elements, ensuring a seamless user experience with React and Tailwind. Testing/QA
-
-- Saleh Farah - https://github.com/sfar93
-   Backend/Front End Developer: Handled token authentication, API integrations, and social network integrations. Testing/QA
-
-- James Boulden - https://github.com/JamixB97
-   Backend/Front End Developer: Created Search and Discover API integrations. Converted database from PostgreSQL to MongoDB and API Routes to Graphql. Testing/QA
-
-- Aaron Schanzenbach - https://github.com/Schanze117
-   Backend/Front End Engineer: Managed authentication, task allocation, and team coordination. Created Badges for profiles. Testing/QA
-
-- Mahdi Ghaleb - https://github.com/Mahdi-196
-   Backend/Front End Developer: Handled Login authentication through Google, social network database integration using video and audio communication. Created and designed home page. Testing/QA
-
-With help from:
-- Tailwind - https://tailwindcss.com/
-- Twitch API - https://dev.twitch.tv/docs/api/
-- Google API - https://developers.google.com/identity/sign-in/web/sign-in
-- IGDB - https://www.igdb.com/
-
-## Nickname Implementation
-
-The application uses Agora's Real-Time Messaging (RTM) SDK alongside RTC for implementing user nicknames. This approach ensures that user nicknames are properly displayed in real-time voice chats.
-
-### Implementation Details
-
-1. **RTM for User Metadata**: 
-   - User nicknames are stored as attributes in the RTM system
-   - The RTM client handles user presence and attribute management
-
-2. **Login Sequence**:
-   - RTM login occurs before RTC channel join
-   - Nickname is set as an RTM user attribute
-   - RTC join uses `joinChannelWithUserAccount` for proper identity linking
-
-3. **Nickname Retrieval**:
-   - When users join, their attributes are fetched via RTM
-   - A retry mechanism handles race conditions in attribute propagation
-   - Fallback to UID display if nickname retrieval fails
-
-This implementation ensures that nicknames are consistent across the application and properly displayed for all participants in a room.
-
-## Performance Optimization
-
-### Bundle Analysis
-
-The application uses Vite with Rollup for bundling. To analyze the bundle size:
-
-1. Run the bundle analyzer:
-```bash
-cd client
-npm run build
-```
-
-This will automatically generate a bundle analysis report at `dist/stats.html` that you can open in your browser.
-
-### Code Splitting
-
-The application implements code splitting to reduce initial load time:
-
-- Route-based splitting for all major pages
-- Component-level splitting for large components like modals and chat popups
-- Vendor chunk optimization for third-party libraries
-
-### Performance Monitoring
-
-A simple performance monitoring utility is included in `client/src/utils/errorLogger.js`:
-
-```javascript
-// Measure component rendering time
-import { performance } from '../utils/errorLogger';
-
-// In a component:
-const result = performance.measureRender('ComponentName', () => {
-  // Your rendering logic
-  return <ActualComponent />;
-});
-
-// Or create custom performance measurements:
-const timer = performance.create('operation-name');
-timer.start();
-// ... perform operation
-const duration = timer.end(); // Returns duration in ms
-```
-
-### Further Optimizations
-
-- Use the Chrome DevTools Performance tab to identify slow components
-- Implement virtualized lists for large data sets
-- Use memoization for expensive calculations
-- Consider implementing Server-Side Rendering (SSR) for key landing pages
