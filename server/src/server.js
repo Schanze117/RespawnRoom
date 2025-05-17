@@ -65,16 +65,28 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT;
+
+// Enable CORS for all routes
+app.use(cors());
 
 // Set allowed origins based on environment
-const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? [process.env.CLIENT_URL || 'https://yourdomain.com'] 
-  : ['http://localhost:3000', 'http://localhost:5173'];
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'https://respawnroom.online',
+  'https://www.respawnroom.online'
+];
 
 // Apply CORS middleware globally
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error('CORS not allowed by server'), false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'cache-control', 'x-requested-with', 'apollo-require-preflight'],
@@ -83,31 +95,49 @@ app.use(cors({
 }));
 
 // Ensure preflight requests are handled for all routes
-app.options('*', cors());
+app.options('*', cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error('CORS not allowed by server'), false);
+  },
+  credentials: true
+}));
 
 // Add specific protection for GraphQL preflight requests
 app.options('/graphql', (req, res, next) => {
-  // Allow OPTIONS requests to proceed with CORS headers
-  // but add strict headers to prevent abuse
-  res.header('Access-Control-Allow-Origin', allowedOrigins[0]);
-  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Max-Age', '86400');
-  res.status(200).end();
+  // Handle CORS for OPTIONS requests
+  const origin = req.get('Origin');
+  if (!origin || allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, cache-control, x-requested-with, apollo-require-preflight');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
+    res.status(200).end();
+  } else {
+    res.status(403).end();
+  }
 });
 
 // Add CORS headers to all responses
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', allowedOrigins[0]);
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, cache-control, x-requested-with, apollo-require-preflight');
+  const origin = req.get('Origin');
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, cache-control, x-requested-with, apollo-require-preflight');
+  }
   next();
 });
 
 app.use(express.json());
 // Serve static files from the React app build directory in production
-app.use(express.static(path.join(__dirname, '../../client/dist')));
+// Commented out as frontend isn't deployed yet
+// app.use(express.static(path.join(__dirname, '../../client/dist')));
 app.use(routes); // Mount API routes from routes/index.js
 
 passport.use(new GoogleStrategy({
@@ -133,11 +163,11 @@ const server = new ApolloServer({
   typeDefs,
   resolvers,
   // Disable introspection in production
-  introspection: process.env.NODE_ENV !== 'production',
+  introspection: false,
   // Add better error handling
   formatError: (err) => {
     // Mask internal server errors in production
-    if (process.env.NODE_ENV === 'production' && err.message.includes('Internal server error')) {
+    if (err.message.includes('Internal server error')) {
       return new Error('Internal server error');
     }
     return err;
@@ -227,7 +257,13 @@ app.use('/graphql',
     plugins: [],
     // Add explicit CORS options for Apollo
     cors: {
-      origin: allowedOrigins,
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        callback(new Error('CORS not allowed by server'), false);
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
       allowedHeaders: ['Content-Type', 'Authorization', 'cache-control', 'x-requested-with', 'apollo-require-preflight'],
@@ -819,7 +855,15 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
 });
 
+// Add global error handler
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
 // Start the server
 app.listen(PORT, () => {
   // Server started
 });
+
+export default app;
