@@ -100,7 +100,7 @@ export default function Login() {
   }, [location, navigate]);
 
   // Define the Google login URL
-  let googleUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/google` : "http://localhost:3001/auth/google";
+  let googleUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/google` : "/auth/google";
 
   // Generate Google auth URL with redirect state
   const getGoogleAuthUrl = () => {
@@ -108,7 +108,7 @@ export default function Login() {
     const redirectUrl = sessionStorage.getItem('redirectUrl');
     
     // Base Google auth URL
-    const baseGoogleUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/google` : "http://localhost:3001/auth/google";
+    const baseGoogleUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/google` : "/auth/google";
     
     // Add state parameter with redirect URL if available
     if (redirectUrl) {
@@ -130,7 +130,7 @@ export default function Login() {
         
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded">
+            <div className="bg-red-500 bg-opacity-10 border border-red-500 text-white px-4 py-3 rounded">
               {error}
             </div>
           )}

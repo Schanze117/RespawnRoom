@@ -115,7 +115,7 @@ export default function Register() {
   };
 
   // Define the Google login URL
-  let googleUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/google` : "http://localhost:3001/auth/google";
+  let googleUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/google` : "/auth/google";
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#121827]">
@@ -127,7 +127,7 @@ export default function Register() {
         
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
-            <div className="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded">
+            <div className="bg-red-500 bg-opacity-10 border border-red-500 text-white px-4 py-3 rounded">
               {error}
             </div>
           )}

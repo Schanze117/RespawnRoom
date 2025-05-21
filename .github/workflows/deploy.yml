@@ -1,0 +1,92 @@
+name: Deploy RespawnRoom
+
+on:
+  push:
+    branches:
+      - main
+      - production-dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'client/package-lock.json'
+          
+      - name: Install jq
+        run: sudo apt-get install jq
+        
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+          
+      - name: Build client
+        working-directory: ./client
+        run: |
+          npm ci
+          npm run build
+          
+      - name: Deploy to S3
+        run: |
+          aws s3 sync client/dist/ s3://respawnroom-frontend/ --delete
+          
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation --distribution-id E3N45BEAZR80N5 --paths "/*"
+          
+      - name: Verify certificate status
+        id: cert-status
+        run: |
+          CERT_STATUS=$(aws acm describe-certificate --certificate-arn arn:aws:acm:us-east-1:107767828459:certificate/e3fe133f-601e-479d-8ba5-4aa5b4805d52 --query 'Certificate.Status' --output text)
+          echo "Certificate status: $CERT_STATUS"
+          echo "cert_status=$CERT_STATUS" >> $GITHUB_OUTPUT
+          
+      - name: Update CloudFront distribution
+        if: steps.cert-status.outputs.cert_status == 'ISSUED'
+        run: |
+          DIST_CONFIG=$(aws cloudfront get-distribution-config --id E3N45BEAZR80N5)
+          ETAG=$(echo "$DIST_CONFIG" | grep -o '"ETag": "[^"]*"' | cut -d'"' -f4)
+          
+          echo "Creating updated distribution configuration..."
+          cat > cf-update.json << EOF
+          {
+            "DistributionConfig": $(echo "$DIST_CONFIG" | jq '.DistributionConfig | 
+              .Aliases.Items = ["respawnroom.online", "www.respawnroom.online"] | 
+              .Aliases.Quantity = 2 | 
+              .DefaultRootObject = "index.html" | 
+              .ViewerCertificate = {
+                "ACMCertificateArn": "arn:aws:acm:us-east-1:107767828459:certificate/e3fe133f-601e-479d-8ba5-4aa5b4805d52",
+                "SSLSupportMethod": "sni-only",
+                "MinimumProtocolVersion": "TLSv1.2_2021",
+                "Certificate": "arn:aws:acm:us-east-1:107767828459:certificate/e3fe133f-601e-479d-8ba5-4aa5b4805d52",
+                "CertificateSource": "acm"
+              }')
+          }
+          EOF
+          
+          echo "Updating CloudFront distribution..."
+          aws cloudfront update-distribution --id E3N45BEAZR80N5 --if-match "$ETAG" --cli-input-json file://cf-update.json
+          
+      - name: Check deployment status
+        run: |
+          DIST_STATUS=$(aws cloudfront get-distribution --id E3N45BEAZR80N5 --query 'Distribution.Status' --output text)
+          echo "Distribution Status: $DIST_STATUS"
+          
+      - name: Test website URLs
+        run: |
+          echo "Testing respawnroom.online..."
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://respawnroom.online || echo "Site not accessible yet, deployment may still be in progress"
+          
+          echo "Testing www.respawnroom.online..."
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://www.respawnroom.online || echo "Site not accessible yet, deployment may still be in progress" 

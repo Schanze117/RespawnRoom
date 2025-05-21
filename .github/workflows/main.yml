@@ -7,7 +7,7 @@ deploy:
       with:
         service_id: ${{ secrets.dep-d0dci4h5pdvs7391m7j0 }}
         api_key: ${{ secrets.rnd_sV5S0BG1EaLgT3sYolSe4ixTc2Fh }}
-        clear_cache: true # Optional: Clear Render's build cache
+        clear_cache: true
         wait_deploy: true
         github_deployment: true
         deployment_environment: 'production'

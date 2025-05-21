@@ -4,10 +4,9 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-// Get the IGDB credentials from environment variables
-// Don't use VITE_ prefix for server-side variables
-const IGDB_CLIENT_ID = process.env.IGDB_CLIENT_ID || process.env.VITE_CLIENT_ID;
-const IGDB_ACCESS_TOKEN = process.env.IGDB_ACCESS_TOKEN || process.env.VITE_ACCESS_TOKEN;
+// Remove fallbacks for IGDB configuration
+const IGDB_CLIENT_ID = process.env.IGDB_CLIENT_ID;
+const IGDB_ACCESS_TOKEN = process.env.IGDB_ACCESS_TOKEN;
 
 // Configure the axios instance for IGDB API
 export const igdbAPI = axios.create({

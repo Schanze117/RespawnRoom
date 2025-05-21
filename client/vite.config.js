@@ -4,9 +4,9 @@ import tailwindcss from '@tailwindcss/vite'
 import { visualizer } from 'rollup-plugin-visualizer'
 
 export default defineConfig(({ mode }) => {
-
   const env = loadEnv(mode, process.cwd(), '')
   const isProduction = mode === 'production'
+  const apiUrl = env.VITE_API_URL  
   
   return {
     plugins: [
@@ -67,22 +67,22 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api2': {
-          target: 'http://localhost:3001',
+          target: apiUrl,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api2/, '/api2'),
         },
         '/api': {
-          target: 'http://localhost:3001',
+          target: apiUrl,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, '/api'),
         },
         '/auth': {
-          target: 'http://localhost:3001',
+          target: apiUrl,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/auth/, '/auth'),
         },
         '/graphql': {
-          target: 'http://localhost:3001',
+          target: apiUrl,
           changeOrigin: true,
         }
       },
@@ -91,4 +91,3 @@ export default defineConfig(({ mode }) => {
     }
   }
 })
-

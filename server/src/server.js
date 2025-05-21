@@ -1,3 +1,6 @@
+// Add this at the VERY TOP of src/server.js
+console.log('EXPRESS_APP_LOG: SM00 - src/server.js execution started');
+
 import express from 'express';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
@@ -67,9 +70,6 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const app = express();
 const PORT = process.env.PORT;
 
-// Enable CORS for all routes
-app.use(cors());
-
 // Set allowed origins based on environment
 const allowedOrigins = [
   'http://localhost:3000',
@@ -80,7 +80,7 @@ const allowedOrigins = [
 
 // Apply CORS middleware globally
 app.use(cors({
-  origin: (origin, callback) => {
+  origin: function(origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
@@ -96,14 +96,16 @@ app.use(cors({
 
 // Ensure preflight requests are handled for all routes
 app.options('*', cors({
-  origin: (origin, callback) => {
+  origin: function(origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     callback(new Error('CORS not allowed by server'), false);
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'cache-control', 'x-requested-with', 'apollo-require-preflight']
 }));
 
 // Add specific protection for GraphQL preflight requests
@@ -257,7 +259,7 @@ app.use('/graphql',
     plugins: [],
     // Add explicit CORS options for Apollo
     cors: {
-      origin: (origin, callback) => {
+      origin: function(origin, callback) {
         if (!origin) return callback(null, true);
         if (allowedOrigins.includes(origin)) {
           return callback(null, true);
@@ -851,8 +853,8 @@ app.get('*', (req, res) => {
     return res.status(401).json({ message: 'Unauthorized access. Please log in.' });
   }
   
-  // For all other routes that aren't API endpoints, serve the React app
-  res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
+  // For Lambda deployment, just return a 404 for non-API routes instead of serving static files
+  return res.status(404).json({ message: 'Not found. This is an API server only.' });
 });
 
 // Add global error handler
@@ -866,4 +868,6 @@ app.listen(PORT, () => {
   // Server started
 });
 
+// Add this right BEFORE export default app;
+console.log('EXPRESS_APP_LOG: SM_LAST - src/server.js fully initialized, exporting app.');
 export default app;

@@ -22,8 +22,6 @@ if (!connectionString.startsWith('mongodb://') && !connectionString.startsWith('
 }
 
 mongoose.connect(connectionString, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
 });

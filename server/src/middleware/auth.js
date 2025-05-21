@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Get the JWT secret key from environment variables
-const JWT_SECRET = process.env.JWT_SECRET_KEY || 'fallbacksecretkey';
+const JWT_SECRET = process.env.JWT_SECRET_KEY;
 
 /**
  * Authenticates the user by verifying their JWT token for Express middleware use

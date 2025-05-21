@@ -27,7 +27,7 @@ import ProtectedRoute from './utils/ProtectedRoute.jsx';
 
 // Create an HTTP link
 const httpLink = createHttpLink({
-  uri: import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:3001/graphql',
+  uri: import.meta.env.VITE_GRAPHQL_URL ,
   credentials: 'include',
   fetchOptions: {
     mode: 'cors',

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const LoginPrompt = () => {
   // Define the Google login URL using environment variable with fallback
-  const googleUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/google` : "http://localhost:3001/auth/google";
+  const googleUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/google` : "/auth/google";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-900 bg-opacity-95">

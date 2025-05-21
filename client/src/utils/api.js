@@ -1,502 +1,432 @@
-export const API_BASE_URL = "https://api.igdb.com/v4"; 
-export const SERVER_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+// API Configuration
+export const API_BASE_URL = "https://api.igdb.com/v4";
+export const SERVER_URL = import.meta.env.VITE_API_URL;
+export const IGDB_IMAGE_URL = import.meta.env.VITE_IGDB_IMAGE_URL;
 
-// Search for games by name with pagination
-export const searchGames = async (game, page = 1, itemsPerPage = 25, filterByReviewCount = false) => {
-  try {
-    // Calculate offset based on page and itemsPerPage
-    const offset = (page - 1) * itemsPerPage;
-    
-    let reviewFilterQuery = '';
-    if (filterByReviewCount) {
-      reviewFilterQuery = ' & (total_rating_count >= 5 | rating_count >= 5)';
-    }
-
-    // Construct the count query string
-    let countQueryContent = `search "${game}"; fields id; limit 500;`;
-    if (filterByReviewCount) {
-      // If filtering by reviews, apply the filter to the count query.
-      // Note: IGDB syntax for search + where can be tricky.
-      // This attempts to count games matching the search AND the review filter.
-      // A simple search might be `search "game name"; fields id; where (filter_condition); limit 500;`
-      // If the search term itself is complex or contains special characters, this might need escaping.
-      // For now, we assume the 'game' variable is a simple string.
-      countQueryContent = `search "${game}"; fields id; where (total_rating_count >= 5 | rating_count >= 5); limit 500;`;
-    } else {
-      // If not filtering by reviews, just count games matching the search term.
-      countQueryContent = `search "${game}"; fields id; limit 500;`;
-    }
-    
-    // First get a count of matching games for pagination
-    // Note: The count query might not perfectly reflect the review filter, leading to potentially inaccurate totalPages.
-    // A more complex solution would be to make the count query also aware of the review filter, 
-    // but that can be significantly more complex with IGDB's API for combined search + where.
-    const countResponse = await fetch(`${SERVER_URL}/api/games`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        content: countQueryContent
-      })
-    });
-    
-    let totalEstimatedCount = 0;
-    
-    if (!countResponse.ok) {
-      const errorText = await countResponse.text();
-      totalEstimatedCount = itemsPerPage * 2; // Fallback if count fails
-    } else {
-      const countData = await countResponse.json();
-      totalEstimatedCount = countData.length;
-      // If count is 500, it might be capped, so we fetch actual results to refine
-    }
-    
-    // Fetch the game data from the API with pagination and review filter
-    // Let's rename mainQuery to mainQueryString for clarity before it's logged
-    let mainQueryString = `search "${game}"; fields name, cover.url, summary, genres.name, player_perspectives.name, videos, websites, rating, total_rating, aggregated_rating, rating_count, total_rating_count; limit ${itemsPerPage}; offset ${offset}`;
-
-    if (filterByReviewCount) {
-      mainQueryString += '; where (total_rating_count >= 5 | rating_count >= 5)';
-    }
-    mainQueryString += ';'; // Ensure the query string properly ends with a semicolon
-
-    const response = await fetch(`${SERVER_URL}/api/games`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        content: mainQueryString // Use the corrected query string
-      })
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API Error: ${response.status} ${response.statusText}. Details: ${errorText}`);
-    }
-    
-    const games = await response.json();
-
-    // Refine totalEstimatedCount if the initial count was capped at 500 and this is the first page
-    if (totalEstimatedCount === 500 && page === 1 && games.length < itemsPerPage && filterByReviewCount) {
-        // If fewer than itemsPerPage results on page 1 with filter, assume this is all there is.
-        // This is a heuristic and might not be perfect for large datasets.
-        totalEstimatedCount = games.length;
-    } else if (filterByReviewCount && games.length < itemsPerPage && page === 1) {
-        // If the count was less than 500 but we still get fewer than itemsPerPage, that's the total
-        totalEstimatedCount = games.length;
-    } else if (filterByReviewCount && games.length === 0 && page > 1) {
-        // If we get no games on a subsequent page with the filter, the previous page was the last.
-        totalEstimatedCount = (page - 1) * itemsPerPage;
-    }
-
-
-    return {
-      games,
-      pagination: {
-        totalItems: totalEstimatedCount,
-        totalPages: Math.max(1, Math.ceil(totalEstimatedCount / itemsPerPage)),
-        currentPage: page,
-        itemsPerPage
-      }
-    };
-    
-  } catch (error) {
-    throw error; // Re-throw the original error or a new one wrapping it
-  }
+// Format image URLs
+export const getOptimizedImageUrl = (url, size = "t_720p") => {
+  if (!url) return null;
+  if (url.startsWith("http")) return url;
+  
+  // Handle URLs that might come with or without the cover ID format
+  const imageId = url.includes("/") ? url.split("/")[1] : url;
+  return `${IGDB_IMAGE_URL}/${size}/${imageId}`;
 };
 
-export const getGameVideo = async (id) => {
+/**
+ * Get trending games from the API
+ */
+export async function getTrendingGames() {
   try {
+    // Add a timestamp for cache busting
+    const timestamp = Date.now();
+    const response = await fetch(`${SERVER_URL}/api/games/trending?_cb=${timestamp}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Error fetching trending games');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching trending games:', error);
+    return [];
+  }
+}
+
+/**
+ * Get latest releases from the API
+ */
+export async function getLatestReleases() {
+  try {
+    // Add a timestamp for cache busting
+    const timestamp = Date.now();
+    const response = await fetch(`${SERVER_URL}/api/games/latest?_cb=${timestamp}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Error fetching latest releases');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching latest releases:', error);
+    return [];
+  }
+}
+
+/**
+ * Get top rated games from the API
+ */
+export async function getTopRatedGames() {
+  try {
+    // Add a timestamp for cache busting
+    const timestamp = Date.now();
+    const response = await fetch(`${SERVER_URL}/api/games/top-rated?_cb=${timestamp}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Error fetching top rated games');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching top rated games:', error);
+    return [];
+  }
+}
+
+/**
+ * Get upcoming games from the API
+ */
+export async function getUpcomingGames() {
+  try {
+    // Add a timestamp for cache busting
+    const timestamp = Date.now();
+    const response = await fetch(`${SERVER_URL}/api/games/upcoming?_cb=${timestamp}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Error fetching upcoming games');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching upcoming games:', error);
+    return [];
+  }
+}
+
+/**
+ * Get a game by its ID
+ */
+export async function getGameById(id) {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/games/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error fetching game with ID ${id}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`Error fetching game with ID ${id}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Get game video by game ID
+ */
+export async function getGameVideo(id) {
+  try {
+    const content = `
+      fields video_id, game, name;
+      where game = ${id};
+      limit 10;
+    `;
+
     const response = await fetch(`${SERVER_URL}/api/game_videos`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        content: `fields checksum,game,name,video_id; where id = (${id});`
-      })
+      body: JSON.stringify({ content }),
     });
 
-    const data = await response.json();
     if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
+      throw new Error(`Error fetching videos for game with ID ${id}`);
     }
+
+    const data = await response.json();
     return data;
-  }
-  catch (error) {
-    throw error;
+  } catch (error) {
+    console.error(`Error fetching videos for game with ID ${id}:`, error);
+    return [];
   }
 }
 
-// Filter games by genre, player perspective, theme, and mode
-export const filterGames = async (genres = [], playerPerspectives = [], themes = [], modes = [], page = 1, itemsPerPage = 25, filterByReviewCount = false) => {
+/**
+ * Search games by name
+ */
+export async function searchGames(query) {
   try {
-    // Build the query string based on the filters using AND logic within each category type
-    const genreQuery = genres.length > 0 ? genres.map(g => `genres = (${g})`).join(' & ') : '';
-    const perspectiveQuery = playerPerspectives.length > 0 ? playerPerspectives.map(p => `player_perspectives = (${p})`).join(' & ') : '';
-    const themeQuery = themes.length > 0 ? themes.map(t => `themes = (${t})`).join(' & ') : '';
-    const modesQuery = modes.length > 0 ? modes.map(m => `game_modes = (${m})`).join(' & ') : '';
-    
-    // Join the different category types with AND logic
-    let whereClause = [genreQuery, perspectiveQuery, themeQuery, modesQuery].filter(Boolean).join(' & ');
+    const content = `
+      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id;
+      search "${query}";
+      limit 50;
+    `;
 
-    if (filterByReviewCount) {
-      const reviewFilter = '(total_rating_count >= 5 | rating_count >= 5)';
-      if (whereClause) {
-        whereClause += ` & ${reviewFilter}`;
-      } else {
-        whereClause = reviewFilter;
-      }
-    }
-    
-    if (!whereClause) { // If no filters are applied, it's problematic for a 'where only' query
-        whereClause = 'id != null'; // Default to a condition that's always true if no other filters
+    const response = await fetch(`${SERVER_URL}/api/games`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Error searching games');
     }
 
-    // Calculate offset based on page and itemsPerPage
-    const offset = (page - 1) * itemsPerPage;
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error searching games:', error);
+    return [];
+  }
+}
 
-    // Count query with all filters
+/**
+ * Filter games by genre, perspective, themes, and modes
+ */
+export async function filterGames(
+  genres = [],
+  perspectives = [],
+  themes = [],
+  modes = [],
+  page = 1,
+  limit = 25,
+  requireReviews = false
+) {
+  try {
+    // Build the where clauses for the query
+    const whereConditions = [];
+    
+    // Add genre filter if any genres are selected
+    if (genres && genres.length > 0) {
+      const genreIds = genres.map(g => parseInt(g));
+      whereConditions.push(`genres = (${genreIds.join(',')})`);
+    }
+    
+    // Add player perspective filter if any are selected
+    if (perspectives && perspectives.length > 0) {
+      const perspectiveIds = perspectives.map(p => parseInt(p));
+      whereConditions.push(`player_perspectives = (${perspectiveIds.join(',')})`);
+    }
+    
+    // Add themes filter if any are selected
+    if (themes && themes.length > 0) {
+      const themeIds = themes.map(t => parseInt(t));
+      whereConditions.push(`themes = (${themeIds.join(',')})`);
+    }
+    
+    // Add game modes filter if any are selected
+    if (modes && modes.length > 0) {
+      const modeIds = modes.map(m => parseInt(m));
+      whereConditions.push(`game_modes = (${modeIds.join(',')})`);
+    }
+    
+    // Add review count filter if required
+    if (requireReviews) {
+      whereConditions.push(`rating_count >= 5`);
+    }
+    
+    // Calculate offset based on page and limit
+    const offset = (page - 1) * limit;
+    
+    // Build the complete query
+    let query = `
+      fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id;
+    `;
+    
+    // Add where clause if we have any conditions
+    if (whereConditions.length > 0) {
+      query += `where ${whereConditions.join(' & ')};`;
+    }
+    
+    // Add sort, limit and offset
+    query += `
+      sort rating desc;
+      limit ${limit};
+      offset ${offset};
+    `;
+    
+    // Build the count query to get total number of matching games
+    let countQuery = `
+      fields id;
+    `;
+    
+    // Add where clause if we have any conditions
+    if (whereConditions.length > 0) {
+      countQuery += `where ${whereConditions.join(' & ')};`;
+    }
+    
+    // Send the requests
+    const response = await fetch(`${SERVER_URL}/api/games`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content: query }),
+    });
+    
     const countResponse = await fetch(`${SERVER_URL}/api/games`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        content: `fields id; where ${whereClause}; limit 500;` // Max limit for count estimation
-      }),
+      body: JSON.stringify({ content: countQuery }),
     });
-
-    let totalEstimatedCount = 0;
     
-    if (countResponse.ok) {
-      const countData = await countResponse.json();
-      totalEstimatedCount = countData.length;
-    } else {
-      totalEstimatedCount = itemsPerPage * 2; // Fallback
+    if (!response.ok || !countResponse.ok) {
+      throw new Error('Error filtering games');
     }
-
-    // Then get the actual page of games
-    const mainQuery = `fields name, cover.url, summary, genres.name, player_perspectives.name, videos, rating, total_rating, aggregated_rating, rating_count, total_rating_count; where ${whereClause}; limit ${itemsPerPage}; offset ${offset};`;
-    const response = await fetch(`${SERVER_URL}/api/games`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        content: mainQuery
-      }),
-    });
-
+    
     const games = await response.json();
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
-    }
-
-    // Refine totalEstimatedCount if the initial count was capped at 500 and this is the first page
-    if (totalEstimatedCount === 500 && page === 1 && games.length < itemsPerPage) {
-        totalEstimatedCount = games.length;
-    } else if (games.length < itemsPerPage && page === 1) {
-        totalEstimatedCount = games.length;
-    } else if (games.length === 0 && page > 1) {
-        totalEstimatedCount = (page - 1) * itemsPerPage;
-    }
-
+    const countData = await countResponse.json();
+    
+    // Calculate total pages
+    const totalItems = countData.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    
     return {
       games,
       pagination: {
-        totalItems: totalEstimatedCount,
-        totalPages: Math.max(1, Math.ceil(totalEstimatedCount / itemsPerPage)),
+        totalItems,
+        totalPages,
         currentPage: page,
-        itemsPerPage
+        itemsPerPage: limit
       }
     };
-    
   } catch (error) {
-    throw error;
+    console.error('Error filtering games:', error);
+    return {
+      games: [],
+      pagination: {
+        totalItems: 0,
+        totalPages: 0,
+        currentPage: page,
+        itemsPerPage: limit
+      }
+    };
   }
-};
+}
 
-// Get trending games
-export const getTrendingGames = async () => {
+/**
+ * Get user preference tokens from the server
+ */
+export async function getTokens() {
   try {
-    // Add cache busting timestamp to prevent cached results
-    const timestamp = new Date().getTime();
-    const response = await fetch(`${SERVER_URL}/api/games/trending?_cb=${timestamp}`, {
+    const response = await fetch(`${SERVER_URL}/api/user/tokens`, {
       method: 'GET',
       headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store'
-      }
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('id_token')}`,
+      },
     });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    throw error;
-  }
-};
 
-// Get latest releases
-export const getLatestReleases = async () => {
-  try {
-    // Add cache busting timestamp to prevent cached results
-    const timestamp = new Date().getTime();
-    const response = await fetch(`${SERVER_URL}/api/games/latest?_cb=${timestamp}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store'
-      }
-    });
-    
     if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
+      throw new Error('Error fetching user tokens');
     }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    throw error;
-  }
-};
 
-// Get top rated games
-export const getTopRatedGames = async () => {
-  try {
-    // Add cache busting timestamp to prevent cached results
-    const timestamp = new Date().getTime();
-    const response = await fetch(`${SERVER_URL}/api/games/top-rated?_cb=${timestamp}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
     const data = await response.json();
-    return data;
+    return data.tokens || {};
   } catch (error) {
-    throw error;
+    console.error('Error fetching user tokens:', error);
+    return {};
   }
-};
+}
 
-// Get upcoming games
-export const getUpcomingGames = async () => {
+/**
+ * Update user preference tokens
+ */
+export async function updateTokens(tokens) {
   try {
-    // Add cache busting timestamp to prevent cached results
-    const timestamp = new Date().getTime();
-    const response = await fetch(`${SERVER_URL}/api/games/upcoming?_cb=${timestamp}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    throw error;
-  }
-};
-
-// Get game by ID
-export const getGameById = async (id) => {
-  try {
-    const response = await fetch(`${SERVER_URL}/api/games`, {
+    const response = await fetch(`${SERVER_URL}/api/user/tokens`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('id_token')}`,
       },
-      // Ensure all relevant rating fields are fetched
-      body: JSON.stringify({
-        content: `fields name, cover.url, summary, genres.name, player_perspectives.name, screenshots.url, videos.video_id, websites.url, release_dates.human, aggregated_rating, aggregated_rating_count, rating, rating_count, total_rating, total_rating_count, similar_games.name, similar_games.cover.url, storyline, themes.name, game_modes.name; where id = ${id};`
-      })
+      body: JSON.stringify({ tokens }),
     });
-    const game = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
-    }
-    
-    // Since we expect a single game, return the first element of the array
-    return game.length > 0 ? game[0] : null;
-    
-  } catch (error) {
-    throw error;
-  }
-};
 
-// Get user category tokens for personalized recommendations
-export const getTokens = async () => {
-  try {
-    
-    // Get the auth token from local storage
-    const token = localStorage.getItem('jwtToken');
-    if (!token) {
-      return getFallbackTokens();
-    }
-    
-    const response = await fetch(`${SERVER_URL}/api/user/tokens`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    
     if (!response.ok) {
-      const errorText = await response.text();
-      return getFallbackTokens();
+      throw new Error('Error updating user tokens');
     }
-    
-    const data = await response.json();
-    return data.categoryTokens || {};
-  } catch (error) {
-    return getFallbackTokens();
-  }
-};
 
-// Fallback tokens function to use when server is unavailable
-function getFallbackTokens() {
-  // For production, we should log this failure for monitoring
-  // but still provide a minimal implementation that won't break the application
-  
-  // In production, you would add proper logging here like:
-  // logger.warn('Failed to fetch user tokens from server, using empty tokens');
-  
-  return {
-    "_source": "empty", 
-    // Return an empty object with a source marker
-    // This will trigger the app to show the appropriate UI for users without preferences
-  };
-}
-
-// Update user category tokens for personalized recommendations
-export const updateTokens = async (categoryTokens) => {
-  try {
-    const response = await fetch(`${SERVER_URL}/api/user/tokens`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
-      },
-      body: JSON.stringify({ categoryTokens })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
     const data = await response.json();
     return data;
   } catch (error) {
+    console.error('Error updating user tokens:', error);
     throw error;
   }
-};
+}
 
-// Get personalized game recommendations based on user tokens
-export const getPersonalizedGames = async () => {
+/**
+ * Get personalized game recommendations
+ */
+export async function getPersonalizedGames() {
   try {
-    
-    // Get the auth token from local storage
-    const token = localStorage.getItem('jwtToken');
-    if (!token) {
-      return [];
-    }
-    
     const response = await fetch(`${SERVER_URL}/api/games/personalized`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
+        'Authorization': `Bearer ${localStorage.getItem('id_token')}`,
+      },
     });
-    
-    // Handle different status codes
-    if (response.status === 429) {
-      // Return empty array so the component can use the fallback logic
-      return [];
-    }
-    
+
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API request failed with status ${response.status}`);
+      throw new Error('Error fetching personalized games');
     }
-    
+
     const data = await response.json();
-    
-    // Add a default matchScore if not provided by the server
-    return data.map(game => ({
-      ...game,
-      matchScore: game.matchScore || game.matchPercentage || (game.rating ? Math.min(95, Math.round(game.rating)) : 75)
-    }));
+    return data || [];
   } catch (error) {
+    console.error('Error fetching personalized games:', error);
     throw error;
   }
-};
+}
 
-// Fetch all game categories in a single request
-export const getAllCategorizedGames = async () => {
+/**
+ * Get all categorized games in a single API call
+ */
+export async function getAllCategorizedGames() {
   try {
-    // Add cache busting timestamp to prevent cached results
-    const timestamp = new Date().getTime();
+    // Add a timestamp for cache busting
+    const timestamp = Date.now();
     const response = await fetch(`${SERVER_URL}/api/games/all-categories?_cb=${timestamp}`, {
       method: 'GET',
       headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store'
-      }
+        'Content-Type': 'application/json',
+      },
     });
-    
+
     if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
+      throw new Error('Error fetching all categorized games');
     }
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
+    console.error('Error fetching all categorized games:', error);
     throw error;
   }
-};
-
-// Helper to get game data for multiple IDs
-export const getGamesByIds = async (ids) => {
-  if (!ids || ids.length === 0) {
-    return [];
-  }
-  try {
-    const response = await fetch(`${SERVER_URL}/api/games`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        content: `fields name, cover.url, summary, genres.name, player_perspectives.name, rating, total_rating, aggregated_rating, rating_count, total_rating_count; where id = (${ids.join(',')}); limit ${ids.length};`
-      })
-    });
-    const games = await response.json();
-    if (!response.ok) {
-      throw new Error(`API Error fetching games by IDs: ${response.statusText}`);
-    }
-    return games;
-  } catch (error) {
-    return []; // Return empty array on error
-  }
-};
+}
