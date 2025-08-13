@@ -8,6 +8,11 @@ import { onError } from '@apollo/client/link/error';
 import { RetryLink } from '@apollo/client/link/retry';
 import { DotLoader } from './utils/LoadingSkeletons';
 
+// Environment Variable Debugging
+console.log("🔍 VITE_API_URL=", import.meta.env.VITE_API_URL);
+console.log("🔍 VITE_GRAPHQL_URL=", import.meta.env.VITE_GRAPHQL_URL);
+console.log("🔍 Environment Mode=", import.meta.env.MODE);
+
 // Lazily load all components, including App
 const App = lazy(() => import('./App.jsx'));
 const Home = lazy(() => import('./pages/home.jsx'));
@@ -27,12 +32,15 @@ import ProtectedRoute from './utils/ProtectedRoute.jsx';
 
 // Create an HTTP link
 const httpLink = createHttpLink({
-  uri: import.meta.env.VITE_GRAPHQL_URL ,
+  uri: import.meta.env.VITE_GRAPHQL_URL || 'https://www.respawnroom.online/graphql',
   credentials: 'include',
   fetchOptions: {
     mode: 'cors',
   },
 });
+
+// Log GraphQL URL for debugging
+console.log("🔍 Apollo Client using GraphQL URL:", import.meta.env.VITE_GRAPHQL_URL || 'https://www.respawnroom.online/graphql');
 
 // Create an auth link to include the token in the headers
 const authLink = setContext((_, { headers }) => {

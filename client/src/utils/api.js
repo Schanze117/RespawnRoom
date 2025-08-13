@@ -1,7 +1,10 @@
 // API Configuration
 export const API_BASE_URL = "https://api.igdb.com/v4";
-export const SERVER_URL = import.meta.env.VITE_API_URL;
-export const IGDB_IMAGE_URL = import.meta.env.VITE_IGDB_IMAGE_URL;
+export const SERVER_URL = import.meta.env.VITE_API_URL || 'https://www.respawnroom.online';
+export const IGDB_IMAGE_URL = import.meta.env.VITE_IGDB_IMAGE_URL || 'https://images.igdb.com/igdb/image/upload';
+
+// Display API URL for debugging
+console.log("🔍 API utils using SERVER_URL:", SERVER_URL);
 
 // Format image URLs
 export const getOptimizedImageUrl = (url, size = "t_720p") => {
@@ -20,12 +23,20 @@ export async function getTrendingGames() {
   try {
     // Add a timestamp for cache busting
     const timestamp = Date.now();
-    const response = await fetch(`${SERVER_URL}/api/games/trending?_cb=${timestamp}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    const url = `${SERVER_URL}/api/games/trending?_cb=${timestamp}`;
+    const method = 'GET';
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    
+    console.log("➡️ Fetch", method, url, headers);
+    
+    const response = await fetch(url, {
+      method,
+      headers,
     });
+    
+    console.log("⬅️ Response", response.status, [...response.headers], await response.clone().text());
 
     if (!response.ok) {
       throw new Error('Error fetching trending games');
@@ -34,7 +45,7 @@ export async function getTrendingGames() {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching trending games:', error);
+    console.error("❌ Fetch error", `${SERVER_URL}/api/games/trending`, error);
     return [];
   }
 }

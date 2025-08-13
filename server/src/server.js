@@ -9,16 +9,101 @@ import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import { typeDefs, resolvers } from './schemas/index.js';
 import { authenticateToken, getUserFromToken } from './middleware/auth.js';
-
-import './config/connection.js';
-import routes from './routes/index.js';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import './config/connection.js';
+import routes from './routes/index.js';
 import fetch from 'node-fetch';
 import cors from 'cors';
 import { handleGoogleAuth } from './controllers/googleAuthController.js';
 import User from './models/users.js';
+
+// Setup __dirname for ES modules first - moved outside of try/catch
+let __dirname;
+try {
+  __dirname = dirname(fileURLToPath(import.meta.url));
+  
+  // Configure dotenv to load from root directory - EARLY
+  console.log('EXPRESS_APP_LOG: SM01 - Configuring dotenv');
+  dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+  console.log('EXPRESS_APP_LOG: SM02 - Environment loaded, MONGODB_URI available:', !!process.env.MONGODB_URI);
+} catch (error) {
+  console.error('EXPRESS_APP_LOG: CRITICAL ENV ERROR:', error);
+  // Don't exit process, let Lambda handle it
+}
+
+// Create Express app
+const app = express();
+
+// Define allowed origins for CORS
+const allowedOrigins = [
+  'https://www.respawnroom.online',
+  'https://respawnroom.online',
+  'http://localhost:3000',
+  'http://localhost:3001'
+];
+
+// Log CORS options for debugging
+console.log("CORS OPTIONS:", JSON.stringify({
+  allowedOrigins,
+  credentials: true,
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'apollo-require-preflight', 'cache-control'],
+  optionsSuccessStatus: 204
+}, null, 2));
+
+// *** IMPORTANT: Apply CORS as the VERY FIRST middleware ***
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like Insomnia, curl)
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`EXPRESS_APP_LOG: CORS allowed for origin: ${origin || 'No Origin'}`);
+      callback(null, true);
+    } else {
+      console.error(`EXPRESS_APP_LOG: CORS rejected for origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'apollo-require-preflight', 'cache-control'],
+  credentials: true,
+  optionsSuccessStatus: 204
+};
+
+// 1. FIRST: Handle all OPTIONS requests (preflight)
+app.options('*', cors(corsOptions));
+
+// 2. SECOND: Apply CORS to all routes
+app.use(cors(corsOptions));
+
+// 3. THIRD: Other middleware AFTER CORS
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log("EXPRESS REQ:", req.method, req.path, {
+    origin: req.headers.origin,
+    contentType: req.headers['content-type'],
+    authorization: req.headers.authorization ? 'Bearer [REDACTED]' : 'none',
+    body: req.method !== 'GET' ? JSON.stringify(req.body).substring(0, 200) : 'none'
+  });
+  
+  // Track response for logging
+  const originalSend = res.send;
+  res.send = function(data) {
+    console.log("EXPRESS RES:", req.method, req.path, {
+      statusCode: res.statusCode,
+      hasData: !!data,
+      corsExposed: res.getHeader('Access-Control-Allow-Origin'),
+      contentType: res.getHeader('Content-Type')
+    });
+    return originalSend.apply(res, arguments);
+  };
+  
+  next();
+});
 
 // Add a simple rate limiter
 const rateLimit = (maxRequests, windowMs) => {
@@ -62,245 +147,100 @@ const rateLimit = (maxRequests, windowMs) => {
   };
 };
 
-// Setup __dirname for ES modules
-const __dirname = dirname(fileURLToPath(import.meta.url));
-// Configure dotenv to load from root directory
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+// 4. FOURTH: Mount API routes AFTER CORS and basic middleware
+app.use(routes);
 
-const app = express();
-const PORT = process.env.PORT;
-
-// Set allowed origins based on environment
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'https://respawnroom.online',
-  'https://www.respawnroom.online'
-];
-
-// Apply CORS middleware globally
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    callback(new Error('CORS not allowed by server'), false);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'cache-control', 'x-requested-with', 'apollo-require-preflight'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  maxAge: 86400 // 24 hours
-}));
-
-// Ensure preflight requests are handled for all routes
-app.options('*', cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    callback(new Error('CORS not allowed by server'), false);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'cache-control', 'x-requested-with', 'apollo-require-preflight']
-}));
-
-// Add specific protection for GraphQL preflight requests
-app.options('/graphql', (req, res, next) => {
-  // Handle CORS for OPTIONS requests
-  const origin = req.get('Origin');
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
-    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, cache-control, x-requested-with, apollo-require-preflight');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400');
-    res.status(200).end();
-  } else {
-    res.status(403).end();
-  }
-});
-
-// Add CORS headers to all responses
-app.use((req, res, next) => {
-  const origin = req.get('Origin');
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, cache-control, x-requested-with, apollo-require-preflight');
-  }
-  next();
-});
-
-app.use(express.json());
-// Serve static files from the React app build directory in production
-// Commented out as frontend isn't deployed yet
-// app.use(express.static(path.join(__dirname, '../../client/dist')));
-app.use(routes); // Mount API routes from routes/index.js
-
+// Configure passport
 passport.use(new GoogleStrategy({
-  clientID:     process.env.GOOGLE_CLIENT_ID,
+  clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL:  process.env.GOOGLE_CALLBACK_URL 
-},
-async (accessToken, refreshToken, profile, done) => {
+  callbackURL: process.env.GOOGLE_CALLBACK_URL 
+}, async (accessToken, refreshToken, profile, done) => {
   try {
-    // Use the controller to handle Google authentication
     const { user, token } = await handleGoogleAuth(profile);
     done(null, { user, token });
   } catch (error) {
     done(error, null);
   }
-}
-));
+}));
 
 app.use(passport.initialize());
 
-// Create Apollo Server
-const server = new ApolloServer({
+// Create Apollo Server instance but DON'T start it yet
+const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
-  // Disable introspection in production
-  introspection: false,
-  // Add better error handling
-  formatError: (err) => {
-    // Mask internal server errors in production
-    if (err.message.includes('Internal server error')) {
-      return new Error('Internal server error');
+  introspection: process.env.NODE_ENV !== 'production',
+  formatError: (formattedError) => {
+    // Log the error for debugging
+    console.error("APOLLO_ERROR:", formattedError);
+    // Return sanitized errors in production
+    if (process.env.NODE_ENV === 'production') {
+      return { message: 'Internal server error' };
     }
-    return err;
+    return formattedError;
   },
 });
 
-// Start Apollo Server before applying middleware
-await server.start();
+// Track initialization state with module-level variables
+let apolloInitialized = false;
+let apolloInitializationPromise = null;
 
-// Add a direct block for any attempt to access /graphql directly from a browser
-app.get('/graphql', (req, res) => {
-  return res.status(401).send('Direct browser access to GraphQL is not allowed. Authentication required.');
-});
+// Export the app directly for sync usage
+export default app;
 
-app.get(
-'/auth/google',
-(req, res, next) => {
-  // Pass the state parameter if provided
-  const options = { 
-    scope: ['profile', 'email']
-  };
-  
-  // If state parameter exists, preserve it
-  if (req.query.state) {
-    options.state = req.query.state;
+// Also export an initialization function that can be awaited if needed
+export const initializeApolloServer = async () => {
+  // If already initialized or in the process of initializing, return the existing promise
+  if (apolloInitialized) {
+    console.log('EXPRESS_APP_LOG: Apollo Server already initialized, skipping start()');
+    return true;
   }
   
-  passport.authenticate('google', options)(req, res, next);
-});
-
-app.get(
-'/auth/google/callback',
-passport.authenticate('google', { session: false, failureRedirect: '/login' }),
-async (req, res) => {
-  try {
-    // req.user is now { user, token }
-    const { token } = req.user;
-    
-    if (!token) {
-      return res.redirect(`${allowedOrigins[0]}/login?error=google_auth_failed`);
-    }
-    
-    // Use the configured client URL
-    const clientUrl = allowedOrigins[0];
-    
-    // Check if there's a saved redirect in the state parameter
-    const redirectPath = req.query.state ? decodeURIComponent(req.query.state) : '';
-    
-    // Build the redirect URL with token and optional redirect path
-    let redirectUrl = `${clientUrl}?token=${token}`;
-    
-    // Add redirect path if available
-    if (redirectPath && redirectPath !== '/login' && redirectPath !== '/register') {
-      redirectUrl += `&redirect=${encodeURIComponent(redirectPath)}`;
-    }
-    
-    // Redirect with token and optional redirect path
-    res.redirect(redirectUrl);
-  } catch (error) {
-    res.redirect(`${allowedOrigins[0]}/login?error=google_auth_failed`);
+  if (apolloInitializationPromise) {
+    console.log('EXPRESS_APP_LOG: Apollo Server initialization already in progress, returning existing promise');
+    return apolloInitializationPromise;
   }
-}
-);
-
-// Apply Apollo Server middleware with correct CORS handling
-app.use('/graphql', 
-  // Apply rate limiting - 50 requests per 1 minute window
-  rateLimit(50, 60 * 1000),
-  // Add authentication middleware to protect GraphQL endpoint
-  (req, res, next) => {
-    // Check if the request has valid authentication
-    const user = getUserFromToken(req);
-    if (!user) {
-      return res.status(401).json({ 
-        message: 'Authentication required to access GraphQL API'
-      });
+  
+  console.log('EXPRESS_APP_LOG: Starting Apollo Server...');
+  
+  // Create a new promise for initialization and store it
+  apolloInitializationPromise = (async () => {
+    try {
+      await apolloServer.start();
+      console.log('EXPRESS_APP_LOG: Apollo Server started successfully');
+      
+      // 5. FIFTH: Apply Apollo middleware AFTER server is started
+      // Express will use the CORS headers from the global middleware for this route
+      app.use('/graphql', 
+        expressMiddleware(apolloServer, {
+          context: async ({ req }) => {
+            const user = getUserFromToken(req);
+            return { user };
+          },
+          // Explicitly disable Apollo's built-in CORS handling to avoid conflicts
+          // Let the global Express CORS middleware handle all CORS concerns
+          cors: false
+        })
+      );
+      console.log('EXPRESS_APP_LOG: Apollo middleware applied');
+      
+      // Mark as initialized only after everything succeeds
+      apolloInitialized = true;
+      return true;
+    } catch (error) {
+      console.error('EXPRESS_APP_LOG: Failed to start Apollo Server', error);
+      // Reset the promise on error so initialization can be retried
+      apolloInitializationPromise = null;
+      return false;
     }
-    next();
-  },
-  expressMiddleware(server, {
-    context: async ({ req }) => {
-      // Get the user token from the headers
-      const user = getUserFromToken(req);
-      // Add the user to the context
-      return { user };
-    },
-    plugins: [],
-    // Add explicit CORS options for Apollo
-    cors: {
-      origin: function(origin, callback) {
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
-        callback(new Error('CORS not allowed by server'), false);
-      },
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'cache-control', 'x-requested-with', 'apollo-require-preflight'],
-    }
-  })
-);
+  })();
+  
+  return apolloInitializationPromise;
+};
 
-// Route for fetching IGDB API data
-app.post('/api/games', async (req, res) => {
-  const { content } = req.body;
-
-  const API_BASE_URL = 'https://api.igdb.com/v4';
-  const token = process.env.IGDB_ACCESS_TOKEN;
-  const clientId = process.env.IGDB_CLIENT_ID;
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/games`, {
-      method: 'POST',
-      headers: {
-        'Client-ID': clientId,
-        'Authorization': `Bearer ${token}`,
-      },
-      body: content,
-    });
-
-    if (!response.ok) {
-      return res.status(response.status).json({ error: response.statusText });
-    }
-    
-    const data = await response.json();
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+// DO NOT call initializeApolloServer() at module level
+// Let index.js handle this to avoid double initialization
 
 // Add trending games endpoint
 app.get('/api/games/trending', async (req, res) => {
@@ -864,10 +804,9 @@ app.use((err, req, res, next) => {
 });
 
 // Start the server
-app.listen(PORT, () => {
+app.listen(process.env.PORT, () => {
   // Server started
 });
 
 // Add this right BEFORE export default app;
 console.log('EXPRESS_APP_LOG: SM_LAST - src/server.js fully initialized, exporting app.');
-export default app;

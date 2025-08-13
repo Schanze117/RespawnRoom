@@ -57,6 +57,40 @@ Resources:
       CloudFrontOriginAccessIdentityConfig:
         Comment: !Sub 'OAI for ${DomainName}'
 
+  CloudFrontCachingDisabledPolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: CachingDisabled
+        Comment: Caching is disabled
+        DefaultTTL: 0
+        MinTTL: 0
+        MaxTTL: 0
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: true
+          EnableAcceptEncodingBrotli: true
+          HeadersConfig:
+            HeaderBehavior: none
+          CookiesConfig:
+            CookieBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  CloudFrontAllViewerExceptHostHeaderPolicy:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: AllViewerExceptHostHeader
+        Comment: Forward all viewer headers except Host
+        HeadersConfig:
+          HeaderBehavior: allExcept
+          Headers:
+            - Host
+        CookiesConfig:
+          CookieBehavior: all
+        QueryStringsConfig:
+          QueryStringBehavior: all
+
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -69,9 +103,49 @@ Resources:
             Id: S3Origin
             S3OriginConfig:
               OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
+          - DomainName: kp527ouiz74fmouhq2dzzqciky0feltt.lambda-url.us-east-1.on.aws
+            Id: lambda-api
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [TLSv1.2]
         Enabled: true
         Comment: !Sub 'CDN for ${DomainName}'
         DefaultRootObject: index.html
+        OrderedCacheBehaviors:
+          - PathPattern: "/graphql*"
+            TargetOriginId: lambda-api
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+              - PUT
+              - POST
+              - PATCH
+              - DELETE
+            CachedMethods:
+              - GET
+              - HEAD
+            CachePolicyId: !Ref CloudFrontCachingDisabledPolicy
+            OriginRequestPolicyId: !Ref CloudFrontAllViewerExceptHostHeaderPolicy
+          - PathPattern: "/api/*"
+            TargetOriginId: lambda-api
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+              - PUT
+              - POST
+              - PATCH
+              - DELETE
+            CachedMethods:
+              - GET
+              - HEAD
+            CachePolicyId: !Ref CloudFrontCachingDisabledPolicy
+            OriginRequestPolicyId: !Ref CloudFrontAllViewerExceptHostHeaderPolicy
         DefaultCacheBehavior:
           TargetOriginId: S3Origin
           ViewerProtocolPolicy: redirect-to-https

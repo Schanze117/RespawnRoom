@@ -20,6 +20,12 @@ export default function Home() {
     const isLoggedIn = Auth.loggedIn();
     const { data: userData } = useQuery(GET_ME, {
         skip: !isLoggedIn,
+        onCompleted: (data) => {
+            console.log("Triggering fetch for GET_ME in Home component");
+        },
+        onError: (error) => {
+            console.error("❌ GET_ME query error in Home:", error);
+        }
     });
     
     // Get username if available
