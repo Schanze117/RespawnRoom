@@ -26,17 +26,26 @@ export default function Login() {
     setError('');
     
     try {
+      console.log('🔍 LOGIN DEBUG: Attempting login with email:', loginData.email);
+      
       const { data } = await loginUser({
         variables: { email: loginData.email, password: loginData.password },
       });
       
+      console.log('🔍 LOGIN DEBUG: Login response received:', data);
+      
       if (data && data.login && data.login.token) {
+        console.log('🔍 LOGIN DEBUG: Token received, length:', data.login.token.length);
+        console.log('🔍 LOGIN DEBUG: Token starts with:', data.login.token.substring(0, 20) + '...');
+        
         // Store token and redirect (this will reload the page)
         Auth.login(data.login.token);
       } else {
-        throw new Error('Login failed');
+        console.error('🔍 LOGIN ERROR: No token in response:', data);
+        throw new Error('Login failed - no token received');
       }
     } catch (err) {
+      console.error('🔍 LOGIN ERROR: Login failed:', err);
       setError('Failed to login. Please check your credentials and try again.');
     }
   };
@@ -110,13 +119,21 @@ export default function Login() {
     // Base Google auth URL
     const baseGoogleUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/google` : "/auth/google";
     
+    console.log('🔍 GOOGLE AUTH DEBUG: Generating Google auth URL');
+    console.log('🔍 GOOGLE AUTH DEBUG: VITE_API_URL =', import.meta.env.VITE_API_URL);
+    console.log('🔍 GOOGLE AUTH DEBUG: baseGoogleUrl =', baseGoogleUrl);
+    console.log('🔍 GOOGLE AUTH DEBUG: redirectUrl from sessionStorage =', redirectUrl);
+    
     // Add state parameter with redirect URL if available
     if (redirectUrl) {
       // URL encode the redirect path
       const encodedRedirect = encodeURIComponent(redirectUrl);
-      return `${baseGoogleUrl}?state=${encodedRedirect}`;
+      const finalUrl = `${baseGoogleUrl}?state=${encodedRedirect}`;
+      console.log('🔍 GOOGLE AUTH DEBUG: Final URL with state =', finalUrl);
+      return finalUrl;
     }
     
+    console.log('🔍 GOOGLE AUTH DEBUG: Final URL without state =', baseGoogleUrl);
     return baseGoogleUrl;
   };
 
@@ -185,8 +202,57 @@ export default function Login() {
         
         <div className="mt-6 text-center">
           <p className="text-gray-400 text-sm mb-4">OR</p>
-          <a
-            href={getGoogleAuthUrl()}
+          
+          {/* Form-based navigation to bypass React Router */}
+          <form
+            action="http://localhost:3001/auth/google"
+            method="GET"
+            target="_blank"
+            style={{ display: 'inline' }}
+          >
+            <button
+              type="submit"
+              className="flex items-center justify-center w-full bg-white hover:bg-gray-100 text-gray-800 font-medium py-3 rounded-md transition-colors mb-4"
+            >
+              <span className="mr-2">
+                <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+              </span>
+              Continue with Google (Form Submit)
+            </button>
+          </form>
+          
+          {/* Original button with JavaScript */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              console.log('🔍 GOOGLE AUTH DEBUG: Google login button clicked');
+              const googleAuthUrl = getGoogleAuthUrl();
+              console.log('🔍 GOOGLE AUTH DEBUG: About to navigate to:', googleAuthUrl);
+              
+              // Try multiple navigation methods
+              console.log('🔍 GOOGLE AUTH DEBUG: Attempting navigation...');
+              
+              try {
+                // Method 1: Try window.open first
+                const newWindow = window.open(googleAuthUrl, '_blank');
+                if (newWindow) {
+                  console.log('🔍 GOOGLE AUTH DEBUG: Navigation successful with window.open');
+                } else {
+                  // Method 2: Fallback to window.location.href
+                  console.log('🔍 GOOGLE AUTH DEBUG: window.open failed, trying window.location.href');
+                  window.location.href = googleAuthUrl;
+                }
+              } catch (error) {
+                console.error('🔍 GOOGLE AUTH ERROR: Navigation failed:', error);
+                // Method 3: Last resort - direct assignment
+                window.location = googleAuthUrl;
+              }
+            }}
             className="flex items-center justify-center w-full bg-white hover:bg-gray-100 text-gray-800 font-medium py-3 rounded-md transition-colors"
           >
             <span className="mr-2">
@@ -197,8 +263,8 @@ export default function Login() {
                 <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
               </svg>
             </span>
-            Continue with Google
-          </a>
+            Continue with Google (JavaScript)
+          </button>
         </div>
         
         <div className="mt-8 text-center">

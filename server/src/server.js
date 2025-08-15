@@ -41,8 +41,15 @@ const allowedOrigins = [
   'https://www.respawnroom.online',
   'https://respawnroom.online',
   'http://localhost:3000',
-  'http://localhost:3001'
+  'http://localhost:3001',
+  'http://localhost:5173'
 ];
+
+// Also allow CLIENT_URL from environment if provided
+const clientUrlFromEnv = process.env.CLIENT_URL;
+if (clientUrlFromEnv && !allowedOrigins.includes(clientUrlFromEnv)) {
+  allowedOrigins.push(clientUrlFromEnv);
+}
 
 // Log CORS options for debugging
 console.log("CORS OPTIONS:", JSON.stringify({
@@ -240,14 +247,36 @@ export const initializeApolloServer = async () => {
 };
 
 // DO NOT call initializeApolloServer() at module level
-// Let index.js handle this to avoid double initialization
 
 // Add trending games endpoint
 app.get('/api/games/trending', async (req, res) => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  if (isDevelopment) {
+    console.log('🔧 TRENDING GAMES DEBUG: Endpoint called');
+    console.log('🔧 TRENDING GAMES DEBUG: IGDB_CLIENT_ID available =', !!process.env.IGDB_CLIENT_ID);
+    console.log('🔧 TRENDING GAMES DEBUG: IGDB_ACCESS_TOKEN available =', !!process.env.IGDB_ACCESS_TOKEN);
+  }
+  
   try {
     const API_BASE_URL = 'https://api.igdb.com/v4';
     const token = process.env.IGDB_ACCESS_TOKEN;
     const clientId = process.env.IGDB_CLIENT_ID;
+    
+    if (isDevelopment) {
+      console.log('🔧 TRENDING GAMES DEBUG: Using API_BASE_URL =', API_BASE_URL);
+      console.log('🔧 TRENDING GAMES DEBUG: Token length =', token ? token.length : 'MISSING');
+      console.log('🔧 TRENDING GAMES DEBUG: Client ID length =', clientId ? clientId.length : 'MISSING');
+    }
+    
+    if (!token || !clientId) {
+      if (isDevelopment) {
+        console.error('🔧 TRENDING GAMES ERROR: Missing IGDB credentials');
+        console.error('🔧 TRENDING GAMES ERROR: Token =', !!token);
+        console.error('🔧 TRENDING GAMES ERROR: Client ID =', !!clientId);
+      }
+      return res.status(500).json({ error: 'IGDB API credentials not configured' });
+    }
     
     // Fetch first batch of 500 games
     const firstQuery = `
@@ -267,6 +296,10 @@ app.get('/api/games/trending', async (req, res) => {
       offset 500;
     `;
     
+    if (isDevelopment) {
+      console.log('🔧 TRENDING GAMES DEBUG: Sending first request...');
+    }
+    
     const firstResponse = await fetch(`${API_BASE_URL}/games`, {
       method: 'POST',
       headers: {
@@ -276,6 +309,15 @@ app.get('/api/games/trending', async (req, res) => {
       },
       body: firstQuery
     });
+    
+    if (isDevelopment) {
+      console.log('🔧 TRENDING GAMES DEBUG: First response status =', firstResponse.status);
+      console.log('🔧 TRENDING GAMES DEBUG: First response ok =', firstResponse.ok);
+    }
+    
+    if (isDevelopment) {
+      console.log('🔧 TRENDING GAMES DEBUG: Sending second request...');
+    }
     
     const secondResponse = await fetch(`${API_BASE_URL}/games`, {
       method: 'POST',
@@ -287,35 +329,86 @@ app.get('/api/games/trending', async (req, res) => {
       body: secondQuery
     });
     
+    if (isDevelopment) {
+      console.log('🔧 TRENDING GAMES DEBUG: Second response status =', secondResponse.status);
+      console.log('🔧 TRENDING GAMES DEBUG: Second response ok =', secondResponse.ok);
+    }
+    
     if (!firstResponse.ok || !secondResponse.ok) {
+      if (isDevelopment) {
+        console.error('🔧 TRENDING GAMES ERROR: API responses not ok');
+        console.error('🔧 TRENDING GAMES ERROR: First response status =', firstResponse.status);
+        console.error('🔧 TRENDING GAMES ERROR: Second response status =', secondResponse.status);
+      }
       return res.status(500).json({ error: 'Failed to fetch trending games from IGDB API' });
     }
     
     const firstData = await firstResponse.json();
     const secondData = await secondResponse.json();
     
+    if (isDevelopment) {
+      console.log('🔧 TRENDING GAMES DEBUG: First batch games count =', firstData?.length || 0);
+      console.log('🔧 TRENDING GAMES DEBUG: Second batch games count =', secondData?.length || 0);
+    }
+    
     // Combine results and remove any duplicates by ID
     const combinedGames = [...firstData, ...secondData];
     const uniqueGames = Array.from(new Map(combinedGames.map(game => [game.id, game])).values());
     
+    if (isDevelopment) {
+      console.log('🔧 TRENDING GAMES DEBUG: Combined unique games count =', uniqueGames.length);
+      console.log('🔧 TRENDING GAMES DEBUG: Sending response...');
+    }
+    
     res.json(uniqueGames);
   } catch (error) {
+    if (isDevelopment) {
+      console.error('🔧 TRENDING GAMES ERROR: Exception caught:', error.message);
+      console.error('🔧 TRENDING GAMES ERROR: Stack trace:', error.stack);
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Add latest releases endpoint
 app.get('/api/games/latest', async (req, res) => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  if (isDevelopment) {
+    console.log('🔧 LATEST RELEASES DEBUG: Endpoint called');
+    console.log('🔧 LATEST RELEASES DEBUG: IGDB_CLIENT_ID available =', !!process.env.IGDB_CLIENT_ID);
+    console.log('🔧 LATEST RELEASES DEBUG: IGDB_ACCESS_TOKEN available =', !!process.env.IGDB_ACCESS_TOKEN);
+  }
+  
   try {
     const API_BASE_URL = 'https://api.igdb.com/v4';
     const token = process.env.IGDB_ACCESS_TOKEN;
     const clientId = process.env.IGDB_CLIENT_ID;
+    
+    if (isDevelopment) {
+      console.log('🔧 LATEST RELEASES DEBUG: Using API_BASE_URL =', API_BASE_URL);
+      console.log('🔧 LATEST RELEASES DEBUG: Token length =', token ? token.length : 'MISSING');
+      console.log('🔧 LATEST RELEASES DEBUG: Client ID length =', clientId ? clientId.length : 'MISSING');
+    }
+    
+    if (!token || !clientId) {
+      if (isDevelopment) {
+        console.error('🔧 LATEST RELEASES ERROR: Missing IGDB credentials');
+        console.error('🔧 LATEST RELEASES ERROR: Token =', !!token);
+        console.error('🔧 LATEST RELEASES ERROR: Client ID =', !!clientId);
+      }
+      return res.status(500).json({ error: 'IGDB API credentials not configured' });
+    }
     
     // Current timestamp in seconds
     const now = Math.floor(Date.now() / 1000);
     // 6 months ago (increased from 3 months to get more games)
     const sixMonthsAgo = now - (60 * 60 * 24 * 180);
     
+    if (isDevelopment) {
+      console.log('🔧 LATEST RELEASES DEBUG: Time range =', { now, sixMonthsAgo });
+    }
+    
     // Fetch first batch of 500 games
     const firstQuery = `
       fields name,cover.url,genres.name,player_perspectives.name,summary,rating,rating_count,first_release_date,id;
@@ -338,6 +431,10 @@ app.get('/api/games/latest', async (req, res) => {
       offset 500;
     `;
     
+    if (isDevelopment) {
+      console.log('🔧 LATEST RELEASES DEBUG: Sending first request...');
+    }
+    
     const firstResponse = await fetch(`${API_BASE_URL}/games`, {
       method: 'POST',
       headers: {
@@ -347,6 +444,15 @@ app.get('/api/games/latest', async (req, res) => {
       },
       body: firstQuery
     });
+    
+    if (isDevelopment) {
+      console.log('🔧 LATEST RELEASES DEBUG: First response status =', firstResponse.status);
+      console.log('🔧 LATEST RELEASES DEBUG: First response ok =', firstResponse.ok);
+    }
+    
+    if (isDevelopment) {
+      console.log('🔧 LATEST RELEASES DEBUG: Sending second request...');
+    }
     
     const secondResponse = await fetch(`${API_BASE_URL}/games`, {
       method: 'POST',
@@ -358,29 +464,76 @@ app.get('/api/games/latest', async (req, res) => {
       body: secondQuery
     });
     
+    if (isDevelopment) {
+      console.log('🔧 LATEST RELEASES DEBUG: Second response status =', secondResponse.status);
+      console.log('🔧 LATEST RELEASES DEBUG: Second response ok =', secondResponse.ok);
+    }
+    
     if (!firstResponse.ok || !secondResponse.ok) {
+      if (isDevelopment) {
+        console.error('🔧 LATEST RELEASES ERROR: API responses not ok');
+        console.error('🔧 LATEST RELEASES ERROR: First response status =', firstResponse.status);
+        console.error('🔧 LATEST RELEASES ERROR: Second response status =', secondResponse.status);
+      }
       return res.status(500).json({ error: 'Failed to fetch latest releases from IGDB API' });
     }
     
     const firstData = await firstResponse.json();
     const secondData = await secondResponse.json();
     
+    if (isDevelopment) {
+      console.log('🔧 LATEST RELEASES DEBUG: First batch games count =', firstData?.length || 0);
+      console.log('🔧 LATEST RELEASES DEBUG: Second batch games count =', secondData?.length || 0);
+    }
+    
     // Combine results and remove any duplicates by ID
     const combinedGames = [...firstData, ...secondData];
     const uniqueGames = Array.from(new Map(combinedGames.map(game => [game.id, game])).values());
     
+    if (isDevelopment) {
+      console.log('🔧 LATEST RELEASES DEBUG: Combined unique games count =', uniqueGames.length);
+      console.log('🔧 LATEST RELEASES DEBUG: Sending response...');
+    }
+    
     res.json(uniqueGames);
   } catch (error) {
+    if (isDevelopment) {
+      console.error('🔧 LATEST RELEASES ERROR: Exception caught:', error.message);
+      console.error('🔧 LATEST RELEASES ERROR: Stack trace:', error.stack);
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Add top rated games endpoint
 app.get('/api/games/top-rated', async (req, res) => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  if (isDevelopment) {
+    console.log('🔧 TOP-RATED GAMES DEBUG: Endpoint called');
+    console.log('🔧 TOP-RATED GAMES DEBUG: IGDB_CLIENT_ID available =', !!process.env.IGDB_CLIENT_ID);
+    console.log('🔧 TOP-RATED GAMES DEBUG: IGDB_ACCESS_TOKEN available =', !!process.env.IGDB_ACCESS_TOKEN);
+  }
+  
   try {
     const API_BASE_URL = 'https://api.igdb.com/v4';
     const token = process.env.IGDB_ACCESS_TOKEN;
     const clientId = process.env.IGDB_CLIENT_ID;
+    
+    if (isDevelopment) {
+      console.log('🔧 TOP-RATED GAMES DEBUG: Using API_BASE_URL =', API_BASE_URL);
+      console.log('🔧 TOP-RATED GAMES DEBUG: Token length =', token ? token.length : 'MISSING');
+      console.log('🔧 TOP-RATED GAMES DEBUG: Client ID length =', clientId ? clientId.length : 'MISSING');
+    }
+    
+    if (!token || !clientId) {
+      if (isDevelopment) {
+        console.error('🔧 TOP-RATED GAMES ERROR: Missing IGDB credentials');
+        console.error('🔧 TOP-RATED GAMES ERROR: Token =', !!token);
+        console.error('🔧 TOP-RATED GAMES ERROR: Client ID =', !!clientId);
+      }
+      return res.status(500).json({ error: 'IGDB API credentials not configured' });
+    }
     
     // Fetch first batch of 500 games
     const firstQuery = `
@@ -400,6 +553,10 @@ app.get('/api/games/top-rated', async (req, res) => {
       offset 500;
     `;
     
+    if (isDevelopment) {
+      console.log('🔧 TOP-RATED GAMES DEBUG: Sending first request...');
+    }
+    
     const firstResponse = await fetch(`${API_BASE_URL}/games`, {
       method: 'POST',
       headers: {
@@ -409,6 +566,15 @@ app.get('/api/games/top-rated', async (req, res) => {
       },
       body: firstQuery
     });
+    
+    if (isDevelopment) {
+      console.log('🔧 TOP-RATED GAMES DEBUG: First response status =', firstResponse.status);
+      console.log('🔧 TOP-RATED GAMES DEBUG: First response ok =', firstResponse.ok);
+    }
+    
+    if (isDevelopment) {
+      console.log('🔧 TOP-RATED GAMES DEBUG: Sending second request...');
+    }
     
     const secondResponse = await fetch(`${API_BASE_URL}/games`, {
       method: 'POST',
@@ -420,34 +586,85 @@ app.get('/api/games/top-rated', async (req, res) => {
       body: secondQuery
     });
     
+    if (isDevelopment) {
+      console.log('🔧 TOP-RATED GAMES DEBUG: Second response status =', secondResponse.status);
+      console.log('🔧 TOP-RATED GAMES DEBUG: Second response ok =', secondResponse.ok);
+    }
+    
     if (!firstResponse.ok || !secondResponse.ok) {
-      return res.status(500).json({ error: 'Failed to fetch top rated games from IGDB API' });
+      if (isDevelopment) {
+        console.error('🔧 TOP-RATED GAMES ERROR: API responses not ok');
+        console.error('🔧 TOP-RATED GAMES ERROR: First response status =', firstResponse.status);
+        console.error('🔧 TOP-RATED GAMES ERROR: Second response status =', secondResponse.status);
+      }
+      return res.status(500).json({ error: 'Failed to fetch top-rated games from IGDB API' });
     }
     
     const firstData = await firstResponse.json();
     const secondData = await secondResponse.json();
     
+    if (isDevelopment) {
+      console.log('🔧 TOP-RATED GAMES DEBUG: First batch games count =', firstData?.length || 0);
+      console.log('🔧 TOP-RATED GAMES DEBUG: Second batch games count =', secondData?.length || 0);
+    }
+    
     // Combine results and remove any duplicates by ID
     const combinedGames = [...firstData, ...secondData];
     const uniqueGames = Array.from(new Map(combinedGames.map(game => [game.id, game])).values());
     
+    if (isDevelopment) {
+      console.log('🔧 TOP-RATED GAMES DEBUG: Combined unique games count =', uniqueGames.length);
+      console.log('🔧 TOP-RATED GAMES DEBUG: Sending response...');
+    }
+    
     res.json(uniqueGames);
   } catch (error) {
+    if (isDevelopment) {
+      console.error('🔧 TOP-RATED GAMES ERROR: Exception caught:', error.message);
+      console.error('🔧 TOP-RATED GAMES ERROR: Stack trace:', error.stack);
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Add upcoming games endpoint
 app.get('/api/games/upcoming', async (req, res) => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  if (isDevelopment) {
+    console.log('🔧 UPCOMING GAMES DEBUG: Endpoint called');
+    console.log('🔧 UPCOMING GAMES DEBUG: IGDB_CLIENT_ID available =', !!process.env.IGDB_CLIENT_ID);
+    console.log('🔧 UPCOMING GAMES DEBUG: IGDB_ACCESS_TOKEN available =', !!process.env.IGDB_ACCESS_TOKEN);
+  }
+  
   try {
     const API_BASE_URL = 'https://api.igdb.com/v4';
     const token = process.env.IGDB_ACCESS_TOKEN;
     const clientId = process.env.IGDB_CLIENT_ID;
     
+    if (isDevelopment) {
+      console.log('🔧 UPCOMING GAMES DEBUG: Using API_BASE_URL =', API_BASE_URL);
+      console.log('🔧 UPCOMING GAMES DEBUG: Token length =', token ? token.length : 'MISSING');
+      console.log('🔧 UPCOMING GAMES DEBUG: Client ID length =', clientId ? clientId.length : 'MISSING');
+    }
+    
+    if (!token || !clientId) {
+      if (isDevelopment) {
+        console.error('🔧 UPCOMING GAMES ERROR: Missing IGDB credentials');
+        console.error('🔧 UPCOMING GAMES ERROR: Token =', !!token);
+        console.error('🔧 UPCOMING GAMES ERROR: Client ID =', !!clientId);
+      }
+      return res.status(500).json({ error: 'IGDB API credentials not configured' });
+    }
+    
     // Current timestamp in seconds
     const now = Math.floor(Date.now() / 1000);
     // 1 year in the future
     const oneYearLater = now + (60 * 60 * 24 * 365);
+    
+    if (isDevelopment) {
+      console.log('🔧 UPCOMING GAMES DEBUG: Time range =', { now, oneYearLater });
+    }
     
     // Fetch first batch of 500 games
     const firstQuery = `
@@ -471,6 +688,10 @@ app.get('/api/games/upcoming', async (req, res) => {
       offset 500;
     `;
     
+    if (isDevelopment) {
+      console.log('🔧 UPCOMING GAMES DEBUG: Sending first request...');
+    }
+    
     const firstResponse = await fetch(`${API_BASE_URL}/games`, {
       method: 'POST',
       headers: {
@@ -480,6 +701,15 @@ app.get('/api/games/upcoming', async (req, res) => {
       },
       body: firstQuery
     });
+    
+    if (isDevelopment) {
+      console.log('🔧 UPCOMING GAMES DEBUG: First response status =', firstResponse.status);
+      console.log('🔧 UPCOMING GAMES DEBUG: First response ok =', firstResponse.ok);
+    }
+    
+    if (isDevelopment) {
+      console.log('🔧 UPCOMING GAMES DEBUG: Sending second request...');
+    }
     
     const secondResponse = await fetch(`${API_BASE_URL}/games`, {
       method: 'POST',
@@ -491,19 +721,43 @@ app.get('/api/games/upcoming', async (req, res) => {
       body: secondQuery
     });
     
+    if (isDevelopment) {
+      console.log('🔧 UPCOMING GAMES DEBUG: Second response status =', secondResponse.status);
+      console.log('🔧 UPCOMING GAMES DEBUG: Second response ok =', secondResponse.ok);
+    }
+    
     if (!firstResponse.ok || !secondResponse.ok) {
+      if (isDevelopment) {
+        console.error('🔧 UPCOMING GAMES ERROR: API responses not ok');
+        console.error('🔧 UPCOMING GAMES ERROR: First response status =', firstResponse.status);
+        console.error('🔧 UPCOMING GAMES ERROR: Second response status =', secondResponse.status);
+      }
       return res.status(500).json({ error: 'Failed to fetch upcoming games from IGDB API' });
     }
     
     const firstData = await firstResponse.json();
     const secondData = await secondResponse.json();
     
+    if (isDevelopment) {
+      console.log('🔧 UPCOMING GAMES DEBUG: First batch games count =', firstData?.length || 0);
+      console.log('🔧 UPCOMING GAMES DEBUG: Second batch games count =', secondData?.length || 0);
+    }
+    
     // Combine results and remove any duplicates by ID
     const combinedGames = [...firstData, ...secondData];
     const uniqueGames = Array.from(new Map(combinedGames.map(game => [game.id, game])).values());
     
+    if (isDevelopment) {
+      console.log('🔧 UPCOMING GAMES DEBUG: Combined unique games count =', uniqueGames.length);
+      console.log('🔧 UPCOMING GAMES DEBUG: Sending response...');
+    }
+    
     res.json(uniqueGames);
   } catch (error) {
+    if (isDevelopment) {
+      console.error('🔧 UPCOMING GAMES ERROR: Exception caught:', error.message);
+      console.error('🔧 UPCOMING GAMES ERROR: Stack trace:', error.stack);
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -803,9 +1057,22 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start the server
+// Initialize Apollo GraphQL and then start the server
+try {
+  const init = initializeApolloServer();
+  if (init && typeof init.then === 'function') {
+    init.then(() => {
+      console.log('EXPRESS_APP_LOG: Apollo initialized, starting HTTP server');
+    }).catch((e) => {
+      console.error('EXPRESS_APP_LOG: Apollo initialization failed, continuing without GraphQL', e);
+    });
+  }
+} catch (e) {
+  console.error('EXPRESS_APP_LOG: Error initializing Apollo (non-fatal)', e);
+}
+
 app.listen(process.env.PORT, () => {
-  // Server started
+  console.log(`EXPRESS_APP_LOG: Server listening on port ${process.env.PORT}`);
 });
 
 // Add this right BEFORE export default app;

@@ -65,6 +65,7 @@ export default defineConfig(({ mode }) => {
       dedupe: ['react', 'react-dom']
     },
     server: {
+      strictPort: true,
       proxy: {
         '/api2': {
           target: apiUrl,
@@ -86,7 +87,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
         }
       },
-      port: 3000,
+      port: 5173,
       open: true
     }
   }

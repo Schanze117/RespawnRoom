@@ -12,28 +12,49 @@ class AuthService {
   }
 
   loggedIn() {
+    console.log('🔍 AUTH DEBUG: loggedIn() function called');
+    
     const token = this.getToken();
+    console.log('🔍 AUTH DEBUG: Token from localStorage, length:', token ? token.length : 'NO TOKEN');
     
     if (!token) {
+      console.log('🔍 AUTH DEBUG: No token found, returning false');
       return false;
     }
     
     try {
+      console.log('🔍 AUTH DEBUG: Attempting to decode token for validation...');
+      
       // Try to decode the token - will throw if invalid
       const decoded = jwtDecode(token);
+      console.log('🔍 AUTH DEBUG: Token decoded successfully:', { 
+        userId: decoded._id, 
+        username: decoded.userName, 
+        email: decoded.email,
+        exp: decoded.exp 
+      });
       
       // Check if token is expired
       const isExpired = decoded?.exp && decoded?.exp < Date.now() / 1000;
+      console.log('🔍 AUTH DEBUG: Token expired check:', { 
+        currentTime: Math.floor(Date.now() / 1000), 
+        tokenExp: decoded?.exp, 
+        isExpired 
+      });
       
       if (isExpired) {
+        console.log('🔍 AUTH DEBUG: Token is expired, removing from localStorage and returning false');
         localStorage.removeItem('jwtToken');
         return false;
       }
       
+      console.log('🔍 AUTH DEBUG: Token is valid, returning true');
       return true;
     } catch (err) {
+      console.error('🔍 AUTH ERROR: Failed to decode token:', err);
       // If token is invalid or can't be decoded
       localStorage.removeItem('jwtToken');
+      console.log('🔍 AUTH DEBUG: Invalid token removed, returning false');
       return false;
     }
   }
@@ -72,24 +93,39 @@ class AuthService {
   }
 
   login(idToken) {
+    console.log('🔍 AUTH DEBUG: Login function called with token length:', idToken ? idToken.length : 'NO TOKEN');
+    
     if (!idToken) {
+      console.error('🔍 AUTH ERROR: No token provided to login function');
       return;
     }
     
     try {
+      console.log('🔍 AUTH DEBUG: Attempting to decode token...');
       
       // Attempt to decode the token to verify it's valid
       const decoded = jwtDecode(idToken);
+      console.log('🔍 AUTH DEBUG: Token decoded successfully:', { 
+        userId: decoded._id, 
+        username: decoded.userName, 
+        email: decoded.email,
+        exp: decoded.exp 
+      });
       
       // Check if token is expired
       if (decoded.exp && decoded.exp < Date.now() / 1000) {
+        console.error('🔍 AUTH ERROR: Token is expired');
         // Redirect to login page with error parameter
         window.location.assign('/login?error=expired_token');
         return;
       }
       
+      console.log('🔍 AUTH DEBUG: Token is valid, clearing existing tokens...');
+      
       // First clear out any existing tokens
       localStorage.removeItem('jwtToken');
+      
+      console.log('🔍 AUTH DEBUG: Storing new token in localStorage...');
       
       // Store the valid token in localStorage with direct method
       try {
@@ -98,11 +134,19 @@ class AuthService {
         
         // Verify it was saved
         const savedToken = localStorage.getItem('jwtToken');
+        console.log('🔍 AUTH DEBUG: Token saved successfully, length:', savedToken ? savedToken.length : 'NOT SAVED');
+        
+        if (!savedToken) {
+          throw new Error('Token was not saved to localStorage');
+        }
       } catch (storageErr) {
+        console.error('🔍 AUTH ERROR: Failed to save token to localStorage:', storageErr);
+        throw storageErr;
       }
       
       // Check if there's a saved redirect URL in sessionStorage
       const redirectUrl = sessionStorage.getItem('redirectUrl') || '/';
+      console.log('🔍 AUTH DEBUG: Redirecting to:', redirectUrl);
       
       // Clear the saved redirect URL
       sessionStorage.removeItem('redirectUrl');
@@ -110,6 +154,7 @@ class AuthService {
       // Redirect to the saved URL or home page
       window.location.assign(redirectUrl);
     } catch (err) {
+      console.error('🔍 AUTH ERROR: Exception in login function:', err);
       // Redirect to login page with error parameter
       window.location.assign('/login?error=invalid_token');
     }

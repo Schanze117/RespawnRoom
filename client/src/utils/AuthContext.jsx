@@ -36,13 +36,16 @@ export const AuthProvider = ({ children }) => {
   // Check authentication status on mount and token changes
   useEffect(() => {
     const checkAuthStatus = () => {
+      console.log('🔍 AUTH CONTEXT DEBUG: checkAuthStatus called');
       setLoading(true);
       try {
         const isLoggedIn = Auth.loggedIn();
+        console.log('🔍 AUTH CONTEXT DEBUG: Auth.loggedIn() returned:', isLoggedIn);
         
         if (isLoggedIn) {
           // Get user profile from token
           const userProfile = Auth.getProfile();
+          console.log('🔍 AUTH CONTEXT DEBUG: User profile from token:', userProfile);
           setUser({
             id: userProfile._id,
             username: userProfile.userName,
@@ -50,9 +53,11 @@ export const AuthProvider = ({ children }) => {
           });
         } else {
           // User is not logged in
+          console.log('🔍 AUTH CONTEXT DEBUG: User not logged in, setting user to null');
           setUser(null);
         }
       } catch (error) {
+        console.error('🔍 AUTH CONTEXT ERROR: Error in checkAuthStatus:', error);
         setUser(null);
       } finally {
         setLoading(false);
@@ -60,6 +65,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Initial check
+    console.log('🔍 AUTH CONTEXT DEBUG: Initial auth status check');
     checkAuthStatus();
 
     // Set up storage event listener to handle auth changes in other tabs

@@ -11,6 +11,9 @@ export default function Header() {
     const [asideOpen, setAsideOpen] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(Auth.loggedIn());
 
+    console.log('🔍 HEADER DEBUG: Component rendered, isLoggedIn state:', isLoggedIn);
+    console.log('🔍 HEADER DEBUG: Auth.loggedIn() returned:', Auth.loggedIn());
+
     // Use Apollo's useQuery hook to fetch user data
     const { loading, error, data } = useQuery(GET_ME, {
         skip: !isLoggedIn, // Skip query if the user is not logged in
@@ -18,7 +21,9 @@ export default function Header() {
 
     // Check login status whenever the component renders
     useEffect(() => {
-        setIsLoggedIn(Auth.loggedIn());
+        const authStatus = Auth.loggedIn();
+        console.log('🔍 HEADER DEBUG: useEffect - Auth.loggedIn() returned:', authStatus);
+        setIsLoggedIn(authStatus);
     }, []);
 
     const toggleAside = () => {
@@ -57,9 +62,9 @@ export default function Header() {
                                 {isLoggedIn && data?.me ? (
                                     <ProfileDropdown user={data.me} onLogout={handleLogout} />
                                 ) : (
-                                    <button>
-                                        <Link to="/login" className="text-lg font-medium text-light py-0.5 px-1 rounded-lg bg-primary-600 hover:bg-primary-700">Log in</Link>
-                                    </button>
+                                    <Link to="/login" className="text-lg font-medium text-light py-0.5 px-1 rounded-lg bg-primary-600 hover:bg-primary-700">
+                                        Log in
+                                    </Link>
                                 )}
                             </div>
                         </div>
