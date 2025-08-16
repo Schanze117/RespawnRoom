@@ -3,7 +3,7 @@ export const typeDefs = `
     _id: ID!
     userName: String!
     email: String
-    googleId: String
+
     savedGames: [VideoGame]
     friends: [User]
     friendRequests: [User]

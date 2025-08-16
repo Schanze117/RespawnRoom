@@ -24,11 +24,6 @@ CLIENT_URL=https://respawnroom.online
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/respawnroom
 JWT_SECRET_KEY=your_jwt_secret_key
 
-# Google OAuth
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_CALLBACK_URL=https://kp527ouiz74fmouhq2dzzqciky0feltt.lambda-url.us-east-1.on.aws/auth/google/callback
-
 # IGDB API
 IGDB_CLIENT_ID=your_igdb_client_id
 IGDB_ACCESS_TOKEN=your_igdb_access_token
@@ -58,9 +53,7 @@ PUBNUB_SUBSCRIBE_KEY=your_pubnub_subscribe_key
 | `CLIENT_URL` | URL of the frontend (for CORS and redirects) |
 | `MONGODB_URI` | MongoDB connection string |
 | `JWT_SECRET_KEY` | Secret key for JWT token generation/verification |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
-| `GOOGLE_CALLBACK_URL` | Google OAuth callback URL |
+
 | `IGDB_CLIENT_ID` | IGDB API client ID |
 | `IGDB_ACCESS_TOKEN` | IGDB API access token |
 | `PUBNUB_SUBSCRIBE_KEY` | PubNub subscribe key (server-side) |
@@ -77,4 +70,4 @@ PUBNUB_SUBSCRIBE_KEY=your_pubnub_subscribe_key
 1. No environment variable fallbacks should be used in production code
 2. Both client and server environments must be properly configured
 3. Environment variables are loaded from the respective .env files
-4. For AWS Lambda deployment, environment variables must be configured in the Lambda function settings 
+4. For AWS Lambda deployment, environment variables must be configured in the Lambda function settings

@@ -9,6 +9,15 @@ export default defineConfig(({ mode }) => {
   const apiUrl = env.VITE_API_URL  
   
   return {
+    define: {
+      'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL),
+      'import.meta.env.VITE_GRAPHQL_URL': JSON.stringify(env.VITE_GRAPHQL_URL),
+      'import.meta.env.VITE_IGDB_API_URL': JSON.stringify(env.VITE_IGDB_API_URL),
+      'import.meta.env.VITE_IGDB_IMAGE_URL': JSON.stringify(env.VITE_IGDB_IMAGE_URL),
+      'import.meta.env.VITE_PUBNUB_PUBLISH_KEY': JSON.stringify(env.VITE_PUBNUB_PUBLISH_KEY),
+      'import.meta.env.VITE_PUBNUB_SUBSCRIBE_KEY': JSON.stringify(env.VITE_PUBNUB_SUBSCRIBE_KEY),
+      'import.meta.env.VITE_PLACEHOLDER_IMAGE': JSON.stringify(env.VITE_PLACEHOLDER_IMAGE)
+    },
     plugins: [
       react(), 
       tailwindcss(),

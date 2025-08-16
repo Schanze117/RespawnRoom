@@ -14,7 +14,7 @@ const userSchema = new Schema(
     },
     password: {
       type: String,
-      required: false, // Allow null for Google auth users
+      required: false
     },
     email: {
       type: String,
@@ -23,11 +23,7 @@ const userSchema = new Schema(
       sparse: true, // Added sparse to handle null values
       match: [/.+@.+\..+/, 'Must use a valid email address'],
     },
-    googleId: {
-      type: String,
-      required: false,
-      sparse: true,  // Changed: Added sparse, removed unique: true
-    },
+
     // Use the videoGameSchema for the savedGames array
     savedGames: [videoGameSchema],
     // Add category tokens for personalized recommendations

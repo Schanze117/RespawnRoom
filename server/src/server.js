@@ -2,8 +2,7 @@
 console.log('EXPRESS_APP_LOG: SM00 - src/server.js execution started');
 
 import express from 'express';
-import passport from 'passport';
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+
 import dotenv from 'dotenv';
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
@@ -16,7 +15,7 @@ import './config/connection.js';
 import routes from './routes/index.js';
 import fetch from 'node-fetch';
 import cors from 'cors';
-import { handleGoogleAuth } from './controllers/googleAuthController.js';
+
 import User from './models/users.js';
 
 // Setup __dirname for ES modules first - moved outside of try/catch
@@ -36,20 +35,12 @@ try {
 // Create Express app
 const app = express();
 
-// Define allowed origins for CORS
-const allowedOrigins = [
-  'https://www.respawnroom.online',
-  'https://respawnroom.online',
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:5173'
-];
-
-// Also allow CLIENT_URL from environment if provided
-const clientUrlFromEnv = process.env.CLIENT_URL;
-if (clientUrlFromEnv && !allowedOrigins.includes(clientUrlFromEnv)) {
-  allowedOrigins.push(clientUrlFromEnv);
-}
+// Define allowed origins for CORS strictly from environment
+// Provide a comma-separated list via CORS_ALLOWED_ORIGINS
+const allowedOrigins = Array.from(new Set([
+  ...(process.env.CORS_ALLOWED_ORIGINS ? process.env.CORS_ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean) : []),
+  ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : [])
+]));
 
 // Log CORS options for debugging
 console.log("CORS OPTIONS:", JSON.stringify({
@@ -157,21 +148,7 @@ const rateLimit = (maxRequests, windowMs) => {
 // 4. FOURTH: Mount API routes AFTER CORS and basic middleware
 app.use(routes);
 
-// Configure passport
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: process.env.GOOGLE_CALLBACK_URL 
-}, async (accessToken, refreshToken, profile, done) => {
-  try {
-    const { user, token } = await handleGoogleAuth(profile);
-    done(null, { user, token });
-  } catch (error) {
-    done(error, null);
-  }
-}));
 
-app.use(passport.initialize());
 
 // Create Apollo Server instance but DON'T start it yet
 const apolloServer = new ApolloServer({
@@ -259,7 +236,10 @@ app.get('/api/games/trending', async (req, res) => {
   }
   
   try {
-    const API_BASE_URL = 'https://api.igdb.com/v4';
+    const API_BASE_URL = process.env.API_BASE_URL;
+    if (!API_BASE_URL) {
+      return res.status(500).json({ error: 'API_BASE_URL not configured' });
+    }
     const token = process.env.IGDB_ACCESS_TOKEN;
     const clientId = process.env.IGDB_CLIENT_ID;
     
@@ -381,7 +361,10 @@ app.get('/api/games/latest', async (req, res) => {
   }
   
   try {
-    const API_BASE_URL = 'https://api.igdb.com/v4';
+    const API_BASE_URL = process.env.API_BASE_URL;
+    if (!API_BASE_URL) {
+      return res.status(500).json({ error: 'API_BASE_URL not configured' });
+    }
     const token = process.env.IGDB_ACCESS_TOKEN;
     const clientId = process.env.IGDB_CLIENT_ID;
     
@@ -516,7 +499,10 @@ app.get('/api/games/top-rated', async (req, res) => {
   }
   
   try {
-    const API_BASE_URL = 'https://api.igdb.com/v4';
+    const API_BASE_URL = process.env.API_BASE_URL;
+    if (!API_BASE_URL) {
+      return res.status(500).json({ error: 'API_BASE_URL not configured' });
+    }
     const token = process.env.IGDB_ACCESS_TOKEN;
     const clientId = process.env.IGDB_CLIENT_ID;
     
@@ -638,7 +624,10 @@ app.get('/api/games/upcoming', async (req, res) => {
   }
   
   try {
-    const API_BASE_URL = 'https://api.igdb.com/v4';
+    const API_BASE_URL = process.env.API_BASE_URL;
+    if (!API_BASE_URL) {
+      return res.status(500).json({ error: 'API_BASE_URL not configured' });
+    }
     const token = process.env.IGDB_ACCESS_TOKEN;
     const clientId = process.env.IGDB_CLIENT_ID;
     
@@ -765,7 +754,10 @@ app.get('/api/games/upcoming', async (req, res) => {
 // Add all-categories endpoint
 app.get('/api/games/all-categories', async (req, res) => {
   try {
-    const API_BASE_URL = 'https://api.igdb.com/v4';
+    const API_BASE_URL = process.env.API_BASE_URL;
+    if (!API_BASE_URL) {
+      return res.status(500).json({ error: 'API_BASE_URL not configured' });
+    }
     const token = process.env.IGDB_ACCESS_TOKEN;
     const clientId = process.env.IGDB_CLIENT_ID;
     
@@ -929,7 +921,7 @@ app.get('/api/games/all-categories', async (req, res) => {
 app.get('/api/games/:id', async (req, res) => {
   try {
     const gameId = req.params.id;
-    const API_BASE_URL = 'https://api.igdb.com/v4';
+    const API_BASE_URL = process.env.API_BASE_URL || 'https://api.igdb.com/v4';
     const token = process.env.IGDB_ACCESS_TOKEN;
     const clientId = process.env.IGDB_CLIENT_ID;
     
@@ -1013,7 +1005,10 @@ app.post('/api/mutations/saveGame', authenticateToken, async (req, res) => {
 app.post("/api/game_videos", async (req, res) => {
   const { content } = req.body;
 
-  const API_BASE_URL = "https://api.igdb.com/v4"; 
+  const API_BASE_URL = process.env.API_BASE_URL; 
+  if (!API_BASE_URL) {
+    return res.status(500).json({ error: 'API_BASE_URL not configured' });
+  }
   const token = process.env.IGDB_ACCESS_TOKEN;
   const clientId = process.env.IGDB_CLIENT_ID;
 

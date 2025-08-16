@@ -49,7 +49,7 @@ export default function HeroCarousel() {
     
     // If it's a direct image ID, construct the full URL
     if (url.startsWith('co') || url.startsWith('tm')) {
-      return `https://images.igdb.com/igdb/image/upload/t_720p/${url}`;
+      return `${import.meta.env.VITE_IGDB_IMAGE_URL}/t_720p/${url}`;
     }
     
     return url;

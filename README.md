@@ -34,7 +34,7 @@ Security is prioritized through JWT authentication, password hashing with bcrypt
 
 ## Key Features
 
-- **User Authentication**: Secure login with email/password or Google OAuth integration
+- **User Authentication**: Secure login with email/password
 - **Game Discovery**: Search the IGDB database for games with cover art and details
 - **Game Collection**: Save favorite games to your personal collection
 - **Social Networking**: Add friends, accept/decline friend requests
@@ -53,12 +53,12 @@ Security is prioritized through JWT authentication, password hashing with bcrypt
 ### Backend
 - Node.js, Express, Apollo Server (GraphQL)
 - MongoDB with Mongoose for data modeling
-- JWT, Passport.js with Google OAuth, bcrypt for security
+- JWT, bcrypt for security
 - CORS and rate limiting for protection
 
 ### External APIs
 - IGDB for game data
-- Google OAuth for authentication
+
 - PubNub for real-time messaging
 
 ## Installation
@@ -99,7 +99,7 @@ npm run start:dev
 ## Project Highlights
 
 ### Technical Excellence
-- **Dual Authentication**: Implementation of both JWT and Google OAuth
+- **JWT Authentication**: Secure user authentication
 - **GraphQL API**: Well-structured schemas and resolvers
 - **Real-time Messaging**: PubNub integration for friend chat
 - **Component Architecture**: Modular React components with lazy loading
@@ -108,7 +108,7 @@ npm run start:dev
 ### Dev Skills
 - **Full-Stack Development**: Proficiency across React, Node.js, GraphQL, and MongoDB
 - **Security Implementation**: Authentication, encryption, and API protection
-- **Third-Party Integration**: IGDB, Google OAuth, and PubNub APIs
+- **Third-Party Integration**: IGDB and PubNub APIs
 - **Modern Frontend**: React with Hooks, Context API, and Tailwind CSS
 - **Clean Code**: Organized directory structure and consistent patterns
 
@@ -142,7 +142,7 @@ npm run start:dev
   Project Management • Authentication • Sprint Planning • Timeline Management • Team Coordination
 
 - **Mahdi Ghaleb** - [GitHub](https://github.com/Mahdi-196)  
-  Google Auth Integration • AWS Deployment • Home Page Logic and Design • PubNub Real-Time Chat • Performance Optimization • Documentation
+  AWS Deployment • Home Page Logic and Design • PubNub Real-Time Chat • Performance Optimization • Documentation
 
 ### External Resources
 - [Tailwind CSS](https://tailwindcss.com/)

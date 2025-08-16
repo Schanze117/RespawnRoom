@@ -49,7 +49,7 @@
 |----------|------------|
 | **Server** | Express.js with Apollo Server (GraphQL) |
 | **API** | GraphQL schemas and REST endpoints |
-| **Auth** | JWT + Google OAuth via Passport.js |
+| **Auth** | JWT authentication |
 | **Security** | CORS, Rate limiting, Error handling |
 | **Data** | Mongoose models (`User`, `VideoGame`, `Message`) |
 | **Services** | Controllers, Middleware, Utilities |
@@ -57,7 +57,7 @@
 ### 🔌 Third-Party Integrations
 
 - **IGDB API**: Game data, search, details, covers
-- **Google OAuth**: User authentication
+
 - **PubNub**: Real-time messaging and presence
 - **Twitch API**: Game streaming integration
 
@@ -149,7 +149,7 @@
 6. **🔌 External APIs**  
    - IGDB for game data
    - PubNub for real-time messaging
-   - Google for authentication
+   
 
 7. **📥 Response**  
    - Data returned to client
@@ -194,7 +194,7 @@ client/src/
 ## 🔒 Security Features
 
 - **JWT Authentication**: Secure, stateless user sessions
-- **Google OAuth**: Trusted third-party verification
+
 - **CORS Protection**: Strict origin control
 - **Rate Limiting**: Prevent brute-force attacks
 - **Password Hashing**: bcrypt for secure storage
@@ -218,4 +218,4 @@ client/src/
 - **Modular Architecture**: Easy to add new features
 - **GraphQL Schema**: Extensible type system
 - **REST Endpoints**: For specialized integrations
-- **Third-party Connectors**: Flexible integration points 
+- **Third-party Connectors**: Flexible integration points

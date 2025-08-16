@@ -25,7 +25,7 @@ export default function Register() {
     const token = query.get('token');
     const redirect = query.get('redirect');
     
-    // Handle token in URL (e.g., from Google auth)
+    // Handle token in URL
     if (token) {
       // If we have a redirect parameter, save it before processing the token
       if (redirect) {
@@ -71,6 +71,9 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('🔵 REGISTER: Form submission started');
+    console.log('🔵 REGISTER: Form data:', { ...registerForm, password: '[REDACTED]', confirmPassword: '[REDACTED]' });
+    
     if (
       !registerForm.userName ||
       !registerForm.email ||
@@ -100,6 +103,12 @@ export default function Register() {
     }
 
     try {
+      console.log('🔵 REGISTER: Calling addUser mutation with variables:', {
+        userName: registerForm.userName,
+        email: registerForm.email,
+        password: '[REDACTED]'
+      });
+      
       // Use the ADD_USER mutation
       const { data } = await addUser({
         variables: {
@@ -108,14 +117,30 @@ export default function Register() {
           password: registerForm.password,
         },
       });
+      
+      console.log('🔵 REGISTER: Mutation successful! Response data:', data);
       Auth.login(data.addUser.token);
     } catch (err) {
-      setError("Failed to register. Please try again.");
+      console.error('🔴 REGISTER: Error during registration:', err);
+      console.error('🔴 REGISTER: Error type:', typeof err);
+      console.error('🔴 REGISTER: Error keys:', Object.keys(err));
+      
+      if (err.graphQLErrors && err.graphQLErrors.length > 0) {
+        console.error('🔴 REGISTER: GraphQL errors:', err.graphQLErrors);
+        setError(err.graphQLErrors[0].message);
+      } else if (err.networkError) {
+        console.error('🔴 REGISTER: Network error details:', err.networkError);
+        console.error('🔴 REGISTER: Network error type:', typeof err.networkError);
+        console.error('🔴 REGISTER: Network error keys:', Object.keys(err.networkError));
+        setError('Network error. Please check your connection.');
+      } else {
+        console.error('🔴 REGISTER: Unknown error type:', err);
+        setError("Failed to register. Please try again.");
+      }
     }
   };
 
-  // Define the Google login URL
-  let googleUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/google` : "/auth/google";
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#121827]">
@@ -219,23 +244,7 @@ export default function Register() {
           </button>
         </form>
         
-        <div className="mt-6 text-center">
-          <p className="text-gray-400 text-sm mb-4">OR</p>
-          <a
-            href={googleUrl}
-            className="flex items-center justify-center w-full bg-white hover:bg-gray-100 text-gray-800 font-medium py-3 rounded-md transition-colors"
-          >
-            <span className="mr-2">
-              <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-              </svg>
-            </span>
-            Continue with Google
-          </a>
-        </div>
+
         
         <div className="mt-8 text-center">
           <Link to="/login" className="text-white hover:text-green-400 transition-colors">

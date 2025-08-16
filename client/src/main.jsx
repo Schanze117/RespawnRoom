@@ -32,7 +32,7 @@ import ProtectedRoute from './utils/ProtectedRoute.jsx';
 
 // Create an HTTP link
 const httpLink = createHttpLink({
-  uri: import.meta.env.VITE_GRAPHQL_URL || 'https://www.respawnroom.online/graphql',
+  uri: import.meta.env.VITE_GRAPHQL_URL,
   credentials: 'include',
   fetchOptions: {
     mode: 'cors',
@@ -40,7 +40,7 @@ const httpLink = createHttpLink({
 });
 
 // Log GraphQL URL for debugging
-console.log("🔍 Apollo Client using GraphQL URL:", import.meta.env.VITE_GRAPHQL_URL || 'https://www.respawnroom.online/graphql');
+console.log("🔍 Apollo Client using GraphQL URL:", import.meta.env.VITE_GRAPHQL_URL);
 
 // Create an auth link to include the token in the headers
 const authLink = setContext((_, { headers }) => {

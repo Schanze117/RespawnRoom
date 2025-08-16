@@ -1,7 +1,13 @@
 // API Configuration
-export const API_BASE_URL = "https://api.igdb.com/v4";
-export const SERVER_URL = import.meta.env.VITE_API_URL || 'https://www.respawnroom.online';
-export const IGDB_IMAGE_URL = import.meta.env.VITE_IGDB_IMAGE_URL || 'https://images.igdb.com/igdb/image/upload';
+export const API_BASE_URL = import.meta.env.VITE_IGDB_API_URL;
+if (!API_BASE_URL) {
+  throw new Error('VITE_IGDB_API_URL is not configured');
+}
+export const SERVER_URL = import.meta.env.VITE_API_URL;
+export const IGDB_IMAGE_URL = import.meta.env.VITE_IGDB_IMAGE_URL;
+if (!IGDB_IMAGE_URL) {
+  throw new Error('VITE_IGDB_IMAGE_URL is not configured');
+}
 
 // Display API URL for debugging
 console.log("🔍 API utils using SERVER_URL:", SERVER_URL);

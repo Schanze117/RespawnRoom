@@ -37,7 +37,7 @@ export default function SavedGameCard() {
         
         // If it's a direct image ID, construct the full URL
         if (url.startsWith('co') || url.startsWith('tm')) {
-            const optimizedUrl = `https://images.igdb.com/igdb/image/upload/t_1080p/${url}`;
+            const optimizedUrl = `${import.meta.env.VITE_IGDB_IMAGE_URL}/t_1080p/${url}`;
             return optimizedUrl;
         }
         

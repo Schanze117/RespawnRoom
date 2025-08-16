@@ -128,7 +128,7 @@ export default function ScrollableGameCards({ games, type, onToggleExpand, fixed
   // Add CSS styles to the document
   useEffect(() => {
     const styleElement = document.createElement('style');
-    styleElement.innerHTML = cssStyles;
+    styleElement.textContent = cssStyles;
     document.head.appendChild(styleElement);
     
     return () => {
@@ -527,4 +527,4 @@ export default function ScrollableGameCards({ games, type, onToggleExpand, fixed
       )}
     </div>
   );
-} 
+}

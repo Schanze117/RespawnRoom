@@ -24,7 +24,7 @@ export default function GameModal({ game, onClose, location}) {
             // Handle saved games which might have direct image IDs
             if (game.cover) {
                 if (game.cover.startsWith('co') || game.cover.startsWith('tm')) {
-                    hdCover = `https://images.igdb.com/igdb/image/upload/t_1080p/${game.cover}`;
+                    hdCover = `${import.meta.env.VITE_IGDB_IMAGE_URL}/t_1080p/${game.cover}`;
                 } else {
                     hdCover = game.cover.replace('t_thumb', 't_1080p')
                                       .replace('t_cover_small', 't_1080p')

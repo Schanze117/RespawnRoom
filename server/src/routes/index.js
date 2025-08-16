@@ -5,7 +5,7 @@ import { dirname } from 'path';
 import gameRoutes from './api/gameRoutes.js';
 import userRoutes from './api/userRoutes.js';
 import pubnubRoutes from './api/pubnub.js';
-import googleAuthRoutes from './api/googleAuthRoutes.js';
+
 import apiRoutes from './api/index.js';
 
 // Create router
@@ -35,7 +35,7 @@ router.use((req, res, next) => {
 router.use('/api/games', gameRoutes);
 router.use('/api/user', userRoutes);
 router.use('/api/pubnub', pubnubRoutes);
-router.use('/auth/google', googleAuthRoutes);
+
 router.use('/api', apiRoutes);
 
 try {
@@ -45,4 +45,4 @@ try {
 } catch (error) {
 }
 
-export default router; 
+export default router;

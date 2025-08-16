@@ -9,7 +9,10 @@ const Avatar = ({
   alt = 'User avatar'
 }) => {
   // Default image if none provided
-  const defaultImage = 'https://via.placeholder.com/150';
+  const defaultImage = import.meta.env.VITE_PLACEHOLDER_IMAGE;
+  if (!defaultImage) {
+    throw new Error('VITE_PLACEHOLDER_IMAGE is not configured');
+  }
   const imageUrl = user?.profileImage || defaultImage;
   
   // Status indicator positions

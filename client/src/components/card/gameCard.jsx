@@ -106,7 +106,7 @@ export default function GameCard({ games, showRating = true }) {
     // Add CSS styles to the document
     useEffect(() => {
         const styleElement = document.createElement('style');
-        styleElement.innerHTML = cssStyles;
+        styleElement.textContent = cssStyles;
         document.head.appendChild(styleElement);
         
         return () => {
@@ -451,4 +451,4 @@ export default function GameCard({ games, showRating = true }) {
             )}
         </>
     );
-} 
+}

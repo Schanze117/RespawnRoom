@@ -1,0 +1,1 @@
+{ "query":"mutation($userName:String!,$email:Strig,$password:String){ addUser(userName:$userName,email:$email,password:$password){ token user { _id userName email } } }", "variables": { "userName":"u101912","email":"u101912@example.com","password":"StrongP@ssw0rd" } }
