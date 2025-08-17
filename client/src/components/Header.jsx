@@ -11,8 +11,7 @@ export default function Header() {
     const [asideOpen, setAsideOpen] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(Auth.loggedIn());
 
-    console.log('🔍 HEADER DEBUG: Component rendered, isLoggedIn state:', isLoggedIn);
-    console.log('🔍 HEADER DEBUG: Auth.loggedIn() returned:', Auth.loggedIn());
+    
 
     // Use Apollo's useQuery hook to fetch user data
     const { loading, error, data } = useQuery(GET_ME, {
@@ -22,7 +21,6 @@ export default function Header() {
     // Check login status whenever the component renders
     useEffect(() => {
         const authStatus = Auth.loggedIn();
-        console.log('🔍 HEADER DEBUG: useEffect - Auth.loggedIn() returned:', authStatus);
         setIsLoggedIn(authStatus);
     }, []);
 

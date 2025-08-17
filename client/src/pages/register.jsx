@@ -71,8 +71,6 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('🔵 REGISTER: Form submission started');
-    console.log('🔵 REGISTER: Form data:', { ...registerForm, password: '[REDACTED]', confirmPassword: '[REDACTED]' });
     
     if (
       !registerForm.userName ||
@@ -103,11 +101,7 @@ export default function Register() {
     }
 
     try {
-      console.log('🔵 REGISTER: Calling addUser mutation with variables:', {
-        userName: registerForm.userName,
-        email: registerForm.email,
-        password: '[REDACTED]'
-      });
+      
       
       // Use the ADD_USER mutation
       const { data } = await addUser({
@@ -118,23 +112,13 @@ export default function Register() {
         },
       });
       
-      console.log('🔵 REGISTER: Mutation successful! Response data:', data);
       Auth.login(data.addUser.token);
     } catch (err) {
-      console.error('🔴 REGISTER: Error during registration:', err);
-      console.error('🔴 REGISTER: Error type:', typeof err);
-      console.error('🔴 REGISTER: Error keys:', Object.keys(err));
-      
       if (err.graphQLErrors && err.graphQLErrors.length > 0) {
-        console.error('🔴 REGISTER: GraphQL errors:', err.graphQLErrors);
         setError(err.graphQLErrors[0].message);
       } else if (err.networkError) {
-        console.error('🔴 REGISTER: Network error details:', err.networkError);
-        console.error('🔴 REGISTER: Network error type:', typeof err.networkError);
-        console.error('🔴 REGISTER: Network error keys:', Object.keys(err.networkError));
         setError('Network error. Please check your connection.');
       } else {
-        console.error('🔴 REGISTER: Unknown error type:', err);
         setError("Failed to register. Please try again.");
       }
     }

@@ -8,10 +8,7 @@ import { onError } from '@apollo/client/link/error';
 import { RetryLink } from '@apollo/client/link/retry';
 import { DotLoader } from './utils/LoadingSkeletons';
 
-// Environment Variable Debugging
-console.log("🔍 VITE_API_URL=", import.meta.env.VITE_API_URL);
-console.log("🔍 VITE_GRAPHQL_URL=", import.meta.env.VITE_GRAPHQL_URL);
-console.log("🔍 Environment Mode=", import.meta.env.MODE);
+//
 
 // Lazily load all components, including App
 const App = lazy(() => import('./App.jsx'));
@@ -39,8 +36,7 @@ const httpLink = createHttpLink({
   },
 });
 
-// Log GraphQL URL for debugging
-console.log("🔍 Apollo Client using GraphQL URL:", import.meta.env.VITE_GRAPHQL_URL);
+//
 
 // Create an auth link to include the token in the headers
 const authLink = setContext((_, { headers }) => {

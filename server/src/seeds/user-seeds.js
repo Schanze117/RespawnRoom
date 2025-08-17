@@ -24,12 +24,9 @@ export const seedUsers = async () => {
 
     // Insert the test user
     await User.create(testUser);
-    console.log('✅ Test user created successfully');
-    console.log('👤 Username: testuser');
-    console.log('📧 Email: test@example.com');
-    console.log('🔑 Password: testpassword123');
+    
     
   } catch (err) {
-    console.error('❌ Error seeding users:', err);
+    
   }
 };

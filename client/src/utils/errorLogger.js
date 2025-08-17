@@ -25,16 +25,7 @@ export function logError(error, context, extraData = {}) {
     ...extraData
   };
 
-  if (isProd) {
-    // In production, we'd send to Sentry/LogRocket/etc.
-    // Example: Sentry.captureException(error, { extra: { context, ...extraData } });
-    
-    // For now, just log to console in a production-safe way
-    console.error(`[${context}] ${errorObject.message}`);
-  } else {
-    // In development, show detailed logs
-    console.error('ERROR:', errorObject);
-  }
+  // No console logging in production bundle
 
   // Return the error to allow for chaining
   return error;
@@ -54,13 +45,7 @@ export function logWarning(message, context, extraData = {}) {
     ...extraData
   };
 
-  if (isProd) {
-    // In production, we'd potentially send warnings to monitoring as well
-    // For now, log in a production-safe way
-    console.warn(`[${context}] ${message}`);
-  } else {
-    console.warn('WARNING:', warningObject);
-  }
+  // No console logging in production bundle
 }
 
 /**
@@ -90,16 +75,11 @@ export const performance = {
    */
   measureRender: (componentName, callback) => {
     if (isProd) return callback(); // Skip in production for now
-    
     const start = performance.now();
     const result = callback();
     const end = performance.now();
     const duration = end - start;
-    
-    if (duration > 100) { // Only log slow renders (>100ms)
-      console.warn(`[Performance] Slow render in ${componentName}: ${duration.toFixed(2)}ms`);
-    }
-    
+    // No console logging
     return result;
   },
   
@@ -122,9 +102,6 @@ export const performance = {
           performance.measure(measureName, markName, `${name}_end`);
           const entries = performance.getEntriesByName(measureName);
           const duration = entries[0]?.duration || 0;
-          if (duration > 100) {
-            console.warn(`[Performance] Slow operation ${name}: ${duration.toFixed(2)}ms`);
-          }
           return duration;
         }
         return 0;

@@ -9,8 +9,7 @@ if (!IGDB_IMAGE_URL) {
   throw new Error('VITE_IGDB_IMAGE_URL is not configured');
 }
 
-// Display API URL for debugging
-console.log("🔍 API utils using SERVER_URL:", SERVER_URL);
+//
 
 // Format image URLs
 export const getOptimizedImageUrl = (url, size = "t_720p") => {
@@ -35,15 +34,13 @@ export async function getTrendingGames() {
       'Content-Type': 'application/json',
     };
     
-    console.log("➡️ Fetch", method, url, headers);
     
     const response = await fetch(url, {
       method,
       headers,
     });
     
-    console.log("⬅️ Response", response.status, [...response.headers], await response.clone().text());
-
+    
     if (!response.ok) {
       throw new Error('Error fetching trending games');
     }
@@ -51,7 +48,6 @@ export async function getTrendingGames() {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error("❌ Fetch error", `${SERVER_URL}/api/games/trending`, error);
     return [];
   }
 }
@@ -77,7 +73,6 @@ export async function getLatestReleases() {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching latest releases:', error);
     return [];
   }
 }
@@ -103,7 +98,6 @@ export async function getTopRatedGames() {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching top rated games:', error);
     return [];
   }
 }
@@ -129,7 +123,6 @@ export async function getUpcomingGames() {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching upcoming games:', error);
     return [];
   }
 }
@@ -153,7 +146,6 @@ export async function getGameById(id) {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error(`Error fetching game with ID ${id}:`, error);
     return null;
   }
 }
@@ -184,7 +176,6 @@ export async function getGameVideo(id) {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error(`Error fetching videos for game with ID ${id}:`, error);
     return [];
   }
 }
@@ -215,7 +206,6 @@ export async function searchGames(query) {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error searching games:', error);
     return [];
   }
 }
@@ -333,7 +323,6 @@ export async function filterGames(
       }
     };
   } catch (error) {
-    console.error('Error filtering games:', error);
     return {
       games: [],
       pagination: {
@@ -366,7 +355,6 @@ export async function getTokens() {
     const data = await response.json();
     return data.tokens || {};
   } catch (error) {
-    console.error('Error fetching user tokens:', error);
     return {};
   }
 }
@@ -392,7 +380,6 @@ export async function updateTokens(tokens) {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error updating user tokens:', error);
     throw error;
   }
 }
@@ -417,7 +404,6 @@ export async function getPersonalizedGames() {
     const data = await response.json();
     return data || [];
   } catch (error) {
-    console.error('Error fetching personalized games:', error);
     throw error;
   }
 }
@@ -443,7 +429,6 @@ export async function getAllCategorizedGames() {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching all categorized games:', error);
     throw error;
   }
 }

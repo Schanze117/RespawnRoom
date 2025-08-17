@@ -26,26 +26,18 @@ export default function Login() {
     setError('');
     
     try {
-      console.log('🔍 LOGIN DEBUG: Attempting login with email:', loginData.email);
-      
       const { data } = await loginUser({
         variables: { email: loginData.email, password: loginData.password },
       });
       
-      console.log('🔍 LOGIN DEBUG: Login response received:', data);
       
       if (data && data.login && data.login.token) {
-        console.log('🔍 LOGIN DEBUG: Token received, length:', data.login.token.length);
-        console.log('🔍 LOGIN DEBUG: Token starts with:', data.login.token.substring(0, 20) + '...');
-        
         // Store token and redirect (this will reload the page)
         Auth.login(data.login.token);
       } else {
-        console.error('🔍 LOGIN ERROR: No token in response:', data);
         throw new Error('Login failed - no token received');
       }
     } catch (err) {
-      console.error('🔍 LOGIN ERROR: Login failed:', err);
       setError('Failed to login. Please check your credentials and try again.');
     }
   };

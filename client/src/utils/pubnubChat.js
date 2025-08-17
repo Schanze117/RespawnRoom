@@ -60,7 +60,6 @@ export const getPubNub = async () => {
     
     // If keys are missing, we can't initialize PubNub
     if (!publishKey || !subscribeKey) {
-      console.error('PubNub keys are missing from environment variables');
       return null;
     }
     
