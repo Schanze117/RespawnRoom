@@ -2,46 +2,132 @@ import {jwtDecode} from 'jwt-decode';
 
 class AuthService {
   getProfile() {
-    // Decode the JSON Web Token (JWT) using the jwtDecode function.
+    // decodes the token 
     // This function takes the token obtained from getToken() and decodes it to extract the user profile information.
-    return jwtDecode(this.getToken());
+    try {
+      return jwtDecode(this.getToken());
+    } catch (err) {
+      return {};
+    }
   }
 
   loggedIn() {
     const token = this.getToken();
-    return !!token && !this.isTokenExpired(token);
-  }
-
-  isTokenExpired(token) {
+    
+    if (!token) {
+      return false;
+    }
+    
     try {
-      // Attempt to decode the token using jwtDecode.
+      // Try to decode the token - will throw if invalid
       const decoded = jwtDecode(token);
-
-      // Check if the token has an expiration time (exp) and if it is less than the current time.
-      if (decoded?.exp && decoded?.exp < Date.now() / 1000) {
-        // If the token is expired, return true indicating that it is expired.
-        return true;
+      
+      // Check if token is expired
+      const isExpired = decoded?.exp && decoded?.exp < Date.now() / 1000;
+      
+      if (isExpired) {
+        localStorage.removeItem('jwtToken');
+        return false;
       }
+      
+      return true;
     } catch (err) {
-      // If there is an error during decoding, log the error and return false.
+      // If token is invalid or can't be decoded
+      localStorage.removeItem('jwtToken');
       return false;
     }
   }
 
+  isTokenExpired(token) {
+    try {
+      // Decode the token using jwtDecode
+      const decoded = jwtDecode(token);
+
+      // Check if the token has an expiration time and if it is less than the current time
+      if (decoded?.exp && decoded?.exp < Date.now() / 1000) {
+        // If the token is expired, remove it from storage
+        localStorage.removeItem('jwtToken');
+        return true;
+      }
+      return false;
+    } catch (err) {
+      // If there is an error during decoding, log the error and remove the token
+      localStorage.removeItem('jwtToken');
+      return true; // Consider invalid tokens as expired
+    }
+  }
+
   getToken() {
-    const loggedUser = localStorage.getItem('jwtToken') || '';
-    return loggedUser;
+    const token = localStorage.getItem('jwtToken') || '';
+    return token;
+  }
+
+  getUserId() {
+    try {
+      const profile = this.getProfile();
+      return profile?._id || null;
+    } catch (err) {
+      return null;
+    }
   }
 
   login(idToken) {
-    localStorage.setItem('jwtToken', idToken);
-    window.location.assign('/');
+    if (!idToken) {
+      return;
+    }
+    
+    try {
+      // Attempt to decode the token to verify it's valid
+      const decoded = jwtDecode(idToken);
+      
+      // Check if token is expired
+      if (decoded.exp && decoded.exp < Date.now() / 1000) {
+        // Redirect to login page with error parameter
+        window.location.assign('/login?error=expired_token');
+        return;
+      }
+      
+      // First clear out any existing tokens
+      localStorage.removeItem('jwtToken');
+      
+      // Store the valid token in localStorage with direct method
+      try {
+        // Use direct setting first
+        localStorage.setItem('jwtToken', idToken);
+        
+        if (!savedToken) {
+          throw new Error('Token was not saved to localStorage');
+        }
+      } catch (storageErr) {
+        throw storageErr;
+      }
+      
+      // Check if there's a saved redirect URL in sessionStorage
+      const redirectUrl = sessionStorage.getItem('redirectUrl') || '/';
+      
+      // Clear the saved redirect URL
+      sessionStorage.removeItem('redirectUrl');
+      
+      // Redirect to the saved URL or home page
+      window.location.assign(redirectUrl);
+    } catch (err) {
+      // Redirect to login page with error parameter
+      window.location.assign('/login?error=invalid_token');
+    }
   }
 
   logout() {
+    // Remove the token from localStorage
     localStorage.removeItem('jwtToken');
-    window.location.assign('/');
+    
+    // Clear any saved redirect URLs to prevent redirect loops
+    sessionStorage.removeItem('redirectUrl');
+    
+    // Redirect to login page with parameter indicating user just logged out
+    window.location.assign('/login?just_logged_out=true');
   }
 }
 
-export default new AuthService();
+// Create an instance of the auth service
+const Auth = new AuthService();
+export default Auth;

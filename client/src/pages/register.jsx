@@ -1,104 +1,247 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useMutation } from "@apollo/client";
+import { ADD_USER } from "../utils/mutations";
+import Auth from "../utils/auth";
 
 export default function Register() {
-    const [registerForm, setRegisterForm] = useState({
-        username: '',
-        email: '',
-        password: '',
-        confirmPassword: ''
-    });
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [registerForm, setRegisterForm] = useState({
+    userName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [error, setError] = useState("");
+
+  // Use Apollo's useMutation hook for the ADD_USER mutation
+  const [addUser, { loading }] = useMutation(ADD_USER);
+
+  // Handle URL parameters and authentication redirects
+  useEffect(() => {
+    // Parse URL parameters
+    const query = new URLSearchParams(location.search);
+    const token = query.get('token');
+    const redirect = query.get('redirect');
     
-    const [display, setDisplay] = useState(false);
+    // Handle token in URL
+    if (token) {
+      // If we have a redirect parameter, save it before processing the token
+      if (redirect) {
+        sessionStorage.setItem('redirectUrl', redirect);
+      }
+      
+      // Process the token - this will redirect and reload the page
+      Auth.login(token);
+      return; // Stop further execution
+    }
+    
+    // Check if user is already logged in
+    if (Auth.loggedIn()) {
+      // Get redirect URL from session storage or default to home
+      const redirectUrl = sessionStorage.getItem('redirectUrl') || '/';
+      
+      // Don't redirect to register page again
+      if (redirectUrl !== '/register' && redirectUrl !== '/login') {
+        navigate(redirectUrl);
+      } else {
+        // If redirect would go back to auth pages, go to home instead
+        navigate('/');
+      }
+    }
+  }, [location, navigate]);
 
-    function displayError(error){
-        return <div className="text-red-500 py-1 ">{error}</div>
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    // Prevent the username from exceeding 12 characters
+    if (name === 'userName' && value.length > 12) {
+      setError("Username cannot exceed 12 characters");
+      return;
+    }
+    
+    setRegisterForm((prev) => ({ ...prev, [name]: value }));
+    
+    // Clear error when typing (if the error was about username length)
+    if (error === "Username cannot exceed 12 characters") {
+      setError("");
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (
+      !registerForm.userName ||
+      !registerForm.email ||
+      !registerForm.password ||
+      !registerForm.confirmPassword
+    ) {
+      setError("Please fill out all fields");
+      return;
+    }
+    
+    // Validate username length
+    if (registerForm.userName.length > 12) {
+      setError("Username cannot exceed 12 characters");
+      return;
+    }
+    
+    // Prevent password from being the same as username or email
+    if (registerForm.password === registerForm.userName || 
+        registerForm.password === registerForm.email) {
+      setError("Password cannot be the same as your username or email");
+      return;
+    }
+    
+    if (registerForm.password !== registerForm.confirmPassword) {
+      setError("Passwords do not match");
+      return;
     }
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setRegisterForm((prev) => ({ ...prev, [name]: value }));
+    try {
+      
+      
+      // Use the ADD_USER mutation
+      const { data } = await addUser({
+        variables: {
+          userName: registerForm.userName,
+          email: registerForm.email,
+          password: registerForm.password,
+        },
+      });
+      
+      Auth.login(data.addUser.token);
+    } catch (err) {
+      if (err.graphQLErrors && err.graphQLErrors.length > 0) {
+        setError(err.graphQLErrors[0].message);
+      } else if (err.networkError) {
+        setError('Network error. Please check your connection.');
+      } else {
+        setError("Failed to register. Please try again.");
+      }
     }
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            if(registerForm.username === '' || registerForm.email === '' || registerForm.password === '' || registerForm.confirmPassword === '') {
-                setDisplay(displayError("Please fill out all fields"));
-                return;
-            }
-            if(registerForm.password !== registerForm.confirmPassword) {
-                setDisplay(displayError("Passwords do not match"));
-                return;
-            }
-            console.log("Form submitted:", registerForm);
-        } catch (error) {
-            console.error("Error registering user:", error);
-        }
 
-        setRegisterForm({ username: '', email: '', password: '', confirmPassword: '' });
-    }
 
-    return (
-        <div className="flex flex-col items-center justify-center md:mt-35 m-25">
-            <div className='w-full max-w-sm p-4 border border-surface-600 rounded-lg shadow-sm sm:p-6 md:p-8 bg-tonal-900'>
-                <form className="space-y-6" onSubmit={handleSubmit}>
-                    <h5 className="text-xl font-medium text-light">RespawnRoom // Register</h5>
-                    <div>
-                         <label className="block mb-2 text-sm font-medium text-light">Username</label>
-                        <input
-                            type="text"
-                            name="username"
-                            value={registerForm.username}
-                            onChange={handleChange}
-                            placeholder="Username" 
-                            className="bg-surface-600 border border-tonal-400 text-light text-sm rounded-lg focus:outline-2 focus:outline-primary-400 focus:outline-offset-2 focus:border-primary-400 block w-full p-2.5"
-                        />
-                    </div>
-                    <div>
-                        <label className="block mb-2 text-sm font-medium text-light">Email</label>
-                        <input
-                            type="email"
-                            name="email"
-                            value={registerForm.email}
-                            onChange={handleChange}
-                            placeholder="Email" 
-                            className="bg-surface-600 border border-tonal-400 text-light text-sm rounded-lg focus:outline-2 focus:outline-primary-400 focus:outline-offset-2 focus:border-primary-400 block w-full p-2.5"
-                        />
-                    </div>
-                    <div>
-                        <label className="block mb-2 text-sm font-medium text-light">Password</label>
-                        <input
-                            type="password"
-                            name="password"
-                            value={registerForm.password}
-                            onChange={handleChange}
-                            placeholder="Password" 
-                            className="bg-surface-600 border border-tonal-400 text-light text-sm rounded-lg focus:outline-2 focus:outline-primary-400 focus:outline-offset-2 focus:border-primary-400 block w-full p-2.5"
-                        />
-                    </div>
-                    <div>
-                        <label className="block mb-2 text-sm font-medium text-light">Confirm Password</label>
-                        <input
-                            type="password"
-                            name="confirmPassword"
-                            value={registerForm.confirmPassword}
-                            onChange={handleChange}
-                            placeholder="Confirm Password" 
-                            className="bg-surface-600 border border-tonal-400 text-light text-sm rounded-lg focus:outline-2 focus:outline-primary-400 focus:outline-offset-2 focus:border-primary-400 block w-full p-2.5"
-                        />
-                    </div>
-                    <button type="submit" className="w-full text-white focus:ring-4 bg-primary-600 hover:bg-primary-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center focus:ring-primary-900">Register</button>
-                    <div className="text-sm font-medium text-gray-300">
-                        Already have an account? <Link to="/login" className="text-primary-800 hover:underline">Log In</Link>
-                    </div>
-                </form>
-                <div>
-                    {display}
-                </div>
-            </div>
-            
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-surface-900 force-repaint color-accelerate zoom-stable" style={{backgroundColor: '#020817'}}>
+      <div className="w-full max-w-md p-8 mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold mb-2" style={{color: '#6D9F5B'}}>RespawnRoom</h1>
+          <p className="text-tonal-400">Create a new account</p>
         </div>
-    )
+        
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <div className="bg-red-500 bg-opacity-10 border border-red-500 text-light px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+          
+          <div>
+            <div className="relative">
+              <span className="input-icon-stable text-tonal-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                name="userName"
+                value={registerForm.userName}
+                onChange={handleChange}
+                placeholder="Username (max 12 characters)"
+                maxLength="12"
+                className="bg-surface-800 text-light w-full pl-10 pr-4 py-3 rounded-md focus:outline-none border-2 border-surface-600 focus:border-primary-600 transition-colors"
+                required
+              />
+            </div>
+          </div>
+          
+          <div>
+            <div className="relative">
+              <span className="input-icon-stable text-tonal-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                </svg>
+              </span>
+              <input
+                type="email"
+                name="email"
+                value={registerForm.email}
+                onChange={handleChange}
+                placeholder="Email address"
+                className="bg-surface-800 text-light w-full pl-10 pr-4 py-3 rounded-md focus:outline-none border-2 border-surface-600 focus:border-primary-600 transition-colors"
+                required
+              />
+            </div>
+          </div>
+          
+          <div>
+            <div className="relative">
+              <span className="input-icon-stable text-tonal-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+              </span>
+              <input
+                type="password"
+                name="password"
+                value={registerForm.password}
+                onChange={handleChange}
+                placeholder="Password"
+                className="bg-surface-800 text-light w-full pl-10 pr-4 py-3 rounded-md focus:outline-none border-2 border-surface-600 focus:border-primary-600 transition-colors"
+                required
+              />
+            </div>
+          </div>
+          
+          <div>
+            <div className="relative">
+              <span className="input-icon-stable text-tonal-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+              </span>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={registerForm.confirmPassword}
+                onChange={handleChange}
+                placeholder="Confirm password"
+                className="bg-surface-800 text-light w-full pl-10 pr-4 py-3 rounded-md focus:outline-none border-2 border-surface-600 focus:border-primary-600 transition-colors"
+                required
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full text-white font-medium py-3 rounded-md transition-colors mt-6"
+            style={{backgroundColor: '#6D9F5B', ':hover': {backgroundColor: '#5a8a4f'}}}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#5a8a4f'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = '#6D9F5B'}
+            disabled={loading}
+          >
+            {loading ? "Signing up..." : "Sign Up"}
+          </button>
+        </form>
+        
+
+        
+        <div className="mt-8 text-center">
+          <Link to="/login" className="text-white transition-colors" style={{'&:hover': {color: '#6D9F5B'}}} onMouseEnter={(e) => e.target.style.color = '#6D9F5B'} onMouseLeave={(e) => e.target.style.color = 'white'}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
+            </svg>
+            Already have an account? Log in
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
 }
-// Compare this snippet from RespawnRoom/client/src/components/discoverWrapper.jsx:

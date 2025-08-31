@@ -6,15 +6,17 @@
     --color-light: #ffffff;
     --color-error: #ff0000;
     --color-dark-error: #800000;
+    --color-green-text: #00ff00;
+
 
     --color-primary-900: #187000;
     --color-primary-800: #3a7f26;
     --color-primary-700: #558f41;
-    --color-primary-600: #6d9f5b;
+    --color-primary-600: #6D9F5B;
     --color-primary-500: #86ae75;
     --color-primary-400: #9ebe90;
 
-    --color-surface-900: #121212;
+    --color-surface-900: #020817; /* Changed header & side panel background from #121212 to #020817 */
     --color-surface-800: #282828;
     --color-surface-700: #3f3f3f;
     --color-surface-600: #575757;
@@ -27,21 +29,24 @@
     --color-tonal-600: #5e6c59;
     --color-tonal-500: #778372;
     --color-tonal-400: #919a8d;
+
+    --breakpoint-3xl: 120rem;
 }
 
 :root {
-    --color-dark: #000000;
+    color-scheme: dark;
+    --color-dark: #020817;
     --color-light: #ffffff;
     --color-dark-error: #800000;
 
     --color-primary-900: #187000;
     --color-primary-800: #3a7f26;
     --color-primary-700: #558f41;
-    --color-primary-600: #6d9f5b;
+    --color-primary-600: #6D9F5B;
     --color-primary-500: #86ae75;
     --color-primary-400: #9ebe90;
 
-    --color-surface-900: #121212;
+    --color-surface-900: #020817; /* Changed header & side panel background from #121212 to #020817 */
     --color-surface-800: #282828;
     --color-surface-700: #3f3f3f;
     --color-surface-600: #575757;
@@ -54,4 +59,832 @@
     --color-tonal-600: #5a5e58;
     --color-tonal-500: #737771;
     --color-tonal-400: #8d908c;
+}
+
+/* Changed actual page background to surface-900 (#020817) */
+body {
+    background-color: #020817 !important;
+}
+
+.modalBackground {
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+/* Ensure modals are properly centered and visible */
+.modalBackground > div {
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: 1rem;
+}
+
+/* ===================
+   ENHANCED LOADING ANIMATIONS & MODAL ANIMATIONS
+   =================== */
+
+/* Modal animations */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Password Modal Animations */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Custom utility classes for animations */
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Ensure modal is perfectly centered */
+.modal-center {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+}
+
+/* Password modal specific centering */
+.password-modal-fixed {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 9999 !important;
+}
+
+/* Force modal centering with inline styles */
+div[style*="position: fixed !important"] {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 9999 !important;
+}
+
+/* Override any conflicting styles */
+.password-modal-container,
+.password-modal-container * {
+  position: static !important;
+}
+
+/* Ensure password modal backdrop takes full height */
+div[class*="fixed inset-0"] {
+  min-height: 100vh !important;
+  height: 100vh !important;
+}
+
+/* Force modal to be positioned by flexbox */
+[data-modal="password"] {
+  position: relative !important;
+  z-index: 9999 !important;
+  transform: none !important;
+}
+
+/* Responsive modal positioning */
+@media (max-width: 640px) {
+  .modal-center,
+  .password-modal-fixed {
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: calc(100% - 2rem) !important;
+    max-width: none !important;
+  }
+}
+
+/* Smooth shimmer effect for skeleton loading */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-700) 25%,
+    var(--color-surface-600) 50%,
+    var(--color-surface-700) 75%
+  );
+  background-size: 200px 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+}
+
+/* Pulse animation with custom timing for friends page */
+.friends-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Enhanced skeleton styles for friends page components */
+.skeleton-tab-active {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-600) 0%,
+    var(--color-primary-500) 100%
+  );
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-tab-active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: shimmer-sweep 2s infinite;
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Staggered animation for multiple skeleton elements */
+.skeleton-stagger-1 { animation-delay: 0.1s; }
+.skeleton-stagger-2 { animation-delay: 0.2s; }
+.skeleton-stagger-3 { animation-delay: 0.3s; }
+.skeleton-stagger-4 { animation-delay: 0.4s; }
+.skeleton-stagger-5 { animation-delay: 0.5s; }
+
+/* ===================
+   FORCE REPAINT FIXES
+   =================== */
+
+/* Force consistent rendering and eliminate browser caching issues */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Force repaint on color-sensitive elements */
+body, 
+[class*="bg-"], 
+[class*="surface-"],
+[style*="background"] {
+  transform: translateZ(0);
+  will-change: background-color;
+  backface-visibility: hidden;
+}
+
+/* Ensure CSS variables are properly applied */
+:root {
+  /* Force browser to recognize CSS custom properties */
+  -webkit-color-scheme: dark;
+  color-scheme: dark;
+}
+
+/* Critical background fix - override any cached styles */
+body {
+  background-color: var(--color-surface-900) !important;
+  background: var(--color-surface-900) !important;
+}
+
+/* Force immediate style application */
+html {
+  background-color: var(--color-surface-900) !important;
+}
+
+/* Prevent FOUC (Flash of Unstyled Content) */
+html:not([data-theme]) {
+  visibility: hidden;
+}
+
+html[data-theme] {
+  visibility: visible;
+}
+
+/* Additional browser optimization hints to prevent color caching */
+* {
+  will-change: auto;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Force GPU acceleration for color changes */
+.color-accelerate {
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+}
+
+/* Fix the root cause - CSS variables are wrong */
+:root {
+  --color-surface-900: #020817 !important;
+  --color-surface-800: #374151 !important; /* Updated to permanent visible gray */
+}
+
+/* More comprehensive color fix while preserving navigation */
+body {
+  background-color: #020817 !important;
+}
+
+html {
+  background-color: #020817 !important;
+}
+
+/* Target all bg-surface-900 elements except those in navigation */
+.bg-surface-900 {
+  background-color: #020817 !important;
+}
+
+.bg-surface-800 {
+  background-color: #1e293b !important;
+}
+
+/* Ensure main content areas are properly colored */
+main {
+  background-color: #020817 !important;
+}
+
+/* Force page-level containers */
+.min-h-screen {
+  background-color: #020817 !important;
+}
+
+/* Protect navigation elements from aggressive color fixes */
+header,
+header *,
+aside,
+aside *,
+nav,
+nav * {
+  background-color: var(--color-surface-900) !important;
+}
+
+/* Specifically protect common navigation classes */
+.fixed.top-0,
+.fixed.left-0,
+header button,
+aside ul,
+aside li,
+aside a {
+  background-color: var(--color-surface-900) !important;
+}
+
+/* Force all form containers and potential component backgrounds */
+form,
+.w-full.max-w-md,
+div[class*="items-center"],
+div[class*="justify-center"],
+div[class*="flex"] {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Force any potential dialog/modal/form backgrounds */
+[class*="max-w-md"],
+[class*="mx-auto"],
+div[class*="p-8"],
+div[class*="p-6"],
+div[class*="p-4"] {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Only remove shadows from login/register form containers */
+.min-h-screen.flex.items-center.justify-center,
+form,
+.w-full.max-w-md {
+  box-shadow: none !important;
+}
+
+/* Soft card backgrounds that won't conflict with our color fixes */
+.card-background {
+  background-color: #1F2937 !important; /* Darker gray for better contrast */
+  border: 1px solid #374151 !important; /* Medium gray border */
+}
+
+.bg-surface-800 {
+  background-color: #1F2937 !important; /* Darker gray for better contrast */
+  border: 1px solid #374151 !important; /* Medium gray border */
+}
+
+/* Enhanced card hover effects */
+.game-card:hover {
+  background-color: #1F2937 !important; /* Darker gray on hover */
+  border-color: #6D9F5B !important; /* Green border on hover */
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Game cards specific styling */
+.game-card {
+  background-color: #1F2937 !important; /* Darker gray for better contrast */
+  border: 1px solid #374151 !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Friend cards specific styling */
+[data-friend-id] {
+  background-color: #1F2937 !important; /* Darker gray for better contrast */
+  border: 1px solid #374151 !important;
+  transition: all 0.3s ease !important;
+}
+
+[data-friend-id]:hover {
+  background-color: #1F2937 !important;
+  border-color: #6D9F5B !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Saved game cards specific styling */
+.flex.flex-col.p-4.my-5.mx-3 {
+  background-color: #1F2937 !important; /* Darker gray for better contrast */
+  border: 1px solid #374151 !important;
+  transition: all 0.3s ease !important;
+}
+
+.flex.flex-col.p-4.my-5.mx-3:hover {
+  background-color: #1F2937 !important;
+  border-color: #6D9F5B !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* General card container styling */
+.bg-surface-900.border-2.border-tonal-800,
+.bg-surface-900.border-2.rounded-lg.border-tonal-800 {
+  background-color: #1F2937 !important; /* Darker gray for better contrast */
+  border-color: #374151 !important;
+}
+
+/* Ultra-specific card background forcing */
+div.bg-surface-800,
+div.game-card,
+div[data-friend-id],
+.flex.flex-col.p-4.my-5.mx-3.bg-surface-800 {
+  background-color: #1F2937 !important;
+  border: 1px solid #374151 !important;
+}
+
+/* Force all possible card selectors */
+*[class*="bg-surface-800"],
+*[class*="game-card"],
+*[data-friend-id] {
+  background-color: #1F2937 !important;
+  border: 1px solid #374151 !important;
+}
+
+/* Override any inline styles that might be applied */
+div[style*="background-color"].bg-surface-800,
+div[style*="background-color"].game-card,
+div[style*="background-color"][data-friend-id] {
+  background-color: #1F2937 !important;
+}
+
+/* Ensure input icons are always visible on login/register pages */
+.relative span.absolute svg {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: #9CA3AF !important; /* Consistent icon color */
+  z-index: 10 !important;
+  pointer-events: none !important;
+}
+
+/* Input field styling to work with icons */
+input[type="email"],
+input[type="password"],
+input[type="text"] {
+  padding-left: 2.5rem !important; /* Ensure space for icons */
+}
+
+/* Specific styling for login/register input containers */
+.relative {
+  position: relative !important;
+}
+
+.relative span.absolute {
+  position: absolute !important;
+  left: 0.75rem !important;
+  top: 52% !important; /* Moved down slightly from 50% for better centering */
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 10 !important;
+  height: 1.25rem !important; /* Match icon size */
+  width: 1.25rem !important; /* Match icon size */
+}
+
+/* Fine-tune icon positioning for better centering */
+.relative span.absolute svg {
+  margin: 0 !important;
+  padding: 0 !important;
+  vertical-align: middle !important;
+}
+
+/* Ensure icons don't disappear on focus */
+input:focus + span.absolute svg,
+input:active + span.absolute svg,
+span.absolute svg {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Force fix specifically for large monitors */
+@media screen and (min-width: 1200px) {
+  body,
+  html,
+  .bg-surface-900,
+  main {
+    background-color: #020817 !important;
+  }
+}
+
+/* Monitor-specific color fixes for different display environments */
+@media screen and (min-width: 1440px) {
+  body {
+    background-color: #020817 !important;
+    background: #020817 !important;
+  }
+  
+  .bg-surface-900 {
+    background-color: #020817 !important;
+    background: #020817 !important;
+  }
+  
+  main {
+    background-color: #020817 !important;
+    background: #020817 !important;
+  }
+  
+  .min-h-screen {
+    background-color: #020817 !important;
+    background: #020817 !important;
+  }
+}
+
+/* Force color profile consistency across displays */
+* {
+  color-rendering: optimizeQuality;
+  -webkit-color-rendering: optimizeQuality;
+}
+
+/* Force backdrop blur to cover entire page */
+.fixed.inset-0.z-50[style*="backdrop-filter"] {
+  -webkit-backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px) !important;
+  background-color: rgba(0, 0, 0, 0.85) !important;
+}
+
+/* ===================
+   INPUT STABILIZATION - PREVENT PLACEHOLDER MOVEMENT
+   =================== */
+
+/* Prevent any movement of input fields and placeholder text */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="number"] {
+  /* Force stable positioning */
+  transform: none !important;
+  transition: border-color 0.2s ease, background-color 0.2s ease !important;
+  
+  /* Prevent any 3D effects that could cause movement */
+  backface-visibility: hidden !important;
+  perspective: none !important;
+  will-change: auto !important;
+  
+  /* Stabilize text baseline */
+  line-height: normal !important;
+  vertical-align: baseline !important;
+  
+  /* Prevent any browser default animations */
+  animation: none !important;
+  
+  /* Force consistent border rendering */
+  border-width: 2px !important;
+  box-sizing: border-box !important;
+}
+
+/* Specifically target placeholder text to prevent movement */
+input::placeholder {
+  /* Lock placeholder in place */
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  
+  /* Ensure consistent positioning */
+  line-height: normal !important;
+  vertical-align: baseline !important;
+  
+  /* Prevent any browser default behaviors */
+  will-change: auto !important;
+  backface-visibility: hidden !important;
+}
+
+/* Override any focus states that might cause movement */
+input:focus,
+input:focus-within,
+input:hover {
+  /* Only allow color changes, no positioning changes */
+  transform: none !important;
+  transition: border-color 0.2s ease, background-color 0.2s ease !important;
+  
+  /* Prevent any layout shifts */
+  margin: 0 !important;
+  padding: 0.75rem 1rem 0.75rem 2.5rem !important;
+  width: 100% !important;
+  height: auto !important;
+}
+
+/* Ensure icons stay perfectly centered and visible */
+.input-icon-stable {
+  position: absolute !important;
+  left: 0.75rem !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+  color: inherit !important;
+}
+
+/* ===================
+   PAGE CONTAINER TRANSPARENCY - REMOVE GRAY BACKGROUNDS
+   =================== */
+
+/* Make saved and discover page containers transparent */
+.bg-surface-900.border-2.border-tonal-800,
+.bg-surface-900.border-2.rounded-lg.border-tonal-800 {
+  background-color: transparent !important;
+  border-color: #4B5563 !important;
+}
+
+/* Specifically target the main containers on saved and discover pages */
+div.bg-surface-900.border-2.border-tonal-800,
+div.bg-surface-900.border-2.rounded-lg.border-tonal-800 {
+  background-color: transparent !important;
+}
+
+/* Keep the page background dark but make containers transparent */
+.page-container .bg-surface-900,
+.w-full .bg-surface-900 {
+  background-color: transparent !important;
+}
+
+/* ===================
+   GAME MODAL CENTERING AND NO SCROLLING
+   =================== */
+/* Ensure modal is perfectly centered on the page */
+.fixed.inset-0.z-50 {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 50 !important;
+}
+
+/* Force modal content to have no scrolling */
+.fixed.inset-0.z-50 .w-full.max-w-4xl {
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    overflow-x: hidden !important;
+}
+
+.fixed.inset-0.z-50 .w-full.max-w-4xl .p-6 {
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    overflow-x: hidden !important;
+}
+
+/* Force summary text to be truncated */
+div[class*="bg-[rgba(31,41,55,0.6)]"] {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 4 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.5 !important;
+    max-height: 6em !important;
+}
+
+/* ===================
+   FORCE GAME MODAL BACKGROUND COLORS
+   =================== */
+
+/* Force modal main container background */
+div[ref="modalContentRef"],
+div[tabindex="-1"] {
+  background-color: #1F2937 !important;
+}
+
+/* Force modal background using attribute selectors */
+div[class*="bg-[#1F2937]"] {
+  background-color: #1F2937 !important;
+}
+
+/* Force modal background using more specific selectors */
+.flex.justify-center.px-4 .w-full.max-w-none .py-24 > div {
+  background-color: #1F2937 !important;
+}
+
+/* Force modal background using the exact class combination */
+div.bg-\[#1F2937\].p-6.w-full.max-w-small.sm\:max-w-md.md\:max-w-3xl.lg\:max-w-4xl.xl\:max-w-5xl.shadow-2xl.relative.border-2.border-\[#374151\].rounded-lg.transition-all.duration-300 {
+  background-color: #1F2937 !important;
+}
+
+/* Force all modal elements to use correct colors */
+div[class*="bg-[#374151]"] {
+  background-color: #374151 !important;
+}
+
+div[class*="bg-[rgba(31,41,55,0.8)]"] {
+  background-color: rgba(31, 41, 55, 0.8) !important;
+}
+
+div[class*="bg-[rgba(31,41,55,0.6)]"] {
+  background-color: rgba(31, 41, 55, 0.6) !important;
+}
+
+/* Force button background */
+button[class*="bg-[#374151]"] {
+  background-color: #374151 !important;
+}
+
+button[class*="hover:bg-[#6D9F5B]"]:hover {
+  background-color: #6D9F5B !important;
+}
+
+/* ===================
+   CROSS-BROWSER COLOR CONSISTENCY FIXES
+   =================== */
+
+/* Force consistent color rendering across all browsers */
+html {
+  color-scheme: dark only !important;
+  -webkit-color-scheme: dark !important;
+  -moz-color-scheme: dark !important;
+  color-rendering: optimizeQuality !important;
+  -webkit-color-rendering: optimizeQuality !important;
+}
+
+/* Prevent browser dark mode auto-adjustments */
+* {
+  color-adjust: exact !important;
+  -webkit-color-adjust: exact !important;
+  -moz-color-adjust: exact !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  forced-color-adjust: none !important;
+}
+
+/* Chrome-specific fixes for dark mode color bleeding */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  /* Chrome-specific selector */
+  .bg-primary-600\/20,
+  [class*="bg-primary-600/20"] {
+    background-color: rgba(109, 159, 91, 0.2) !important;
+    color-space: srgb !important;
+  }
+  
+  .text-primary-100,
+  [class*="text-primary-100"] {
+    color: #e5e7eb !important;
+    color-space: srgb !important;
+  }
+  
+  /* Force Chrome to use exact colors */
+  .bg-surface-900 {
+    background-color: #020817 !important;
+    color-space: srgb !important;
+  }
+  
+  .bg-surface-800 {
+    background-color: #1f2937 !important;
+    color-space: srgb !important;
+  }
+}
+
+/* Firefox-specific fixes */
+@-moz-document url-prefix() {
+  .bg-primary-600\/20,
+  [class*="bg-primary-600/20"] {
+    background-color: rgba(109, 159, 91, 0.2) !important;
+  }
+  
+  .text-primary-100,
+  [class*="text-primary-100"] {
+    color: #e5e7eb !important;
+  }
+}
+
+/* Safari-specific fixes */
+@supports (-webkit-backdrop-filter: blur()) {
+  .bg-primary-600\/20,
+  [class*="bg-primary-600/20"] {
+    background-color: rgba(109, 159, 91, 0.2) !important;
+  }
+  
+  .text-primary-100,
+  [class*="text-primary-100"] {
+    color: #e5e7eb !important;
+  }
+}
+
+/* Force consistent OKLAB/P3 color handling in modern browsers */
+@supports (color: oklab(0 0 0)) {
+  .bg-primary-600\/20,
+  [class*="bg-primary-600/20"] {
+    background-color: rgba(109, 159, 91, 0.2) !important;
+  }
+}
+
+/* Prevent automatic color adjustments in high contrast mode */
+@media (prefers-contrast: high) {
+  * {
+    color-adjust: exact !important;
+    -webkit-color-adjust: exact !important;
+    forced-color-adjust: none !important;
+  }
+}
+
+/* Ensure consistent rendering in reduced motion mode */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    color-adjust: exact !important;
+    -webkit-color-adjust: exact !important;
+  }
 }

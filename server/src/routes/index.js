@@ -1,11 +1,30 @@
-import { Router } from 'express';
-import authRoutes from './auth-routes.js';
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import gameRoutes from './api/gameRoutes.js';
+import userRoutes from './api/userRoutes.js';
+import pubnubRoutes from './api/pubnub.js';
+
 import apiRoutes from './api/index.js';
-import { authenticateToken } from '../middleware/auth.js';
 
-const router = Router();
+// Create router
+const router = express.Router();
 
-router.use('/auth', authRoutes);
-router.use('/api2', authenticateToken, apiRoutes);
+//
+
+// API routes
+router.use('/api/games', gameRoutes);
+router.use('/api/user', userRoutes);
+router.use('/api/pubnub', pubnubRoutes);
+
+router.use('/api', apiRoutes);
+
+try {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  
+} catch (error) {
+}
 
 export default router;

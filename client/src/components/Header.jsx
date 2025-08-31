@@ -1,33 +1,28 @@
 import { Link } from "react-router-dom";
 import Aside from './headerComponents/Aside';
-import { LuMenu, LuX } from "react-icons/lu";
+import { LuMenu, LuX, LuSearch } from "react-icons/lu";
 import React, { useEffect, useState } from "react";
+import { useQuery } from "@apollo/client";
+import { GET_ME } from "../utils/queries";
 import Auth from '../utils/auth';
+import ProfileDropdown from './ProfileDropdown';
+import { DotLoader } from '../utils/LoadingSkeletons';
 
 export default function Header() {
-    const [data, setData] = useState(null);
-    const [error, setError] = useState(null);
-    const [asideOpen, setAsideOpen] = useState(false); // State to manage the aside menu
-    const [isLoggedIn, setIsLoggedIn] = useState(Auth.loggedIn()); // State to manage login status
+    const [asideOpen, setAsideOpen] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(Auth.loggedIn());
 
+    
+
+    // Use Apollo's useQuery hook to fetch user data
+    const { loading, error, data } = useQuery(GET_ME, {
+        skip: !isLoggedIn, // Skip query if the user is not logged in
+    });
+
+    // Check login status whenever the component renders
     useEffect(() => {
-        const token = localStorage.getItem('jwtToken'); // Retrieve the token from local storage
-
-        if (!token) {
-            setError(new Error('No token found'));
-            return;
-        }
-
-        fetch('/api2/videogames', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => setData(data))
-        .catch(error => setError(error));
+        const authStatus = Auth.loggedIn();
+        setIsLoggedIn(authStatus);
     }, []);
 
     const toggleAside = () => {
@@ -36,13 +31,23 @@ export default function Header() {
 
     const handleLogout = () => {
         Auth.logout();
-        setIsLoggedIn(false);
     };
+
+    if (loading) {
+        return (
+            <div className="text-center mt-20">
+                <DotLoader />
+            </div>
+        );
+    }
+
+    if (error) {
+    }
 
     return (
         <div>
             <header>
-                <div className="fixed top-0 z-20 w-full bg-surface-900 border-b border-surface-600 py-2">
+                <div className="fixed top-0 z-50 w-full bg-surface-900 border-b border-surface-600 py-2">
                     <div className="px-3 py-3">
                         <div className="flex items-center justify-between">
                             <div className="flex md:hidden items-center space-x-4">
@@ -53,15 +58,13 @@ export default function Header() {
                             <div className="flex items-center space-x-4">
                                 <Link to="/" className="text-xl font-bold text-primary-600">RespawnRoom</Link>
                             </div>
-                            <div className="flex items-center space-x-4"> 
-                                {!isLoggedIn ? 
-                                <button>
-                                    <Link to="/login" className="text-lg font-medium text-light py-0.5 px-1 rounded-lg bg-primary-600 hover:bg-primary-700">Log in</Link> 
-                                </button> 
-                                :
-                                <button onClick={handleLogout}>
-                                    <Link to="/" className="text-lg font-medium text-light py-0.5 px-1 rounded-lg bg-primary-600 hover:bg-primary-700">Log out</Link> 
-                                </button>}
+                            <div className="flex items-center space-x-4">
+                                <Link to="/search" className="text-2xl text-light hover:text-primary-600">
+                                    <LuSearch />
+                                </Link>
+                                {isLoggedIn && data?.me && (
+                                    <ProfileDropdown user={data.me} onLogout={handleLogout} />
+                                )}
                             </div>
                         </div>
                     </div>

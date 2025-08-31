@@ -1,47 +1,39 @@
-import { DataTypes, Model } from 'sequelize';
+// filepath: c:\Users\bames\bootcamp\RespawnRoom\server\src\models\videogames.js
+import { Schema } from 'mongoose';
 
-export class VideoGame extends Model {
-}
-
-export function VideoGameFactory(sequelize) {
-  VideoGame.init(
-    {
-      id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true,
-      },
-      cover: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      name: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-      },
-      genres: {
-        type: DataTypes.ARRAY(DataTypes.STRING), // Use ARRAY type for genres
-        allowNull: false,
-      },
-      player_perspectives: {
-        type: DataTypes.ARRAY(DataTypes.STRING), // Use ARRAY type for player_perspectives
-        allowNull: false,
-      },
-      summary: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-      },
-      userId: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-      },
+// Define the VideoGame schema
+const videoGameSchema = new Schema(
+  {
+    cover: {
+      type: String,
+      required: false, // Make cover optional to allow saving games without covers
+      default: '' // Provide a default empty value
     },
-    {
-      tableName: 'videogames',
-      sequelize,
-      timestamps: false,
-    }
-  );
+    name: {
+      type: String,
+      required: true,
+    },
+    genres: {
+      type: [String], // Array of strings for genres
+      required: true,
+    },
+    playerPerspectives: {
+      type: [String], // Array of strings for player perspectives
+      required: true,
+    },
+    summary: {
+      type: String,
+      required: true,
+    },
+    userId: {
+      type: Schema.Types.ObjectId, // Reference to a User document
+      ref: 'User',
+      required: false,
+    },
+  },
+  {
+    timestamps: true, // Automatically add createdAt and updatedAt fields
+  }
+);
 
-  return VideoGame;
-}
+export default videoGameSchema; 
