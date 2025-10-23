@@ -29,6 +29,6 @@
 For production deployment:
 - Server runs on AWS Lambda with the serverless-http adapter
 - Frontend is hosted at https://respawnroom.online
-- Backend Lambda URL: https://kp527ouiz74fmouhq2dzzqciky0feltt.lambda-url.us-east-1.on.aws
+- Backend Lambda URL: https://td46u7wdstrhvr4n7brrwn6lxa0zcnkn.lambda-url.us-east-1.on.aws
 
 All environment variables must be properly set with no fallbacks for production deployment.

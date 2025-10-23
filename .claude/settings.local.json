@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run start:*)",
+      "Bash(aws logs tail:*)",
+      "Bash(aws lambda list-functions:*)",
+      "Bash(aws lambda get-function-configuration:*)",
+      "Read(//Users/mahdighaleb/Desktop/**)",
+      "Bash(curl:*)",
+      "Bash(aws lambda get-function:*)",
+      "Bash(aws lambda list-function-url-configs:*)",
+      "Read(//tmp/**)",
+      "Bash(xargs -I {} curl -sL \"https://respawnroom.online{}\")",
+      "Bash(aws s3:*)",
+      "Bash(cat:*)",
+      "Bash(npm run build:*)",
+      "Bash(aws cloudfront create-invalidation:*)",
+      "Bash(aws s3api put-object-acl:*)",
+      "Bash(aws s3api get-bucket-policy:*)",
+      "Bash(aws cloudfront get-distribution-config:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(git log:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

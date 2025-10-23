@@ -217,65 +217,48 @@ export const resolvers = {
 
   Mutation: {
     // This mutation is used to add a new user
-    addUser: async (_parent, { userName, email, password }) => {
+    addUser: async (_parent, { userName, email, password }, context) => {
+      const requestId = context?.requestId || Date.now().toString();
+      console.log(`👤 [${new Date().toISOString()}] [${requestId}] ADD_USER: Mutation started - userName: ${userName}, email: ${email}`);
+      
       try {
+        console.log(`👤 [${new Date().toISOString()}] [${requestId}] ADD_USER: Validating password...`);
         // Check if password is the same as username or email
         if (password === userName || password === email) {
+          console.error(`❌ [${new Date().toISOString()}] [${requestId}] ADD_USER: Password validation failed - password same as username/email`);
           throw new GraphQLError('Password cannot be the same as your username or email', {
             extensions: { code: 'BAD_USER_INPUT' }
           });
         }
-
-        // Check if username already exists
-        const existingUsername = await User.findOne({ userName });
-        if (existingUsername) {
-          throw new GraphQLError('Username is already taken. Please choose a different username.', {
-            extensions: { code: 'BAD_USER_INPUT' }
-          });
-        }
-
-        // Check if email already exists
-        const existingEmail = await User.findOne({ email });
-        if (existingEmail) {
-          throw new GraphQLError('An account with this email already exists. Please use a different email or try logging in.', {
-            extensions: { code: 'BAD_USER_INPUT' }
-          });
-        }
-
+        
+        console.log(`👤 [${new Date().toISOString()}] [${requestId}] ADD_USER: Creating user in database...`);
         const user = await User.create({ userName, email, password });
-
+        console.log(`👤 [${new Date().toISOString()}] [${requestId}] ADD_USER: User created successfully - ID: ${user._id}`);
+      
         if (!user) {
-          throw new GraphQLError('Unable to create account. Please try again later.', {
+          console.error(`❌ [${new Date().toISOString()}] [${requestId}] ADD_USER: User creation returned null`);
+          throw new GraphQLError('Something went wrong creating the user!', {
             extensions: { code: 'INTERNAL_SERVER_ERROR' }
           });
         }
-
+      
+        console.log(`👤 [${new Date().toISOString()}] [${requestId}] ADD_USER: Generating JWT token...`);
         const token = signToken(user.userName, user.email, user._id);
+        console.log(`✅ [${new Date().toISOString()}] [${requestId}] ADD_USER: Mutation completed successfully`);
         return { token, user };
       } catch (err) {
-        // Re-throw GraphQL errors as-is
-        if (err instanceof GraphQLError) {
-          throw err;
-        }
-
-        // Handle duplicate key error as fallback
+        console.error(`❌ [${new Date().toISOString()}] [${requestId}] ADD_USER: Error occurred:`, err.message);
+        
+        // Handle duplicate email error
         if (err.code === 11000) {
-          const field = Object.keys(err.keyPattern)[0];
-          if (field === 'email') {
-            throw new GraphQLError('An account with this email already exists. Please use a different email or try logging in.', {
-              extensions: { code: 'BAD_USER_INPUT' }
-            });
-          } else if (field === 'userName') {
-            throw new GraphQLError('Username is already taken. Please choose a different username.', {
-              extensions: { code: 'BAD_USER_INPUT' }
-            });
-          }
-          throw new GraphQLError('This username or email is already in use.', {
+          console.error(`❌ [${new Date().toISOString()}] [${requestId}] ADD_USER: Duplicate user error - code: ${err.code}`);
+          throw new GraphQLError('Email or username already exists', {
             extensions: { code: 'BAD_USER_INPUT' }
           });
         }
-
-        throw new GraphQLError('Unable to create account. Please try again later.', {
+        
+        console.error(`❌ [${new Date().toISOString()}] [${requestId}] ADD_USER: Unknown error - code: ${err.code || 'N/A'}`);
+        throw new GraphQLError(err.message || 'Failed to create user', {
           extensions: { code: 'INTERNAL_SERVER_ERROR' }
         });
       }

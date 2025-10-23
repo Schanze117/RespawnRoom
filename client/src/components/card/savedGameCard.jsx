@@ -48,7 +48,7 @@ export default function SavedGameCard() {
         if (!summary) return null;
         const formatSummary = summary.slice(0, 180) + '...';
         return (
-            <p className="text-light bg-surface-700 rounded-lg h-41 w-full text-sm md:text-base p-2 ml-3">
+            <p className="text-light bg-surface-700 rounded-lg h-41 text-xs sm:text-sm md:text-base p-2 break-words overflow-hidden">
                 {formatSummary}
             </p>
         );
@@ -149,58 +149,62 @@ export default function SavedGameCard() {
             {savedGames.map((game) => (
                 <div
                     key={game._id}
-                    className="flex flex-col p-4 my-5 mx-3 bg-surface-800 rounded-lg border border-tonal-400 hover:outline-2 hover:outline-light max-w-[440px] sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl h-auto shadow-md hover:shadow-2xl transition duration-300 ease-in-out transform hover:-translate-y-1"
+                    className="flex flex-col p-3 my-5 mx-3 bg-surface-800 rounded-lg border border-tonal-400 hover:outline-2 hover:outline-light max-w-[440px] sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl h-auto shadow-md hover:shadow-2xl transition duration-300 ease-in-out transform hover:-translate-y-1 overflow-hidden"
                 >
-                    <div className="flex flex-col w-full mb-4">
-                        <div className="flex items-center justify-between border-b border-tonal-400 pb-2">
+                    <div className="flex flex-col w-full mb-3 overflow-hidden">
+                        <div className="flex items-center justify-between gap-2 border-b border-tonal-400 pb-2 min-w-0">
                             <button
                                 type="button"
                                 onClick={() => handleDeleteGame(game._id)}
-                                className="p-1 text-tonal-500 hover:text-tonal-800 focus:text-tonal-800 bg-error hover:bg-dark-error rounded-lg focus:outline-2 focus:outline-offset-1 focus:outline-light"
+                                className="flex-shrink-0 p-1 text-tonal-500 hover:text-tonal-800 focus:text-tonal-800 bg-error hover:bg-dark-error rounded-lg focus:outline-2 focus:outline-offset-1 focus:outline-light"
                                 aria-label="Delete game"
                             >
                                 <LuX />
                             </button>
-                            <h2 className={`text-primary-500 ${game.name.length > 15 ? 'text-xl' : 'text-3xl'} font-medium text-center`}>
+                            <h2 className={`text-primary-500 ${game.name.length > 15 ? 'text-base sm:text-xl' : 'text-xl sm:text-3xl'} font-medium text-center break-words overflow-hidden flex-1 min-w-0 px-1`}>
                                 {game.name}
                             </h2>
                             <button
                                 type="button"
                                 onClick={() => handleGameClick(game)}
-                                className="p-1 text-tonal-500 hover:text-tonal-800 focus:text-tonal-800 bg-primary-500 hover:bg-primary-700 rounded-lg focus:outline-2 focus:outline-offset-1 focus:outline-light"
+                                className="flex-shrink-0 p-1 text-tonal-500 hover:text-tonal-800 focus:text-tonal-800 bg-primary-500 hover:bg-primary-700 rounded-lg focus:outline-2 focus:outline-offset-1 focus:outline-light whitespace-nowrap"
                                 aria-label="View game details"
                             >
-                                <span className="text-light text-sm font-medium">View Details</span>
+                                <span className="text-light text-xs sm:text-sm font-medium">View Details</span>
                             </button>
                         </div>
-                        <div className="flex flex-wrap justify-center gap-4 text-tonal-400 text-sm mt-2">
-                            <p>
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap justify-center gap-1 text-tonal-400 text-xs sm:text-sm mt-2 overflow-hidden">
+                            <p className="overflow-hidden text-ellipsis whitespace-nowrap sm:whitespace-normal text-center min-w-0">
                                 <span className="text-primary-400 font-medium">Genres: </span>
-                                {Array.isArray(game.genres) ? game.genres.join(', ') : 'N/A'}
+                                <span>{Array.isArray(game.genres) ? game.genres.join(', ') : 'N/A'}</span>
                             </p>
-                            <p>
+                            <p className="overflow-hidden text-ellipsis whitespace-nowrap sm:whitespace-normal text-center min-w-0">
                                 <span className="text-primary-400 font-medium">POV: </span>
-                                {Array.isArray(game.playerPerspectives)
-                                    ? game.playerPerspectives.join(', ')
-                                    : 'N/A'}
+                                <span>
+                                    {Array.isArray(game.playerPerspectives)
+                                        ? game.playerPerspectives.join(', ')
+                                        : 'N/A'}
+                                </span>
                             </p>
                         </div>
                     </div>
-                    <div className="flex flex-row items-center gap-4">
+                    <div className="flex flex-row items-center gap-3 overflow-hidden min-w-0">
                         <img
-                            src={!imageError[game._id] && game.cover 
+                            src={!imageError[game._id] && game.cover
                                 ? getOptimizedImageUrl(game.cover)
                                 : NoImage}
                             alt={`Cover for ${game.name}`}
-                            className="w-32 h-41 object-cover rounded-lg"
+                            className="w-28 sm:w-32 h-41 object-cover rounded-lg flex-shrink-0"
                             onError={() => handleImageError(game._id)}
                         />
-                        {game.summary 
-                            ? handleSummary(game.summary)
-                            : <p className="text-light bg-surface-700 rounded-lg h-41 w-full text-sm md:text-base p-2 ml-3">
-                                No summary available.
-                            </p>
-                        }
+                        <div className="flex-1 min-w-0 overflow-hidden">
+                            {game.summary
+                                ? handleSummary(game.summary)
+                                : <p className="text-light bg-surface-700 rounded-lg h-41 text-xs sm:text-sm md:text-base p-2 break-words overflow-hidden">
+                                    No summary available.
+                                </p>
+                            }
+                        </div>
                     </div>
                 </div>
             ))}

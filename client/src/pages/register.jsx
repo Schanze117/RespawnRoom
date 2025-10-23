@@ -16,7 +16,9 @@ export default function Register() {
   const [error, setError] = useState("");
 
   // Use Apollo's useMutation hook for the ADD_USER mutation
-  const [addUser, { loading }] = useMutation(ADD_USER);
+  const [addUser, { loading }] = useMutation(ADD_USER, {
+    errorPolicy: 'all'
+  });
 
   // Handle URL parameters and authentication redirects
   useEffect(() => {
@@ -101,25 +103,48 @@ export default function Register() {
     }
 
     try {
-      
-      
       // Use the ADD_USER mutation
-      const { data } = await addUser({
+      const { data, errors } = await addUser({
         variables: {
           userName: registerForm.userName,
           email: registerForm.email,
           password: registerForm.password,
         },
       });
-      
+
+      // Check if there are errors in the response
+      if (errors && errors.length > 0) {
+        setError(errors[0].message);
+        return;
+      }
+
+      // Check if data and token are present
+      if (!data || !data.addUser || !data.addUser.token) {
+        setError("Registration failed. Please try again later.");
+        return;
+      }
+
       Auth.login(data.addUser.token);
     } catch (err) {
+      // Handle GraphQL errors (most specific)
       if (err.graphQLErrors && err.graphQLErrors.length > 0) {
         setError(err.graphQLErrors[0].message);
-      } else if (err.networkError) {
-        setError('Network error. Please check your connection.');
-      } else {
-        setError("Failed to register. Please try again.");
+      }
+      // Handle network errors with details
+      else if (err.networkError) {
+        if (err.networkError.result?.errors?.[0]?.message) {
+          setError(err.networkError.result.errors[0].message);
+        } else {
+          setError('Network error. Please check your connection.');
+        }
+      }
+      // Handle other errors with messages
+      else if (err.message && !err.message.includes('null')) {
+        setError(err.message);
+      }
+      // Fallback error
+      else {
+        setError("Registration failed. Please try again later.");
       }
     }
   };

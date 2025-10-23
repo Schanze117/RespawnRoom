@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import NoImage from '../../assets/noImage.jpg';
 import { getGameVideo, getGameById } from '../../utils/api';
 import MovieClip from './YouTube/youtube';
@@ -45,9 +46,8 @@ export default function GameModal({ game, onClose, location}) {
 
     const hdCover = handleImage(location);
 
-    // Handle click outside
+    // Handle click outside - only allow closing via outside click or X button
     const handleOutsideClick = (e) => {
-        // Only close if clicking directly on the backdrop (modalRef) and not on the content
         if (e.target === modalRef.current) {
             onClose();
         }
@@ -60,12 +60,16 @@ export default function GameModal({ game, onClose, location}) {
             }
         };
 
-        // Scroll to top when modal opens
-        window.scrollTo(0, 0);
-
-        // Lock body scroll when modal is open
+        // Prevent background scrolling when modal is open
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        const originalPosition = window.getComputedStyle(document.body).position;
+        const scrollY = window.scrollY;
+        
         document.body.style.overflow = 'hidden';
-
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = '100%';
+        
         // Set mounted to true after a small delay to enable animations
         const timer = setTimeout(() => {
             setMounted(true);
@@ -74,12 +78,16 @@ export default function GameModal({ game, onClose, location}) {
                 modalRef.current.focus();
             }
         }, 50);
-
+        
         window.addEventListener('keydown', handleKeyDown);
-
+        
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
-            document.body.style.overflow = '';
+            document.body.style.overflow = originalStyle;
+            document.body.style.position = originalPosition;
+            document.body.style.top = '';
+            document.body.style.width = '';
+            window.scrollTo(0, scrollY);
             clearTimeout(timer);
         };
     }, [onClose]);
@@ -243,26 +251,30 @@ export default function GameModal({ game, onClose, location}) {
         );
     };
 
-    return (
-        <div
+    const modalContent = (
+        <div 
             ref={modalRef}
-            className="fixed inset-0 z-50 overflow-y-auto"
-            style={{
-                backdropFilter: 'blur(5px)',
-                backgroundColor: 'rgba(0,0,0,0.7)'
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+            style={{ 
+                backdropFilter: 'blur(10px)',
+                backgroundColor: 'rgba(0,0,0,0.85)'
             }}
             onClick={handleOutsideClick}
         >
-            {/* Scrollable modal container */}
-            <div className="min-h-full flex items-start justify-center pt-20 pb-6 px-4">
-                <div
-                    ref={modalContentRef}
-                    tabIndex={-1}
-                    className={`my-6 bg-surface-900 p-6 w-full max-w-small sm:max-w-md md:max-w-xl lg:max-w-2xl xl:max-w-6xl shadow-xl relative border border-primary-600/30 rounded-lg transition-all duration-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-                >
+            <div 
+                ref={modalContentRef}
+                className={`bg-[#1F2937] w-full max-w-6xl shadow-2xl border-2 border-[#374151] rounded-lg transition-all duration-300 ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+                style={{ 
+                    maxHeight: '95vh',
+                    overflow: 'hidden'
+                }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Header */}
+                <div className="p-6 border-b border-[#374151] relative">
                     <button 
                         onClick={onClose} 
-                        className="absolute top-3 right-3 text-tonal-600 hover:text-primary-400 focus:outline-none bg-surface-800 rounded-full p-1.5 transition-colors duration-200 z-10"
+                        className="absolute top-4 right-4 text-tonal-600 hover:text-primary-400 focus:outline-none bg-[#374151] hover:bg-[#6D9F5B] rounded-full p-2 transition-all duration-200 z-10 hover:scale-105 shadow-lg"
                         aria-label="Close modal"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -270,38 +282,50 @@ export default function GameModal({ game, onClose, location}) {
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
                     </button>
-                    <h2 className="text-primary-500 text-3xl font-bold text-pretty text-center w-full border-b border-primary-600/20 pb-3 mb-4">
+                    
+                    <h2 className="text-primary-500 text-3xl font-bold text-pretty text-center w-full pr-12">
                         {game.name}
                     </h2>
-                    <div className="flex xl:flex-row flex-col xl:space-x-6 space-y-6 xl:space-y-0 mt-2 py-4 rounded-lg bg-surface-800/70 border border-primary-600/10">
-                        {/* Cover Image */}
-                        <div className='xl:w-[45%] w-full max-w-lg mx-auto'>
-                            {hdCover !== NoImage ? (
-                                <img
-                                    src={hdCover}
-                                    alt={game.name}
-                                    className="w-full h-full object-cover rounded-lg shadow-lg"
-                                />
-                            ) : (
-                                <div className="w-full aspect-ratio-2/3 min-h-[300px] flex items-center justify-center bg-surface-800 rounded-lg shadow-lg">
+                </div>
+                
+                {/* Content - Extended with bottom padding */}
+                <div className="p-6 pb-8">
+                    {/* Use Flexbox for better layout control */}
+                    <div className="flex xl:flex-row flex-col xl:space-x-8 space-y-6 xl:space-y-0">
+                        {/* Cover Image - Even bigger */}
+                        <div className='xl:w-1/2 w-full flex-shrink-0'>
+                            <div className="aspect-[3/4] w-full">
+                                {hdCover !== NoImage ? (
                                     <img
-                                        src={NoImage}
-                                        alt="No image available"
-                                        className="w-2/3 h-2/3 object-contain opacity-70"
+                                        src={hdCover}
+                                        alt={game.name}
+                                        className="w-full h-full object-cover rounded-lg shadow-lg"
                                     />
-                                </div>
-                            )}
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-[#374151] rounded-lg shadow-lg">
+                                        <img
+                                            src={NoImage}
+                                            alt="No image available"
+                                            className="w-2/3 h-2/3 object-contain opacity-70"
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        <div className="flex flex-col text-pretty items-center xl:w-[55%] w-full space-y-4 px-4">
+                        
+                        {/* Content - Adjusted for larger image */}
+                        <div className="xl:w-1/2 w-full space-y-6">
                             {/* Genres and POVs */}
                             <div className="w-full">
-                                <div className="flex items-center justify-between border-b border-primary-600/20 pb-1 mb-2">
+                                <div className="flex items-center justify-between border-b-2 border-primary-600/30 pb-3 mb-4">
                                     <h3 className="text-primary-400 text-xl font-bold">
                                         Genres & Perspectives
                                     </h3>
-                                    {renderRating()}
+                                    <div className="flex-shrink-0 ml-4">
+                                        {renderRating()}
+                                    </div>
                                 </div>
-                                <div className='flex flex-wrap gap-2 mt-2'>
+                                <div className='flex flex-wrap gap-3 mt-4'>
                                     {renderGenres()}
                                     {renderPlayerPerspectives()}
                                     {(!renderGenres() && !renderPlayerPerspectives()) && (
@@ -310,25 +334,27 @@ export default function GameModal({ game, onClose, location}) {
                                 </div>
                             </div>
                             
-                            {/* Summary */}
+                            {/* Summary - Expanded */}
                             <div className="w-full">
-                                <h3 className="text-primary-400 text-xl font-bold mb-2 border-b border-primary-600/20 pb-1">
+                                <h3 className="text-primary-400 text-lg font-bold mb-3 border-b-2 border-primary-600/30 pb-2">
                                     Summary
                                 </h3>
-                                <div className="bg-surface-700/50 rounded-lg p-4 max-h-60 overflow-y-auto text-light text-opacity-90 shadow-inner">
-                                    {game.summary || 'No summary available.'}
+                                <div className="bg-[rgba(31,41,55,0.6)] rounded-lg p-5 text-light text-opacity-90 shadow-inner border border-[rgba(31,41,55,0.4)] hover:border-[rgba(109,159,91,0.3)] transition-colors duration-200">
+                                    <div className="leading-relaxed text-base max-h-40 overflow-y-auto">
+                                        {game.summary || 'No summary available.'}
+                                    </div>
                                 </div>
                             </div>
                             
-                            {/* Video Section */}
-                            <div className="w-full">
-                                <h3 className="text-primary-400 text-xl font-bold mb-2 border-b border-primary-600/20 pb-1">
+                            {/* Video Section - Slightly moved down */}
+                            <div className="w-full mt-8">
+                                <h3 className="text-primary-400 text-lg font-bold mb-3 border-b-2 border-primary-600/30 pb-2">
                                     Trailer
                                 </h3>
                                 <div className="rounded-lg overflow-hidden shadow-lg">
                                     <div className="relative pt-[56.25%] h-0">
                                         {isLoading ? (
-                                            <div className="absolute inset-0 flex items-center justify-center bg-surface-800">
+                                            <div className="absolute inset-0 flex items-center justify-center bg-[#374151]">
                                                 <div className="animate-pulse flex space-x-2">
                                                     <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
                                                     <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
@@ -338,7 +364,7 @@ export default function GameModal({ game, onClose, location}) {
                                         ) : hasVideo ? (
                                             <MovieClip videoId={game.videoId} />
                                         ) : (
-                                            <div className="absolute inset-0 flex items-center justify-center bg-surface-800 text-tonal-400">
+                                            <div className="absolute inset-0 flex items-center justify-center bg-[#374151] text-tonal-400">
                                                 <p>No trailer available</p>
                                             </div>
                                         )}
@@ -351,4 +377,7 @@ export default function GameModal({ game, onClose, location}) {
             </div>
         </div>
     );
-} 
+
+    // Use React portal to render modal outside component tree, directly attached to document.body
+    return createPortal(modalContent, document.body);
+}
